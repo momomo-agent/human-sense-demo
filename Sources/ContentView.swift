@@ -5,7 +5,7 @@ struct ContentView: View {
     @State private var faceManager = FaceTrackingManager()
     @State private var audioManager = AudioDetectionManager()
     @State private var handManager = HandGestureManager()
-    @State private var sttManager = STTManager()
+    @EnvironmentObject var sttManager: STTManager
     @State private var deviceMotion = DeviceMotionManager()
     @State private var engine: HumanStateEngine?
 
@@ -147,9 +147,6 @@ struct ContentView: View {
             let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
             e.start()
-            print("ContentView: Starting STT manager...")
-            sttManager.start()
-            print("ContentView: STT manager start() called")
             deviceMotion.start()
             
             // Temporarily disable hand gesture processing
@@ -160,7 +157,6 @@ struct ContentView: View {
         }
         .onDisappear { 
             engine?.stop()
-            sttManager.stop()
             deviceMotion.stop()
         }
     }
