@@ -76,7 +76,7 @@ class HumanStateEngine {
         if face.eyesClosed { return .eyesClosed }
 
         let jawDelta = abs(face.jawOpen - previousJawOpen)
-        let mouthMoving = jawDelta > 0.015 || face.jawOpen > 0.15
+        let mouthMoving = jawDelta > 0.02 || face.jawOpen > 0.2  // Increased thresholds
         if mouthMoving && audio.isSpeaking { return .speaking }
 
         if !face.isLookingAtScreen { return .distracted }
