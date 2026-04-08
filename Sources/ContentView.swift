@@ -76,7 +76,7 @@ struct ContentView: View {
                                     Text(segment.text)
                                         .foregroundStyle(segment.isToScreen ? .blue : .orange)
                                 }
-                                .id("end")
+                                Color.clear.frame(width: 1, height: 1).id("end")
                             }
                             .font(.body)
                             .padding()
