@@ -56,6 +56,8 @@ struct ContentView: View {
                     Text("DEBUG INFO").font(.caption2.bold()).foregroundStyle(.yellow)
                     Text("Head Roll: \(String(format: "%.2f", state.face.headRoll))").font(.caption2.monospacedDigit())
                     Text("Device Pitch: \(String(format: "%.2f", deviceMotion.debugPitch))").font(.caption2.monospacedDigit())
+                    Text("Gravity Y: \(String(format: "%.2f", deviceMotion.debugGravityY))").font(.caption2.monospacedDigit())
+                    Text("Gravity Z: \(String(format: "%.2f", deviceMotion.debugGravityZ))").font(.caption2.monospacedDigit())
                     Text("Accel Variance: \(String(format: "%.6f", deviceMotion.debugVariance))").font(.caption2.monospacedDigit())
                     Text("Audio Volume: \(String(format: "%.4f", state.audio.volume))").font(.caption2.monospacedDigit())
                 }

@@ -28,6 +28,8 @@ class DeviceMotionManager: ObservableObject {
     @Published var motionState = DeviceMotionState()
     @Published var debugPitch: Float = 0
     @Published var debugVariance: Double = 0
+    @Published var debugGravityY: Double = 0
+    @Published var debugGravityZ: Double = 0
     
     private let motionManager = CMMotionManager()
     private let activityManager = CMMotionActivityManager()
@@ -73,6 +75,9 @@ class DeviceMotionManager: ObservableObject {
     
     private func updatePosture(from motion: CMDeviceMotion) {
         let gravity = motion.gravity
+        
+        debugGravityY = gravity.y
+        debugGravityZ = gravity.z
         
         // Use gravity.z to determine screen orientation
         // gravity.z > 0: screen facing up
