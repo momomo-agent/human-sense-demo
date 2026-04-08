@@ -26,22 +26,25 @@ struct StateCard: View {
                 // Presence indicator
                 StatusPill(
                     emoji: !state.face.faceDetected ? "👻" : (state.face.eyesClosed ? "😴" : "😊"),
-                    label: !state.face.faceDetected ? "不在" : (state.face.eyesClosed ? "闭眼" : "在线"),
+                    label: !state.face.faceDetected ? "不在" : (state.face.eyesClosed ? "闭眼" : "检测中"),
                     color: !state.face.faceDetected ? .gray : (state.face.eyesClosed ? .purple : .green),
                     active: true
                 )
             }
 
-            // Head gesture indicator
-            if state.face.headGesture != .none {
-                Text(state.face.headGesture.rawValue)
-                    .font(.caption.bold())
-                    .foregroundStyle(.cyan)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(Color.cyan.opacity(0.2))
-                    .clipShape(Capsule())
+            // Head gesture indicator (fixed height to prevent layout jumping)
+            ZStack {
+                if state.face.headGesture != .none {
+                    Text(state.face.headGesture.rawValue)
+                        .font(.caption.bold())
+                        .foregroundStyle(.cyan)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color.cyan.opacity(0.2))
+                        .clipShape(Capsule())
+                }
             }
+            .frame(height: 24)
 
             // Combined state description
             Text(state.activity.rawValue)

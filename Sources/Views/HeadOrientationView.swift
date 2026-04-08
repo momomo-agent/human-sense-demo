@@ -22,8 +22,8 @@ struct OrientationBar: View {
     
     var normalized: CGFloat {
         // Clamp to [-range, range] then map to [0, 1]
-        let clamped = max(-CGFloat(range), min(CGFloat(range), CGFloat(value)))
-        return (clamped / CGFloat(range) + 1) / 2
+        let clamped = max(-range, min(range, value))
+        return CGFloat((clamped / range + 1) / 2)
     }
     
     var body: some View {

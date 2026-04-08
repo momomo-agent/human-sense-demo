@@ -1,16 +1,26 @@
 import Foundation
 import Speech
 import AVFoundation
+import SwiftUI
+
+struct SpeechSegment: Identifiable {
+    let id = UUID()
+    let text: String
+    let isToScreen: Bool
+}
 
 @MainActor
 class STTManager: NSObject, ObservableObject {
-    @Published var recognizedText: String = ""
+    @Published var segments: [SpeechSegment] = []
     @Published var isListening: Bool = false
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
+    
+    private var lastText: String = ""
+    var isLookingAtScreen: Bool = false  // Set by external observer
     
     func start() {
         // Request authorization
@@ -49,7 +59,20 @@ class STTManager: NSObject, ObservableObject {
             
             if let result = result {
                 Task { @MainActor in
-                    self.recognizedText = result.bestTranscription.formattedString
+                    let newText = result.bestTranscription.formattedString
+                    
+                    // Check if new text was added
+                    if newText.count > self.lastText.count {
+                        let addedText = String(newText.dropFirst(self.lastText.count))
+                        if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
+                            self.segments.append(SpeechSegment(
+                                text: addedText,
+                                isToScreen: self.isLookingAtScreen
+                            ))
+                        }
+                    }
+                    
+                    self.lastText = newText
                 }
             }
             

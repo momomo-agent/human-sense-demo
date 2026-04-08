@@ -16,16 +16,22 @@ struct ContentView: View {
             VStack(spacing: 12) {
                 StateCard(state: state).padding(.horizontal)
                 
-                // Speech text display
-                if !sttManager.recognizedText.isEmpty {
-                    Text(sttManager.recognizedText)
+                // Speech text display with segmented colors
+                if !sttManager.segments.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 0) {
+                            ForEach(sttManager.segments) { segment in
+                                Text(segment.text)
+                                    .foregroundStyle(segment.isToScreen ? .blue : .orange)
+                            }
+                        }
                         .font(.body)
-                        .foregroundStyle(state.face.isLookingAtScreen ? .blue : .orange)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
+                    }
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
                 }
 
                 // Face mesh + gaze overlay
@@ -80,6 +86,11 @@ struct ContentView: View {
             engine = e
             e.start()
             sttManager.start()
+            
+            // Sync isLookingAtScreen to STTManager
+            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                sttManager.isLookingAtScreen = state.face.isLookingAtScreen
+            }
         }
         .onDisappear { 
             engine?.stop()
