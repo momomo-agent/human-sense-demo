@@ -17,8 +17,8 @@ struct StateCard: View {
 
                 // Speech indicator with color distinction
                 StatusPill(
-                    emoji: state.audio.isSpeaking ? "🗣" : "🤫",
-                    label: state.audio.isSpeaking ? "在说话" : "安静",
+                    emoji: state.activity == .speaking ? "🗣" : "🤫",
+                    label: state.activity == .speaking ? "在说话" : "安静",
                     color: speechColor,
                     active: true
                 )
@@ -68,7 +68,7 @@ struct StateCard: View {
     }
 
     var speechColor: Color {
-        if !state.audio.isSpeaking { return .gray }
+        if state.activity != .speaking { return .gray }
         return state.face.isLookingAtScreen ? .blue : .orange
     }
     
