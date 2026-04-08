@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var faceManager = FaceTrackingManager()
     @State private var audioManager = AudioDetectionManager()
     @State private var handManager = HandGestureManager()
+    @State private var sttManager = STTManager()
     @State private var engine: HumanStateEngine?
 
     var state: HumanState { engine?.humanState ?? HumanState() }
@@ -14,6 +15,18 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 12) {
                 StateCard(state: state).padding(.horizontal)
+                
+                // Speech text display
+                if !sttManager.recognizedText.isEmpty {
+                    Text(sttManager.recognizedText)
+                        .font(.body)
+                        .foregroundStyle(state.face.isLookingAtScreen ? .blue : .orange)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
+                }
 
                 // Face mesh + gaze overlay
                 ZStack {
@@ -66,8 +79,12 @@ struct ContentView: View {
             let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
             e.start()
+            sttManager.start()
         }
-        .onDisappear { engine?.stop() }
+        .onDisappear { 
+            engine?.stop()
+            sttManager.stop()
+        }
     }
 
     private var mappedTrail: [CGPoint] { faceManager.gazeTrail.map { mappedGaze($0) } }

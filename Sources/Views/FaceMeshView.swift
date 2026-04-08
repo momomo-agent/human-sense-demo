@@ -15,7 +15,7 @@ struct FaceMeshView: UIViewRepresentable {
         let cameraNode = SCNNode()
         cameraNode.camera = SCNCamera()
         cameraNode.position = SCNVector3(0, 0, 0.5)
-        cameraNode.eulerAngles = SCNVector3(0, .pi, 0)  // Rotate 180° to face the user
+        cameraNode.eulerAngles = SCNVector3(0, Float.pi, 0)  // Rotate 180° to face the user
         sceneView.scene?.rootNode.addChildNode(cameraNode)
         
         // Face node

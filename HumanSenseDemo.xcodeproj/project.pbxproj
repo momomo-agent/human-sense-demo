@@ -16,6 +16,7 @@
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
+		709D80E0A91136F9603A31E9 /* STTManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFD931BD6B3C66165DD7A01 /* STTManager.swift */; };
 		76DD57A7E20E1048CB848DAC /* FaceTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */; };
 		773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229316286F5816B7C9E4CCE7 /* StateCard.swift */; };
 		83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */; };
@@ -44,6 +45,7 @@
 		424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceIndicatorView.swift; sourceTree = "<group>"; };
 		4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceTrackingManager.swift; sourceTree = "<group>"; };
 		57D2E68CB3026920745495F2 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		5CFD931BD6B3C66165DD7A01 /* STTManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTManager.swift; sourceTree = "<group>"; };
 		6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadOrientationView.swift; sourceTree = "<group>"; };
 		704BCA8FF77A5E3ABD01C277 /* HumanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanState.swift; sourceTree = "<group>"; };
 		875186549B9D6863D51C1DBC /* HandGestureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureManager.swift; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 				33B35AF4B42C4D80C8F95FB2 /* HeadGestureDetector.swift */,
 				0172B83F79DBD9E9C24DFC59 /* HumanStateEngine.swift */,
 				8E7176F414066A6EE4CBEBDA /* LowPassFilter.swift */,
+				5CFD931BD6B3C66165DD7A01 /* STTManager.swift */,
 			);
 			path = Tracking;
 			sourceTree = "<group>";
@@ -214,6 +217,7 @@
 				E30689109F7D7CD3DE601CF5 /* HumanStateEngine.swift in Sources */,
 				F8FCDC4BBC4A0F4334FD26ED /* LowPassFilter.swift in Sources */,
 				401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */,
+				709D80E0A91136F9603A31E9 /* STTManager.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
 			);

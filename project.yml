@@ -30,6 +30,7 @@ targets:
           - UIInterfaceOrientationPortrait
         NSCameraUsageDescription: "用于人脸追踪和注视检测"
         NSMicrophoneUsageDescription: "用于语音活动检测"
+        NSSpeechRecognitionUsageDescription: "用于实时语音转文字"
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.momomo.HumanSenseDemo
       SWIFT_VERSION: "5.9"
