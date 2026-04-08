@@ -17,8 +17,9 @@ struct HandGestureView: View {
                     .foregroundStyle(hand.detected ? .primary : .secondary)
             }
             
-            if hand.detected && !hand.handPoints.isEmpty {
-                Canvas { context, size in
+            // Fixed height canvas to prevent layout jumping
+            Canvas { context, size in
+                if hand.detected && !hand.handPoints.isEmpty {
                     for point in hand.handPoints {
                         let x = point.x * size.width
                         let y = point.y * size.height
@@ -28,10 +29,10 @@ struct HandGestureView: View {
                         )
                     }
                 }
-                .frame(height: 60)
-                .background(Color.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 4))
             }
+            .frame(height: 60)
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 4))
         }
     }
 }
