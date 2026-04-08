@@ -52,7 +52,7 @@ class FaceTrackingManager: NSObject, ObservableObject {
         
         // Roll (tilt rotation around Z axis) with calibration offset
         let rawRoll = atan2(transform.columns.1.x, transform.columns.1.y)
-        let roll = rawRoll + 1.08  // Calibration offset for this device
+        let roll = rawRoll + 1.6  // Calibration offset for this device
         
         return (yaw, pitch, roll)
     }
