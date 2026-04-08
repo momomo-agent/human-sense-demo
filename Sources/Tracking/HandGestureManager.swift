@@ -87,27 +87,73 @@ class HandGestureManager: NSObject, ObservableObject {
         let thumbUp = thumb.location.y > wrist.location.y + 0.15
         let indexUp = index.location.y > wrist.location.y + 0.15
         let middleUp = middle.location.y > wrist.location.y + 0.15
+        let ringUp = ring.location.y > wrist.location.y + 0.15
+        let pinkyUp = pinky.location.y > wrist.location.y + 0.15
         let ringDown = ring.location.y < wrist.location.y + 0.1
         let pinkyDown = pinky.location.y < wrist.location.y + 0.1
         
+        // Thumbs up: thumb up, others down
         if thumbUp && !indexUp && !middleUp && ringDown && pinkyDown {
             return .thumbsUp
         }
         
+        // Peace: index + middle up, others down
         if indexUp && middleUp && !thumbUp && ringDown && pinkyDown {
             return .peace
         }
         
-        if thumbUp && indexUp && middleUp && middle.confidence > 0.3 && ring.confidence > 0.3 {
+        // OK: thumb and index touching, others up
+        let thumbIndexDist = hypot(thumb.location.x - index.location.x, thumb.location.y - index.location.y)
+        if thumbIndexDist < 0.08 && middleUp && ringUp && pinkyUp {
+            return .ok
+        }
+        
+        // Love heart: thumb and index forming angle, others down
+        if thumbUp && indexUp && !middleUp && ringDown && pinkyDown {
+            let angle = atan2(index.location.y - thumb.location.y, index.location.x - thumb.location.x)
+            if abs(angle) > 0.5 && abs(angle) < 2.0 {
+                return .love
+            }
+        }
+        
+        // Rock: index + pinky up, middle + ring down
+        if indexUp && pinkyUp && !middleUp && ringDown {
+            return .rock
+        }
+        
+        // Pray: all fingers up and close together
+        if thumbUp && indexUp && middleUp && ringUp && pinkyUp {
+            let spread = abs(index.location.x - pinky.location.x)
+            if spread < 0.15 {
+                return .pray
+            }
             return .openPalm
         }
         
-        if !thumbUp && !indexUp && !middleUp && ringDown && pinkyDown {
-            return .fist
+        // Numbers
+        if indexUp && !middleUp && !thumbUp && ringDown && pinkyDown {
+            return .one
         }
         
-        if indexUp && !middleUp && !thumbUp && ringDown && pinkyDown {
-            return .pointing
+        if indexUp && middleUp && !thumbUp && ringDown && pinkyDown {
+            return .two
+        }
+        
+        if thumbUp && indexUp && middleUp && ringDown && pinkyDown {
+            return .three
+        }
+        
+        if indexUp && middleUp && ringUp && pinkyUp && !thumbUp {
+            return .four
+        }
+        
+        if thumbUp && indexUp && middleUp && ringUp && pinkyUp {
+            return .five
+        }
+        
+        // Fist: all fingers down
+        if !thumbUp && !indexUp && !middleUp && ringDown && pinkyDown {
+            return .fist
         }
         
         return .none

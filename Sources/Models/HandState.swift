@@ -8,6 +8,15 @@ enum HandGesture: String {
     case openPalm = "🖐 张开手掌"
     case fist = "✊ 握拳"
     case pointing = "☝️ 指向"
+    case ok = "👌 OK"
+    case love = "❤️ 爱心"
+    case rock = "🤘 摇滚"
+    case pray = "🙏 祈祷"
+    case one = "1️⃣ 数字1"
+    case two = "2️⃣ 数字2"
+    case three = "3️⃣ 数字3"
+    case four = "4️⃣ 数字4"
+    case five = "5️⃣ 数字5"
     
     static func detect(from observation: VNHumanHandPoseObservation) -> HandGesture {
         guard let thumbTip = try? observation.recognizedPoint(.thumbTip),
