@@ -5,6 +5,8 @@ import Combine
 @MainActor
 class FaceTrackingManager: NSObject, ObservableObject {
     @Published var faceState = FaceState()
+    @Published var currentAnchor: ARFaceAnchor?
+    @Published var gazeTrail: [CGPoint] = []
     
     private let arSession = ARSession()
     private let processingQueue = DispatchQueue(label: "com.momomo.facetracking", qos: .userInitiated)
@@ -12,6 +14,7 @@ class FaceTrackingManager: NSObject, ObservableObject {
     private var gazeFilterX: LowPassFilter?
     private var gazeFilterY: LowPassFilter?
     private var previousJawOpen: Float = 0
+    private var lastTrailAppend = Date.distantPast
     
     override init() {
         super.init()
@@ -108,8 +111,8 @@ extension FaceTrackingManager: ARSessionDelegate {
                 newState.headPitch = pitch
                 newState.headRoll = roll
                 
-                // Looking at screen if head is roughly facing forward
-                newState.isLookingAtScreen = abs(yaw) < 0.4 && abs(pitch) < 0.35
+                // Looking at screen if head is roughly facing forward (relaxed thresholds)
+                newState.isLookingAtScreen = abs(yaw) < 0.5 && abs(pitch) < 0.45
                 
                 newState.jawOpen = jawOpen
                 newState.mouthClose = mouthClose
@@ -129,6 +132,15 @@ extension FaceTrackingManager: ARSessionDelegate {
                 
                 self.faceState = newState
                 self.previousJawOpen = jawOpen
+                self.currentAnchor = anchor
+
+                // Append gaze trail at ~10fps
+                let now = Date()
+                if now.timeIntervalSince(self.lastTrailAppend) >= 0.1 {
+                    self.gazeTrail.append(newState.gazePoint)
+                    if self.gazeTrail.count > 100 { self.gazeTrail.removeFirst() }
+                    self.lastTrailAppend = now
+                }
             }
         }
     }

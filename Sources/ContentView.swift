@@ -2,78 +2,79 @@ import SwiftUI
 import ARKit
 
 struct ContentView: View {
-    @State private var engine: HumanStateEngine
-    
-    init() {
-        let faceManager = FaceTrackingManager()
-        let audioManager = AudioDetectionManager()
-        _engine = State(initialValue: HumanStateEngine(faceManager: faceManager, audioManager: audioManager))
-    }
-    
-    var state: HumanState { engine.humanState }
-    
+    @State private var faceManager = FaceTrackingManager()
+    @State private var audioManager = AudioDetectionManager()
+    @State private var engine: HumanStateEngine?
+
+    var state: HumanState { engine?.humanState ?? HumanState() }
+    var history: [(date: Date, activity: HumanActivity)] { engine?.stateHistory ?? [] }
+
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            
+        ScrollView {
             VStack(spacing: 12) {
                 // State card
-                StateCard(state: state)
-                    .padding(.horizontal)
-                
-                // Gaze point overlay area
+                StateCard(state: state).padding(.horizontal)
+
+                // Face mesh + gaze overlay
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color.white.opacity(0.05))
-                        .frame(height: 120)
-                    
+
                     if state.face.faceDetected {
+                        FaceMeshView(faceAnchor: faceManager.currentAnchor)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        GazeTrailView(trail: mappedTrail)
                         GazeOverlay(
-                            gazePoint: normalizedGazePoint(state.face.gazePoint),
+                            gazePoint: mappedGaze(state.face.gazePoint),
                             isLooking: state.face.isLookingAtScreen
                         )
-                        .frame(height: 120)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
-                        Text("未检测到人脸")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text("未检测到人脸").font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                .frame(height: 200)
                 .padding(.horizontal)
-                
+
+                // Eyes + mouth
+                HStack(spacing: 16) {
+                    EyeVisualizerView(face: state.face)
+                    MouthVisualizerView(jawOpen: state.face.jawOpen, mouthClose: state.face.mouthClose)
+                }
+                .padding(.horizontal)
+
                 // Data panels
                 VStack(spacing: 10) {
-                    HeadOrientationView(
-                        yaw: state.face.headYaw,
-                        pitch: state.face.headPitch,
-                        roll: state.face.headRoll
-                    )
-                    
+                    StateTimelineView(history: history)
+                    HeadOrientationView(yaw: state.face.headYaw, pitch: state.face.headPitch, roll: state.face.headRoll)
                     BlendShapePanel(face: state.face)
-                    
                     AudioVisualizerView(audio: state.audio)
                 }
                 .padding()
                 .background(Color.white.opacity(0.05))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal)
-                
-                Spacer()
             }
             .padding(.top)
         }
+        .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
-        .onAppear { engine.start() }
-        .onDisappear { engine.stop() }
+        .onAppear {
+            let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager)
+            engine = e
+            e.start()
+        }
+        .onDisappear { engine?.stop() }
     }
-    
-    // Map gaze point to the overlay area (120pt height)
-    private func normalizedGazePoint(_ point: CGPoint) -> CGPoint {
-        let screenSize = UIScreen.main.bounds.size
-        let overlayHeight: CGFloat = 120
-        let x = (point.x / screenSize.width) * (screenSize.width - 32)
-        let y = (point.y / screenSize.height) * overlayHeight
+
+    private var mappedTrail: [CGPoint] {
+        faceManager.gazeTrail.map { mappedGaze($0) }
+    }
+
+    private func mappedGaze(_ point: CGPoint) -> CGPoint {
+        let screen = UIScreen.main.bounds.size
+        let x = (point.x / screen.width) * (screen.width - 32)
+        let y = (point.y / screen.height) * 200
         return CGPoint(x: x + 16, y: y)
     }
 }
