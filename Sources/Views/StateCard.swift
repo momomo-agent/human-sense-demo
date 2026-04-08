@@ -39,6 +39,13 @@ struct StateCard: View {
                     active: state.face.faceDetected
                 )
             }
+            
+            // Emotion indicator
+            if state.face.faceDetected {
+                Text(state.face.emotion.rawValue)
+                    .font(.title2)
+                    .padding(.vertical, 4)
+            }
 
             // Head gesture indicator (fixed height to prevent layout jumping)
             ZStack {

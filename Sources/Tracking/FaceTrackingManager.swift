@@ -16,6 +16,7 @@ class FaceTrackingManager: NSObject, ObservableObject {
     private var previousJawOpen: Float = 0
     private var lastTrailAppend = Date.distantPast
     private let headGestureDetector = HeadGestureDetector()
+    private let emotionDetector = EmotionDetector()
     
     weak var handManager: HandGestureManager?
     
@@ -132,6 +133,9 @@ extension FaceTrackingManager: ARSessionDelegate {
                 
                 // Head gesture detection
                 newState.headGesture = self.headGestureDetector.update(yaw: yaw, pitch: pitch, roll: roll)
+                
+                // Emotion detection
+                newState.emotion = self.emotionDetector.detectEmotion(from: anchor.blendShapes)
                 
                 // Distance from camera (Z axis in meters)
                 newState.distanceFromCamera = abs(anchor.transform.columns.3.z)
