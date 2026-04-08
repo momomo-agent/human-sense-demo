@@ -23,12 +23,20 @@ struct StateCard: View {
                     active: true
                 )
 
-                // Presence indicator
+                // Face orientation indicator
                 StatusPill(
-                    emoji: !state.face.faceDetected ? "👻" : (state.face.eyesClosed ? "😴" : "😊"),
-                    label: !state.face.faceDetected ? "不在" : (state.face.eyesClosed ? "闭眼" : "检测中"),
-                    color: !state.face.faceDetected ? .gray : (state.face.eyesClosed ? .purple : .green),
-                    active: true
+                    emoji: faceOrientationEmoji,
+                    label: faceOrientationLabel,
+                    color: state.face.faceDetected ? .blue : .gray,
+                    active: state.face.faceDetected
+                )
+                
+                // Eye state indicator
+                StatusPill(
+                    emoji: state.face.eyesClosed ? "😴" : "👀",
+                    label: state.face.eyesClosed ? "闭眼" : "睁眼",
+                    color: state.face.eyesClosed ? .purple : .green,
+                    active: state.face.faceDetected
                 )
             }
 
@@ -45,11 +53,6 @@ struct StateCard: View {
                 }
             }
             .frame(height: 24)
-
-            // Combined state description
-            Text(state.activity.rawValue)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -59,9 +62,23 @@ struct StateCard: View {
 
     var speechColor: Color {
         if !state.audio.isSpeaking { return .gray }
-        // Speaking to screen (looking + speaking) = blue
-        // Speaking elsewhere (not looking + speaking) = orange
         return state.face.isLookingAtScreen ? .blue : .orange
+    }
+    
+    var faceOrientationEmoji: String {
+        if !state.face.faceDetected { return "👻" }
+        let yaw = state.face.headYaw
+        if yaw > 0.3 { return "👈" }  // Looking left
+        if yaw < -0.3 { return "👉" }  // Looking right
+        return "😊"  // Facing forward
+    }
+    
+    var faceOrientationLabel: String {
+        if !state.face.faceDetected { return "不在" }
+        let yaw = state.face.headYaw
+        if yaw > 0.3 { return "朝左" }
+        if yaw < -0.3 { return "朝右" }
+        return "朝前"
     }
 }
 
