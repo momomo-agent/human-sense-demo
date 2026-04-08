@@ -20,6 +20,7 @@ struct DeviceMotionState {
     var posture: DevicePosture = .upright
     var orientation: DeviceOrientation = .portrait
     var isWalking: Bool = false
+    var isHolding: Bool = false  // New: holding vs placed
 }
 
 @MainActor
@@ -28,6 +29,8 @@ class DeviceMotionManager: ObservableObject {
     
     private let motionManager = CMMotionManager()
     private let activityManager = CMMotionActivityManager()
+    private var accelerationHistory: [Double] = []
+    private let historySize = 10
     
     func start() {
         // Start device motion updates
@@ -36,6 +39,7 @@ class DeviceMotionManager: ObservableObject {
             motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
                 guard let motion = motion else { return }
                 self?.updatePosture(from: motion)
+                self?.updateHoldingState(from: motion)
             }
         }
         
@@ -104,5 +108,28 @@ class DeviceMotionManager: ObservableObject {
         default:
             motionState.orientation = .unknown
         }
+    }
+    
+    private func updateHoldingState(from motion: CMDeviceMotion) {
+        // Calculate total acceleration magnitude (excluding gravity)
+        let userAccel = motion.userAcceleration
+        let magnitude = sqrt(userAccel.x * userAccel.x + 
+                           userAccel.y * userAccel.y + 
+                           userAccel.z * userAccel.z)
+        
+        // Add to history
+        accelerationHistory.append(magnitude)
+        if accelerationHistory.count > historySize {
+            accelerationHistory.removeFirst()
+        }
+        
+        // Calculate variance over history
+        guard accelerationHistory.count == historySize else { return }
+        let mean = accelerationHistory.reduce(0, +) / Double(historySize)
+        let variance = accelerationHistory.map { pow($0 - mean, 2) }.reduce(0, +) / Double(historySize)
+        
+        // If variance is above threshold, device is being held (micro-movements)
+        // If variance is near zero, device is placed on a surface
+        motionState.isHolding = variance > 0.0001
     }
 }
