@@ -62,6 +62,7 @@ struct ContentView: View {
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear {
+            faceManager.handManager = handManager
             let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
             e.start()
