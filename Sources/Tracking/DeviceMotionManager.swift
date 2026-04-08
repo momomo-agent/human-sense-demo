@@ -20,7 +20,7 @@ enum DeviceOrientation: String {
 }
 
 struct DeviceMotionState {
-    var posture: DevicePosture = .upright
+    var posture: DevicePosture = .uprightStand
     var orientation: DeviceOrientation = .portrait
     var isWalking: Bool = false
     var isHolding: Bool = false  // New: holding vs placed
