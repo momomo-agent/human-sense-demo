@@ -111,8 +111,12 @@ extension FaceTrackingManager: ARSessionDelegate {
                 newState.headPitch = pitch
                 newState.headRoll = roll
                 
-                // Looking at screen if head is roughly facing forward (relaxed thresholds)
-                newState.isLookingAtScreen = abs(yaw) < 0.5 && abs(pitch) < 0.45
+                // Looking at screen: gaze point is within screen bounds
+                let screenSize = UIScreen.main.bounds.size
+                let gazeX = self.gazeFilterX?.value ?? adjusted.x
+                let gazeY = self.gazeFilterY?.value ?? adjusted.y
+                newState.isLookingAtScreen = gazeX > 0 && gazeX < screenSize.width &&
+                                             gazeY > 0 && gazeY < screenSize.height
                 
                 newState.jawOpen = jawOpen
                 newState.mouthClose = mouthClose

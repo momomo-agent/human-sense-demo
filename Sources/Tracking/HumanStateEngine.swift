@@ -14,7 +14,7 @@ class HumanStateEngine {
     private var cancellables = Set<AnyCancellable>()
     private var pendingActivity: HumanActivity?
     private var pendingActivityStartTime: Date?
-    private let debounceInterval: TimeInterval = 0.3
+    private let debounceInterval: TimeInterval = 0.1
     private var previousJawOpen: Float = 0
     private var lastHistoryAppend = Date.distantPast
 

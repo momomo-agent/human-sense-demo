@@ -20,7 +20,11 @@ struct OrientationBar: View {
     let value: Float
     let range: Float
     
-    var normalized: CGFloat { CGFloat((value / range + 1) / 2) }
+    var normalized: CGFloat {
+        // Clamp to [-range, range] then map to [0, 1]
+        let clamped = max(-CGFloat(range), min(CGFloat(range), CGFloat(value)))
+        return (clamped / CGFloat(range) + 1) / 2
+    }
     
     var body: some View {
         HStack(spacing: 8) {

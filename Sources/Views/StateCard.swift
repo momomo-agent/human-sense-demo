@@ -2,30 +2,61 @@ import SwiftUI
 
 struct StateCard: View {
     let state: HumanState
-    
-    var activity: HumanActivity { state.activity }
-    
-    var cardColor: Color {
-        switch activity {
-        case .absent:     return .gray
-        case .eyesClosed: return .purple
-        case .distracted: return .orange
-        case .listening:  return .green
-        case .speaking:   return .blue
-        }
-    }
-    
+
     var body: some View {
         VStack(spacing: 8) {
-            Text(activity.emoji)
-                .font(.system(size: 48))
-            Text(activity.rawValue)
-                .font(.title2.bold())
-                .foregroundStyle(.white)
+            // Multiple simultaneous indicators
+            HStack(spacing: 16) {
+                // Gaze indicator
+                StatusPill(
+                    emoji: state.face.isLookingAtScreen ? "👁" : "👀",
+                    label: state.face.isLookingAtScreen ? "看屏幕" : "看别处",
+                    color: state.face.isLookingAtScreen ? .green : .orange,
+                    active: state.face.faceDetected
+                )
+
+                // Speech indicator
+                StatusPill(
+                    emoji: state.audio.isSpeaking ? "🗣" : "🤫",
+                    label: state.audio.isSpeaking ? "在说话" : "安静",
+                    color: state.audio.isSpeaking ? .blue : .gray,
+                    active: true
+                )
+
+                // Presence indicator
+                StatusPill(
+                    emoji: !state.face.faceDetected ? "👻" : (state.face.eyesClosed ? "😴" : "😊"),
+                    label: !state.face.faceDetected ? "不在" : (state.face.eyesClosed ? "闭眼" : "在线"),
+                    color: !state.face.faceDetected ? .gray : (state.face.eyesClosed ? .purple : .green),
+                    active: true
+                )
+            }
+
+            // Combined state description
+            Text(state.activity.rawValue)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .background(cardColor.gradient)
+        .padding(.vertical, 12)
+        .background(Color.white.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+struct StatusPill: View {
+    let emoji: String
+    let label: String
+    let color: Color
+    let active: Bool
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(emoji).font(.title2)
+            Text(label)
+                .font(.caption2.bold())
+                .foregroundStyle(active ? color : .secondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
