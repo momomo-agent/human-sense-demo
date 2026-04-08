@@ -76,7 +76,7 @@ class HumanStateEngine {
         if face.eyesClosed { return .eyesClosed }
 
         let jawDelta = abs(face.jawOpen - previousJawOpen)
-        let mouthMoving = jawDelta > 0.02 || face.jawOpen > 0.2
+        let mouthMoving = jawDelta > 0.02 && face.jawOpen > 0.2  // Changed to AND
         
         // Speaking requires BOTH mouth movement AND audio
         // Only check audio if mouth is moving
