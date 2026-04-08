@@ -10,7 +10,7 @@ struct HeadOrientationView: View {
             Text("头部朝向").font(.caption).foregroundStyle(.secondary)
             OrientationBar(label: "左右", value: yaw, range: 0.8)
             OrientationBar(label: "上下", value: pitch, range: 0.6)
-            OrientationBar(label: "歪头", value: roll, range: 0.5)
+            OrientationBar(label: "歪头", value: roll, range: 1.0)  // Increased from 0.5 to 1.0
         }
     }
 }
