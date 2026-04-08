@@ -100,12 +100,14 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
 
-                // Hand gesture
+                // Hand gesture (temporarily hidden - needs tuning)
+                /*
                 HandGestureView(hand: state.hand)
                     .padding()
                     .background(Color.white.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal)
+                */
 
                 // Data panels
                 VStack(spacing: 10) {
