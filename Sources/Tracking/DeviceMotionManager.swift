@@ -75,6 +75,8 @@ class DeviceMotionManager: ObservableObject {
         // Calculate pitch angle (forward/backward tilt)
         let pitch = atan2(gravity.y, sqrt(gravity.x * gravity.x + gravity.z * gravity.z))
         
+        print("DEBUG Posture - pitch: \(pitch), gravity: (\(gravity.x), \(gravity.y), \(gravity.z))")
+        
         // Determine posture based on pitch angle
         // pitch > 0: device tilted back (screen facing up)
         // pitch < 0: device tilted forward (screen facing down)
@@ -127,6 +129,8 @@ class DeviceMotionManager: ObservableObject {
         guard accelerationHistory.count == historySize else { return }
         let mean = accelerationHistory.reduce(0, +) / Double(historySize)
         let variance = accelerationHistory.map { pow($0 - mean, 2) }.reduce(0, +) / Double(historySize)
+        
+        print("DEBUG Holding - magnitude: \(magnitude), variance: \(variance)")
         
         // If variance is above threshold, device is being held (micro-movements)
         // If variance is near zero, device is placed on a surface
