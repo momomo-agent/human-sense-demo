@@ -30,7 +30,7 @@ class HandGestureManager: NSObject, ObservableObject {
             guard let self = self, self.isProcessingEnabled else { return }
             
             self.frameCount += 1
-            guard self.frameCount % 10 == 0 else { return }  // Process every 10th frame
+            guard self.frameCount % 15 == 0 else { return }  // Process every 15th frame (~4fps)
             
             let pixelBuffer = frame.capturedImage
             
