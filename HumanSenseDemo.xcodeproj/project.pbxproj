@@ -11,6 +11,7 @@
 		0EB64528D86897A70019C2FE /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */; };
 		19CDA3864BED20FE244F2BCE /* AudioDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA09524045502A2FECE4AF5D /* AudioDetectionManager.swift */; };
 		1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */; };
+		1F232B868C761674782BF189 /* EmotionDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFEB4CBAA3E88C3EA55FD77E /* EmotionDetector.swift */; };
 		2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF934864FE15383E562580E /* GazeTrailView.swift */; };
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
@@ -61,6 +62,7 @@
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
 		DA09524045502A2FECE4AF5D /* AudioDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDetectionManager.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
+		EFEB4CBAA3E88C3EA55FD77E /* EmotionDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmotionDetector.swift; sourceTree = "<group>"; };
 		F2D97773BB0FCD6267340382 /* AudioState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioState.swift; sourceTree = "<group>"; };
 		FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -71,6 +73,7 @@
 			children = (
 				DA09524045502A2FECE4AF5D /* AudioDetectionManager.swift */,
 				56959F682BA09CD4B8524D0E /* DeviceMotionManager.swift */,
+				EFEB4CBAA3E88C3EA55FD77E /* EmotionDetector.swift */,
 				4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */,
 				875186549B9D6863D51C1DBC /* HandGestureManager.swift */,
 				33B35AF4B42C4D80C8F95FB2 /* HeadGestureDetector.swift */,
@@ -206,6 +209,7 @@
 				C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */,
 				7B21A3F40E2326524DA7D176 /* DeviceMotionManager.swift in Sources */,
 				04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */,
+				1F232B868C761674782BF189 /* EmotionDetector.swift in Sources */,
 				902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */,
 				960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */,
 				CF1CAF5E66624C4286A3F4A7 /* FaceState.swift in Sources */,
