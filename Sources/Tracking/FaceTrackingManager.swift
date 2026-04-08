@@ -50,8 +50,8 @@ class FaceTrackingManager: NSObject, ObservableObject {
         // Pitch (up/down rotation around X axis)
         let pitch = asin(-transform.columns.1.z)
         
-        // Roll (tilt rotation around Z axis) - corrected formula
-        let roll = atan2(transform.columns.2.x, transform.columns.2.y)
+        // Roll (tilt rotation around Z axis) - try different formula
+        let roll = atan2(transform.columns.1.x, transform.columns.1.y)
         
         return (yaw, pitch, roll)
     }
