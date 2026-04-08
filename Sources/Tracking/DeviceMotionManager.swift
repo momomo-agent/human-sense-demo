@@ -26,6 +26,8 @@ struct DeviceMotionState {
 @MainActor
 class DeviceMotionManager: ObservableObject {
     @Published var motionState = DeviceMotionState()
+    @Published var debugPitch: Float = 0
+    @Published var debugVariance: Double = 0
     
     private let motionManager = CMMotionManager()
     private let activityManager = CMMotionActivityManager()
@@ -75,7 +77,7 @@ class DeviceMotionManager: ObservableObject {
         // Calculate pitch angle (forward/backward tilt)
         let pitch = atan2(gravity.y, sqrt(gravity.x * gravity.x + gravity.z * gravity.z))
         
-        print("DEBUG Posture - pitch: \(pitch), gravity: (\(gravity.x), \(gravity.y), \(gravity.z))")
+        debugPitch = Float(pitch)
         
         // Determine posture based on pitch angle
         // pitch > 0: device tilted back (screen facing up)
@@ -130,7 +132,7 @@ class DeviceMotionManager: ObservableObject {
         let mean = accelerationHistory.reduce(0, +) / Double(historySize)
         let variance = accelerationHistory.map { pow($0 - mean, 2) }.reduce(0, +) / Double(historySize)
         
-        print("DEBUG Holding - magnitude: \(magnitude), variance: \(variance)")
+        debugVariance = variance
         
         // If variance is above threshold, device is being held (micro-movements)
         // If variance is near zero, device is placed on a surface

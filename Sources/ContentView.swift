@@ -51,6 +51,19 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
                 
+                // Debug info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("DEBUG INFO").font(.caption2.bold()).foregroundStyle(.yellow)
+                    Text("Head Roll: \(String(format: "%.2f", state.face.headRoll))").font(.caption2.monospacedDigit())
+                    Text("Device Pitch: \(String(format: "%.2f", deviceMotion.debugPitch))").font(.caption2.monospacedDigit())
+                    Text("Accel Variance: \(String(format: "%.6f", deviceMotion.debugVariance))").font(.caption2.monospacedDigit())
+                    Text("Audio Volume: \(String(format: "%.4f", state.audio.volume))").font(.caption2.monospacedDigit())
+                }
+                .padding()
+                .background(Color.yellow.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal)
+                
                 // Speech text display with segmented colors
                 if !sttManager.segments.isEmpty {
                     ScrollViewReader { proxy in
