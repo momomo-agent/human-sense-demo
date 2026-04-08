@@ -101,10 +101,19 @@ class STTManager: NSObject, ObservableObject {
             }
             
             if error != nil || result?.isFinal == true {
+                print("STT: Recognition ended (error: \(error != nil), isFinal: \(result?.isFinal == true))")
                 self.audioEngine.stop()
                 self.audioEngine.inputNode.removeTap(onBus: 0)
                 self.recognitionRequest = nil
                 self.recognitionTask = nil
+                
+                // Restart recognition after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if self.isListening {
+                        print("STT: Restarting recognition...")
+                        self.startRecognition()
+                    }
+                }
             }
         }
         
