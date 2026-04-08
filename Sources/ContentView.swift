@@ -141,8 +141,8 @@ struct ContentView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
-        .onAppear {
-            print("ContentView: onAppear called")
+        .task {
+            print("ContentView: task started")
             faceManager.handManager = handManager
             let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
