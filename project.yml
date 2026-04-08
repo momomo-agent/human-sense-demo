@@ -1,0 +1,36 @@
+name: HumanSenseDemo
+options:
+  bundleIdPrefix: com.momomo
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+targets:
+  HumanSenseDemo:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDevelopmentRegion: en
+        CFBundleDisplayName: HumanSense
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleInfoDictionaryVersion: "6.0"
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities:
+          - armv7
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCameraUsageDescription: "用于人脸追踪和注视检测"
+        NSMicrophoneUsageDescription: "用于语音活动检测"
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.momomo.HumanSenseDemo
+      SWIFT_VERSION: "5.9"
+      TARGETED_DEVICE_FAMILY: "1"
