@@ -20,6 +20,11 @@ class AudioDetectionManager: NSObject, ObservableObject {
             Task { @MainActor in
                 self.audioState.volume = rms
                 self.audioState.isSpeaking = rms > self.speechThreshold
+                
+                // Debug output every 30 frames (~1 second)
+                if Int.random(in: 0..<30) == 0 {
+                    print("DEBUG Audio - volume: \(rms), threshold: \(self.speechThreshold), speaking: \(rms > self.speechThreshold)")
+                }
             }
         }
         
