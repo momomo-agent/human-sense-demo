@@ -136,7 +136,7 @@ extension FaceTrackingManager: ARSessionDelegate {
                 newState.headGesture = self.headGestureDetector.update(yaw: yaw, pitch: pitch, roll: roll)
                 
                 // Emotion detection
-                newState.emotion = self.emotionDetector.detectEmotion(from: anchor.blendShapes, isSpeaking: audio.isSpeaking)
+                newState.emotion = self.emotionDetector.detectEmotion(from: anchor.blendShapes, isSpeaking: false)  // Will be updated by HumanStateEngine
                 
                 // Distance from camera (Z axis in meters)
                 newState.distanceFromCamera = abs(anchor.transform.columns.3.z)
