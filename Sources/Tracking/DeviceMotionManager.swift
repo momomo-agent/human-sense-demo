@@ -38,6 +38,8 @@ class DeviceMotionManager: ObservableObject {
     private let activityManager = CMMotionActivityManager()
     private var accelerationHistory: [Double] = []
     private let historySize = 10
+    private var lastWalkingUpdate = Date.distantPast
+    private let walkingTimeout: TimeInterval = 3.0  // Clear walking state after 3s of no updates
     
     func start() {
         // Start device motion updates
@@ -55,6 +57,17 @@ class DeviceMotionManager: ObservableObject {
             activityManager.startActivityUpdates(to: .main) { [weak self] activity in
                 guard let activity = activity else { return }
                 self?.motionState.isWalking = activity.walking
+                if activity.walking {
+                    self?.lastWalkingUpdate = Date()
+                }
+            }
+        }
+        
+        // Check for walking timeout periodically
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if self.motionState.isWalking && Date().timeIntervalSince(self.lastWalkingUpdate) > self.walkingTimeout {
+                self.motionState.isWalking = false
             }
         }
         
