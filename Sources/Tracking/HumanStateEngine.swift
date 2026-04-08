@@ -5,11 +5,11 @@ import Combine
 @Observable
 class HumanStateEngine {
     var humanState = HumanState()
-    // State history for timeline (last 10 seconds at ~10fps = 100 entries)
     var stateHistory: [(date: Date, activity: HumanActivity)] = []
 
     private let faceManager: FaceTrackingManager
     private let audioManager: AudioDetectionManager
+    private let handManager: HandGestureManager
 
     private var cancellables = Set<AnyCancellable>()
     private var pendingActivity: HumanActivity?
@@ -18,14 +18,21 @@ class HumanStateEngine {
     private var previousJawOpen: Float = 0
     private var lastHistoryAppend = Date.distantPast
 
-    init(faceManager: FaceTrackingManager, audioManager: AudioDetectionManager) {
+    init(faceManager: FaceTrackingManager, audioManager: AudioDetectionManager, handManager: HandGestureManager) {
         self.faceManager = faceManager
         self.audioManager = audioManager
+        self.handManager = handManager
 
         faceManager.$faceState
             .combineLatest(audioManager.$audioState)
             .sink { [weak self] face, audio in
                 self?.updateHumanState(face: face, audio: audio)
+            }
+            .store(in: &cancellables)
+
+        handManager.$handState
+            .sink { [weak self] hand in
+                self?.humanState.hand = hand
             }
             .store(in: &cancellables)
     }
@@ -53,11 +60,9 @@ class HumanStateEngine {
             pendingActivityStartTime = nil
         }
 
-        // Append to history at ~10fps
         let now = Date()
         if now.timeIntervalSince(lastHistoryAppend) >= 0.1 {
             stateHistory.append((date: now, activity: humanState.activity))
-            // Keep only last 10 seconds
             let cutoff = now.addingTimeInterval(-10)
             stateHistory.removeAll { $0.date < cutoff }
             lastHistoryAppend = now
@@ -70,24 +75,23 @@ class HumanStateEngine {
         if !face.faceDetected { return .absent }
         if face.eyesClosed { return .eyesClosed }
 
-        // Speaking: mouth moving + has voice (regardless of gaze direction)
         let jawDelta = abs(face.jawOpen - previousJawOpen)
         let mouthMoving = jawDelta > 0.015 || face.jawOpen > 0.15
         if mouthMoving && audio.isSpeaking { return .speaking }
 
-        // "Talking to device": speaking + looking at screen
         if !face.isLookingAtScreen { return .distracted }
-
         return .listening
     }
 
     func start() {
         faceManager.start()
         audioManager.start()
+        handManager.start()
     }
 
     func stop() {
         faceManager.stop()
         audioManager.stop()
+        handManager.stop()
     }
 }

@@ -4,6 +4,7 @@ import ARKit
 struct ContentView: View {
     @State private var faceManager = FaceTrackingManager()
     @State private var audioManager = AudioDetectionManager()
+    @State private var handManager = HandGestureManager()
     @State private var engine: HumanStateEngine?
 
     var state: HumanState { engine?.humanState ?? HumanState() }
@@ -12,23 +13,16 @@ struct ContentView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                // State card
                 StateCard(state: state).padding(.horizontal)
 
                 // Face mesh + gaze overlay
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.05))
-
+                    RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.05))
                     if state.face.faceDetected {
                         FaceMeshView(faceAnchor: faceManager.currentAnchor)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
-
                         GazeTrailView(trail: mappedTrail)
-                        GazeOverlay(
-                            gazePoint: mappedGaze(state.face.gazePoint),
-                            isLooking: state.face.isLookingAtScreen
-                        )
+                        GazeOverlay(gazePoint: mappedGaze(state.face.gazePoint), isLooking: state.face.isLookingAtScreen)
                     } else {
                         Text("未检测到人脸").font(.caption).foregroundStyle(.secondary)
                     }
@@ -36,12 +30,20 @@ struct ContentView: View {
                 .frame(height: 200)
                 .padding(.horizontal)
 
-                // Eyes + mouth
-                HStack(spacing: 16) {
+                // Eyes + mouth + distance
+                HStack(spacing: 12) {
                     EyeVisualizerView(face: state.face)
                     MouthVisualizerView(jawOpen: state.face.jawOpen, mouthClose: state.face.mouthClose)
+                    DistanceIndicatorView(distance: state.face.distanceFromCamera, label: state.face.distanceLabel)
                 }
                 .padding(.horizontal)
+
+                // Hand gesture
+                HandGestureView(hand: state.hand)
+                    .padding()
+                    .background(Color.white.opacity(0.05))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
 
                 // Data panels
                 VStack(spacing: 10) {
@@ -60,16 +62,14 @@ struct ContentView: View {
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear {
-            let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager)
+            let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
             e.start()
         }
         .onDisappear { engine?.stop() }
     }
 
-    private var mappedTrail: [CGPoint] {
-        faceManager.gazeTrail.map { mappedGaze($0) }
-    }
+    private var mappedTrail: [CGPoint] { faceManager.gazeTrail.map { mappedGaze($0) } }
 
     private func mappedGaze(_ point: CGPoint) -> CGPoint {
         let screen = UIScreen.main.bounds.size

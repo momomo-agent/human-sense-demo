@@ -32,4 +32,5 @@ struct HumanState {
     var activity: HumanActivity = .absent
     var face: FaceState = FaceState()
     var audio: AudioState = AudioState()
+    var hand: HandState = HandState()
 }

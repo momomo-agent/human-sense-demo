@@ -111,6 +111,9 @@ extension FaceTrackingManager: ARSessionDelegate {
                 newState.headPitch = pitch
                 newState.headRoll = roll
                 
+                // Distance from camera (Z axis in meters)
+                newState.distanceFromCamera = abs(anchor.transform.columns.3.z)
+                
                 // Looking at screen: gaze point is within screen bounds
                 let screenSize = UIScreen.main.bounds.size
                 let gazeX = self.gazeFilterX?.value ?? adjusted.x

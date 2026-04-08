@@ -11,6 +11,9 @@ struct FaceState {
     var headPitch: Float = 0  // up/down
     var headRoll: Float = 0   // tilt
 
+    // Distance from camera (meters)
+    var distanceFromCamera: Float = 0
+
     // Mouth
     var jawOpen: Float = 0
     var mouthClose: Float = 0
@@ -32,4 +35,16 @@ struct FaceState {
     var gazeV: Float { ((eyeLookDownLeft - eyeLookUpLeft) + (eyeLookDownRight - eyeLookUpRight)) / 2 }
     var eyesClosed: Bool { eyeBlinkLeft > 0.8 && eyeBlinkRight > 0.8 }
     var faceDetected: Bool = false
+
+    // Distance label
+    var distanceLabel: String {
+        switch distanceFromCamera {
+        case 0: return "未知"
+        case ..<0.3: return "很近"
+        case ..<0.5: return "近"
+        case ..<0.8: return "适中"
+        case ..<1.2: return "远"
+        default: return "很远"
+        }
+    }
 }
