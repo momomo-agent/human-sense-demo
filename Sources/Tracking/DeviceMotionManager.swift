@@ -88,7 +88,7 @@ class DeviceMotionManager: ObservableObject {
         // Determine base posture from gravity
         if absZ > 0.8 {
             // Flat (screen up or down)
-            if gravity.z > 0 {
+            if gravity.z < 0 {  // Reversed: z < 0 means screen facing up
                 motionState.posture = .faceUp
             } else {
                 motionState.posture = .faceDown
