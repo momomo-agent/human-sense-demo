@@ -42,9 +42,16 @@ class FaceTrackingManager: NSObject, ObservableObject {
     }
     
     nonisolated private func extractHeadOrientation(from transform: simd_float4x4) -> (yaw: Float, pitch: Float, roll: Float) {
+        // Extract Euler angles from transform matrix
+        // Yaw (left/right rotation around Y axis)
         let yaw = atan2(transform.columns.0.z, transform.columns.2.z)
+        
+        // Pitch (up/down rotation around X axis)
         let pitch = asin(-transform.columns.1.z)
-        let roll = atan2(transform.columns.1.x, transform.columns.1.y)
+        
+        // Roll (tilt rotation around Z axis) - corrected formula
+        let roll = atan2(transform.columns.2.x, transform.columns.2.y)
+        
         return (yaw, pitch, roll)
     }
 }
