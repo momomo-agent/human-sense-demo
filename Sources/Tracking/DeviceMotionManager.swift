@@ -4,12 +4,10 @@ import UIKit
 import Combine
 
 enum DevicePosture: String {
-    case uprightStand = "竖放"      // Standing upright on stand
-    case landscapeStand = "横放"    // Landscape on stand
+    case uprightStand = "竖放"      // Standing upright (portrait)
+    case landscapeStand = "横放"    // Landscape orientation
     case faceUp = "平躺"            // Flat face up
     case faceDown = "盖着"          // Flat face down
-    case holdingPortrait = "持握竖"  // Holding portrait
-    case holdingLandscape = "持握横" // Holding landscape
     case holdingWalking = "持握行走"  // Holding while walking
 }
 
@@ -98,40 +96,26 @@ class DeviceMotionManager: ObservableObject {
         let absY = abs(gravity.y)
         let absZ = abs(gravity.z)
         
+        // Walking takes priority
+        if motionState.isWalking {
+            motionState.posture = .holdingWalking
+            return
+        }
+        
         // Determine base posture from gravity
         if absZ > 0.8 {
             // Flat (screen up or down)
-            if gravity.z < 0 {  // Reversed: z < 0 means screen facing up
+            if gravity.z < 0 {
                 motionState.posture = .faceUp
             } else {
                 motionState.posture = .faceDown
             }
         } else if absY > 0.7 {
-            // Vertical orientation
-            if motionState.isWalking {
-                motionState.posture = .holdingWalking
-            } else if motionState.isHolding {
-                if motionState.orientation == .landscape {
-                    motionState.posture = .holdingLandscape
-                } else {
-                    motionState.posture = .holdingPortrait
-                }
-            } else {
-                // Standing on surface
-                if gravity.z < -0.3 {
-                    // Tilted back (on stand)
-                    motionState.posture = .uprightStand
-                } else {
-                    motionState.posture = .uprightStand
-                }
-            }
+            // Vertical orientation (portrait)
+            motionState.posture = .uprightStand
         } else {
             // Horizontal/landscape
-            if motionState.isHolding {
-                motionState.posture = .holdingLandscape
-            } else {
-                motionState.posture = .landscapeStand
-            }
+            motionState.posture = .landscapeStand
         }
     }
     
@@ -174,6 +158,6 @@ class DeviceMotionManager: ObservableObject {
         
         // If variance is above threshold, device is being held (micro-movements)
         // If variance is near zero, device is placed on a surface
-        motionState.isHolding = variance > 0.0001
+        motionState.isHolding = variance > 0.000005  // Lowered from 0.00001 for more sensitivity
     }
 }
