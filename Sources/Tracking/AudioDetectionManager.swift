@@ -7,7 +7,7 @@ class AudioDetectionManager: NSObject, ObservableObject {
     @Published var audioState = AudioState()
     
     private let audioEngine = AVAudioEngine()
-    private let speechThreshold: Float = 0.003  // Adjusted based on actual measurements
+    private let speechThreshold: Float = 0.0015  // Lowered to detect quieter speech
     
     func start() {
         let inputNode = audioEngine.inputNode
