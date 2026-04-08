@@ -18,20 +18,28 @@ struct ContentView: View {
                 
                 // Speech text display with segmented colors
                 if !sttManager.segments.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 0) {
-                            ForEach(sttManager.segments) { segment in
-                                Text(segment.text)
-                                    .foregroundStyle(segment.isToScreen ? .blue : .orange)
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 0) {
+                                ForEach(sttManager.segments) { segment in
+                                    Text(segment.text)
+                                        .foregroundStyle(segment.isToScreen ? .blue : .orange)
+                                }
+                                .id("end")
+                            }
+                            .font(.body)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal)
+                        .onChange(of: sttManager.segments.count) { _ in
+                            withAnimation {
+                                proxy.scrollTo("end", anchor: .trailing)
                             }
                         }
-                        .font(.body)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal)
                 }
 
                 // Face mesh + gaze overlay
