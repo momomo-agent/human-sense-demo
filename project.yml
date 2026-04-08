@@ -34,3 +34,5 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: com.momomo.HumanSenseDemo
       SWIFT_VERSION: "5.9"
       TARGETED_DEVICE_FAMILY: "1"
+      DEVELOPMENT_TEAM: P2GN9QW8E5
+      CODE_SIGN_STYLE: Automatic
