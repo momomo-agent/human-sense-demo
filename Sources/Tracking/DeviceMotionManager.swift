@@ -74,25 +74,31 @@ class DeviceMotionManager: ObservableObject {
     private func updatePosture(from motion: CMDeviceMotion) {
         let gravity = motion.gravity
         
-        // Calculate pitch angle (forward/backward tilt)
-        let pitch = atan2(gravity.y, sqrt(gravity.x * gravity.x + gravity.z * gravity.z))
+        // Use gravity.z to determine screen orientation
+        // gravity.z > 0: screen facing up
+        // gravity.z < 0: screen facing down
+        // gravity.y determines vertical/horizontal
         
+        let pitch = atan2(gravity.y, sqrt(gravity.x * gravity.x + gravity.z * gravity.z))
         debugPitch = Float(pitch)
         
-        // Determine posture based on pitch angle
-        // pitch > 0: device tilted back (screen facing up)
-        // pitch < 0: device tilted forward (screen facing down)
-        if abs(pitch) < 0.5 {
-            // Nearly horizontal
+        let absZ = abs(gravity.z)
+        let absY = abs(gravity.y)
+        
+        if absZ > 0.8 {
+            // Screen facing up or down (flat)
             motionState.posture = .flat
-        } else if pitch > 0.8 && pitch < 2.0 {
-            // Normal upright position (45° to 90°)
-            motionState.posture = .upright
-        } else if pitch < -0.8 && pitch > -2.0 {
-            // Upside down
-            motionState.posture = .upsideDown
+        } else if absY > 0.8 {
+            // Vertical orientation
+            if gravity.z < -0.3 {
+                // Screen facing away (upside down)
+                motionState.posture = .upsideDown
+            } else {
+                // Normal upright
+                motionState.posture = .upright
+            }
         } else {
-            // In between
+            // Tilted
             motionState.posture = .tilted
         }
     }
