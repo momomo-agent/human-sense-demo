@@ -23,6 +23,16 @@ class STTManager: NSObject, ObservableObject {
     var isLookingAtScreen: Bool = false  // Set by external observer
     
     func start() {
+        print("STT: start() called")
+        
+        // Check if recognizer is available
+        guard let recognizer = speechRecognizer, recognizer.isAvailable else {
+            print("STT: Speech recognizer not available")
+            return
+        }
+        
+        print("STT: Speech recognizer available, requesting authorization...")
+        
         // Request authorization
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             print("STT Authorization status: \(status.rawValue)")
