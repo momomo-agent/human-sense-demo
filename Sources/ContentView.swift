@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var audioManager = AudioDetectionManager()
     @State private var handManager = HandGestureManager()
     @State private var sttManager = STTManager()
+    @State private var deviceMotion = DeviceMotionManager()
     @State private var engine: HumanStateEngine?
 
     var state: HumanState { engine?.humanState ?? HumanState() }
@@ -15,6 +16,33 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 12) {
                 StateCard(state: state).padding(.horizontal)
+                
+                // Device motion state
+                HStack(spacing: 12) {
+                    Text("📱 \(deviceMotion.motionState.posture.rawValue)")
+                        .font(.caption)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Capsule())
+                    
+                    Text("🔄 \(deviceMotion.motionState.orientation.rawValue)")
+                        .font(.caption)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Capsule())
+                    
+                    if deviceMotion.motionState.isWalking {
+                        Text("🚶 行走中")
+                            .font(.caption)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.green.opacity(0.2))
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal)
                 
                 // Speech text display with segmented colors
                 if !sttManager.segments.isEmpty {
@@ -94,6 +122,7 @@ struct ContentView: View {
             engine = e
             e.start()
             sttManager.start()
+            deviceMotion.start()
             
             // Sync isLookingAtScreen to STTManager
             Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
@@ -103,6 +132,7 @@ struct ContentView: View {
         .onDisappear { 
             engine?.stop()
             sttManager.stop()
+            deviceMotion.stop()
         }
     }
 
