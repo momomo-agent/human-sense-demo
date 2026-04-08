@@ -25,12 +25,14 @@ class STTManager: NSObject, ObservableObject {
     func start() {
         // Request authorization
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
+            print("STT Authorization status: \(status.rawValue)")
             guard status == .authorized else {
                 print("Speech recognition not authorized")
                 return
             }
             
             Task { @MainActor in
+                print("Starting STT recognition...")
                 self?.startRecognition()
             }
         }
@@ -44,22 +46,34 @@ class STTManager: NSObject, ObservableObject {
     }
     
     private func startRecognition() {
+        print("STT: Starting recognition task...")
+        
         // Cancel previous task
         recognitionTask?.cancel()
         recognitionTask = nil
         
         // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
+        guard let recognitionRequest = recognitionRequest else { 
+            print("STT: Failed to create recognition request")
+            return 
+        }
         recognitionRequest.shouldReportPartialResults = true
+        
+        print("STT: Created recognition request")
         
         // Start recognition task
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
             guard let self = self else { return }
             
+            if let error = error {
+                print("STT: Recognition error: \(error)")
+            }
+            
             if let result = result {
                 Task { @MainActor in
                     let newText = result.bestTranscription.formattedString
+                    print("STT: Recognized text: \(newText)")
                     
                     // Check if new text was added
                     if newText.count > self.lastText.count {
@@ -84,6 +98,8 @@ class STTManager: NSObject, ObservableObject {
             }
         }
         
+        print("STT: Recognition task started")
+        
         // Configure audio session
         let audioSession = AVAudioSession.sharedInstance()
         try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
@@ -99,5 +115,6 @@ class STTManager: NSObject, ObservableObject {
         audioEngine.prepare()
         try? audioEngine.start()
         isListening = true
+        print("STT: Audio engine started, isListening = true")
     }
 }
