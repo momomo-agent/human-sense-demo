@@ -7,6 +7,16 @@ struct StateTimelineView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("状态时间线 (10秒)").font(.caption).foregroundStyle(.secondary)
             
+            // Legend
+            HStack(spacing: 12) {
+                LegendItem(color: .gray, label: "不在")
+                LegendItem(color: .purple, label: "闭眼")
+                LegendItem(color: .orange, label: "分心")
+                LegendItem(color: .green, label: "倾听")
+                LegendItem(color: .blue, label: "说话")
+            }
+            .font(.caption2)
+            
             GeometryReader { geo in
                 Canvas { context, size in
                     guard !history.isEmpty else { return }
@@ -37,6 +47,20 @@ struct StateTimelineView: View {
             .frame(height: 20)
             .background(Color.secondary.opacity(0.1))
             .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+    }
+}
+
+struct LegendItem: View {
+    let color: Color
+    let label: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
         }
     }
 }
