@@ -15,6 +15,7 @@ class FaceTrackingManager: NSObject, ObservableObject {
     private var gazeFilterY: LowPassFilter?
     private var previousJawOpen: Float = 0
     private var lastTrailAppend = Date.distantPast
+    private let headGestureDetector = HeadGestureDetector()
     
     override init() {
         super.init()
@@ -110,6 +111,9 @@ extension FaceTrackingManager: ARSessionDelegate {
                 newState.headYaw = yaw
                 newState.headPitch = pitch
                 newState.headRoll = roll
+                
+                // Head gesture detection
+                newState.headGesture = self.headGestureDetector.update(yaw: yaw, pitch: pitch, roll: roll)
                 
                 // Distance from camera (Z axis in meters)
                 newState.distanceFromCamera = abs(anchor.transform.columns.3.z)

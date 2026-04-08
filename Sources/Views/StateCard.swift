@@ -15,11 +15,11 @@ struct StateCard: View {
                     active: state.face.faceDetected
                 )
 
-                // Speech indicator
+                // Speech indicator with color distinction
                 StatusPill(
                     emoji: state.audio.isSpeaking ? "🗣" : "🤫",
                     label: state.audio.isSpeaking ? "在说话" : "安静",
-                    color: state.audio.isSpeaking ? .blue : .gray,
+                    color: speechColor,
                     active: true
                 )
 
@@ -32,6 +32,17 @@ struct StateCard: View {
                 )
             }
 
+            // Head gesture indicator
+            if state.face.headGesture != .none {
+                Text(state.face.headGesture.rawValue)
+                    .font(.caption.bold())
+                    .foregroundStyle(.cyan)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 4)
+                    .background(Color.cyan.opacity(0.2))
+                    .clipShape(Capsule())
+            }
+
             // Combined state description
             Text(state.activity.rawValue)
                 .font(.caption)
@@ -41,6 +52,13 @@ struct StateCard: View {
         .padding(.vertical, 12)
         .background(Color.white.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    var speechColor: Color {
+        if !state.audio.isSpeaking { return .gray }
+        // Speaking to screen (looking + speaking) = blue
+        // Speaking elsewhere (not looking + speaking) = orange
+        return state.face.isLookingAtScreen ? .blue : .orange
     }
 }
 

@@ -12,7 +12,7 @@ struct HandGestureView: View {
                     .fill(hand.detected ? Color.green : Color.gray.opacity(0.3))
                     .frame(width: 10, height: 10)
                 
-                Text(hand.detected ? hand.gesture.rawValue : "未检测到手")
+                Text(hand.handLabel)
                     .font(.caption2)
                     .foregroundStyle(hand.detected ? .primary : .secondary)
             }

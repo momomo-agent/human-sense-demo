@@ -71,10 +71,11 @@ extension HandGestureManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             return CGPoint(x: point.location.x, y: 1 - point.location.y) // flip Y
         }
 
+        let isLeft = observation.chirality == .left
         let gesture = HandGesture.detect(from: observation)
 
         Task { @MainActor in
-            self.handState = HandState(detected: true, gesture: gesture, handPoints: points)
+            self.handState = HandState(detected: true, gesture: gesture, handPoints: points, isLeftHand: isLeft)
         }
     }
 }

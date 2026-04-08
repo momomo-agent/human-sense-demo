@@ -67,4 +67,9 @@ struct HandState {
     var detected: Bool = false
     var gesture: HandGesture = .none
     var handPoints: [CGPoint] = []
+    var isLeftHand: Bool = false
+    var handLabel: String {
+        guard detected else { return "未检测到手" }
+        return (isLeftHand ? "左手 " : "右手 ") + gesture.rawValue
+    }
 }

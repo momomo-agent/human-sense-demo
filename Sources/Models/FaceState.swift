@@ -36,6 +36,9 @@ struct FaceState {
     var eyesClosed: Bool { eyeBlinkLeft > 0.8 && eyeBlinkRight > 0.8 }
     var faceDetected: Bool = false
 
+    // Head gesture
+    var headGesture: HeadGesture = .none
+
     // Distance label
     var distanceLabel: String {
         switch distanceFromCamera {
