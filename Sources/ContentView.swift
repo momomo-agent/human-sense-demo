@@ -154,11 +154,9 @@ struct ContentView: View {
             
             // Temporarily disable hand gesture processing
             // handManager.start()
-            
-            // Sync isLookingAtScreen to STTManager
-            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-                sttManager.isLookingAtScreen = state.face.isLookingAtScreen
-            }
+        }
+        .onChange(of: state.face.isLookingAtScreen) { _, newValue in
+            sttManager.isLookingAtScreen = newValue
         }
         .onDisappear { 
             engine?.stop()
