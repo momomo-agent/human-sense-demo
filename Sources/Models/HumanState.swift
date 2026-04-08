@@ -33,4 +33,5 @@ struct HumanState {
     var face: FaceState = FaceState()
     var audio: AudioState = AudioState()
     var hand: HandState = HandState()
+    var debugJawDelta: Float = 0  // For debugging speech detection
 }
