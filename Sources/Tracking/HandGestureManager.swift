@@ -22,13 +22,17 @@ class HandGestureManager: NSObject, ObservableObject {
     }
     
     private var isProcessingEnabled = false
+    private var frameCount = 0
     
     // Called by FaceTrackingManager with ARFrame
     nonisolated func processFrame(_ frame: ARFrame) {
-        let pixelBuffer = frame.capturedImage
-        
         processingQueue.async { [weak self] in
             guard let self = self, self.isProcessingEnabled else { return }
+            
+            self.frameCount += 1
+            guard self.frameCount % 10 == 0 else { return }  // Process every 10th frame
+            
+            let pixelBuffer = frame.capturedImage
             
             let request = VNDetectHumanHandPoseRequest()
             request.maximumHandCount = 2
