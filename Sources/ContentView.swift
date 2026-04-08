@@ -142,11 +142,14 @@ struct ContentView: View {
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear {
+            print("ContentView: onAppear called")
             faceManager.handManager = handManager
             let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
             e.start()
+            print("ContentView: Starting STT manager...")
             sttManager.start()
+            print("ContentView: STT manager start() called")
             deviceMotion.start()
             
             // Temporarily disable hand gesture processing
