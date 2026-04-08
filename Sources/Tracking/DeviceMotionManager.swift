@@ -4,10 +4,13 @@ import UIKit
 import Combine
 
 enum DevicePosture: String {
-    case flat = "平放"
-    case upright = "竖立"
-    case tilted = "倾斜"
-    case upsideDown = "倒置"
+    case uprightStand = "竖放"      // Standing upright on stand
+    case landscapeStand = "横放"    // Landscape on stand
+    case faceUp = "平躺"            // Flat face up
+    case faceDown = "盖着"          // Flat face down
+    case holdingPortrait = "持握竖"  // Holding portrait
+    case holdingLandscape = "持握横" // Holding landscape
+    case holdingWalking = "持握行走"  // Holding while walking
 }
 
 enum DeviceOrientation: String {
@@ -79,32 +82,43 @@ class DeviceMotionManager: ObservableObject {
         debugGravityY = gravity.y
         debugGravityZ = gravity.z
         
-        // Use gravity.z to determine screen orientation
-        // gravity.z > 0: screen facing up
-        // gravity.z < 0: screen facing down
-        // gravity.y determines vertical/horizontal
-        
-        let pitch = atan2(gravity.y, sqrt(gravity.x * gravity.x + gravity.z * gravity.z))
-        debugPitch = Float(pitch)
-        
-        let absZ = abs(gravity.z)
         let absY = abs(gravity.y)
+        let absZ = abs(gravity.z)
         
+        // Determine base posture from gravity
         if absZ > 0.8 {
-            // Screen facing up or down (flat)
-            motionState.posture = .flat
-        } else if absY > 0.8 {
-            // Vertical orientation
-            if gravity.z < -0.3 {
-                // Screen facing away (upside down)
-                motionState.posture = .upsideDown
+            // Flat (screen up or down)
+            if gravity.z > 0 {
+                motionState.posture = .faceUp
             } else {
-                // Normal upright
-                motionState.posture = .upright
+                motionState.posture = .faceDown
+            }
+        } else if absY > 0.7 {
+            // Vertical orientation
+            if motionState.isWalking {
+                motionState.posture = .holdingWalking
+            } else if motionState.isHolding {
+                if motionState.orientation == .landscape {
+                    motionState.posture = .holdingLandscape
+                } else {
+                    motionState.posture = .holdingPortrait
+                }
+            } else {
+                // Standing on surface
+                if gravity.z < -0.3 {
+                    // Tilted back (on stand)
+                    motionState.posture = .uprightStand
+                } else {
+                    motionState.posture = .uprightStand
+                }
             }
         } else {
-            // Tilted
-            motionState.posture = .tilted
+            // Horizontal/landscape
+            if motionState.isHolding {
+                motionState.posture = .holdingLandscape
+            } else {
+                motionState.posture = .landscapeStand
+            }
         }
     }
     
