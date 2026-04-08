@@ -23,6 +23,8 @@ class HandGestureManager: NSObject, ObservableObject {
     
     private var isProcessingEnabled = false
     private var frameCount = 0
+    private var gestureHistory: [HandGesture] = []
+    private let historySize = 3  // Require 3 consecutive frames for confirmation
     
     // Called by FaceTrackingManager with ARFrame
     nonisolated func processFrame(_ frame: ARFrame) {
@@ -46,6 +48,7 @@ class HandGestureManager: NSObject, ObservableObject {
                     Task { @MainActor in
                         self.handState.detected = false
                         self.handState.gesture = .none
+                        self.gestureHistory.removeAll()
                     }
                     return
                 }
@@ -59,9 +62,24 @@ class HandGestureManager: NSObject, ObservableObject {
                 
                 let gesture = self.recognizeGesture(from: points)
                 
+                // Add to history and check for consistency
+                self.gestureHistory.append(gesture)
+                if self.gestureHistory.count > self.historySize {
+                    self.gestureHistory.removeFirst()
+                }
+                
+                // Only update if gesture is consistent across history
+                let confirmedGesture: HandGesture
+                if self.gestureHistory.count == self.historySize &&
+                   self.gestureHistory.allSatisfy({ $0 == gesture }) {
+                    confirmedGesture = gesture
+                } else {
+                    confirmedGesture = self.handState.gesture  // Keep previous
+                }
+                
                 Task { @MainActor in
                     self.handState.detected = true
-                    self.handState.gesture = gesture
+                    self.handState.gesture = confirmedGesture
                     self.handState.isLeftHand = isLeft
                     self.handState.handPoints = points.values.map { CGPoint(x: CGFloat($0.location.x), y: CGFloat($0.location.y)) }
                 }
@@ -79,8 +97,8 @@ class HandGestureManager: NSObject, ObservableObject {
               let ring = points[.ringTip],
               let pinky = points[.littleTip],
               let wrist = points[.wrist],
-              thumb.confidence > 0.3,
-              index.confidence > 0.3 else {
+              thumb.confidence > 0.5,  // Increased from 0.3
+              index.confidence > 0.5 else {
             return .none
         }
         
