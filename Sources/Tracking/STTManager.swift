@@ -87,11 +87,11 @@ class STTManager: NSObject, ObservableObject {
                     let isNewSentence = self.lastText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
                     
                     if isNewSentence && !newText.isEmpty {
-                        // If we haven't captured speech start state yet, capture it now
-                        // (fallback in case activity state didn't trigger)
-                        if !self.speechStartCaptured {
-                            self.sentenceStartLookingAtScreen = self.isLookingAtScreen
-                        }
+                        // Reset capture flag for new sentence
+                        self.speechStartCaptured = false
+                        
+                        // Capture state for new sentence
+                        self.sentenceStartLookingAtScreen = self.isLookingAtScreen
                         
                         // Add space before new sentence (except first one)
                         if !self.segments.isEmpty {
