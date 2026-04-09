@@ -5,45 +5,55 @@ struct StateCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if state.face.faceDetected {
-                // Multiple simultaneous indicators
-                HStack(spacing: 16) {
-                    // Gaze indicator
-                    StatusPill(
-                        emoji: state.face.isLookingAtScreen ? "👁" : "👀",
-                        label: state.face.isLookingAtScreen ? "看屏幕" : "看别处",
-                        color: state.face.isLookingAtScreen ? .green : .orange,
-                        active: true
-                    )
+            // Status indicators (fixed height to prevent jumping)
+            ZStack {
+                if state.face.faceDetected {
+                    // Multiple simultaneous indicators
+                    HStack(spacing: 16) {
+                        // Gaze indicator
+                        StatusPill(
+                            emoji: state.face.isLookingAtScreen ? "👁" : "👀",
+                            label: state.face.isLookingAtScreen ? "看屏幕" : "看别处",
+                            color: state.face.isLookingAtScreen ? .green : .orange,
+                            active: true
+                        )
 
-                    // Speech indicator with color distinction
-                    StatusPill(
-                        emoji: state.activity.isSpeaking ? "🗣" : "🤫",
-                        label: state.activity.isSpeaking ? "在说话" : "安静",
-                        color: speechColor,
-                        active: true
-                    )
+                        // Speech indicator with color distinction
+                        StatusPill(
+                            emoji: state.activity.isSpeaking ? "🗣" : "🤫",
+                            label: state.activity.isSpeaking ? "在说话" : "安静",
+                            color: speechColor,
+                            active: true
+                        )
 
-                    // Face orientation indicator
-                    StatusPill(
-                        emoji: faceOrientationEmoji,
-                        label: faceOrientationLabel,
-                        color: .blue,
-                        active: true
-                    )
-                    
-                    // Eye state indicator
-                    StatusPill(
-                        emoji: state.face.eyesClosed ? "😴" : "👀",
-                        label: state.face.eyesClosed ? "闭眼" : "睁眼",
-                        color: state.face.eyesClosed ? .purple : .green,
-                        active: true
-                    )
+                        // Face orientation indicator
+                        StatusPill(
+                            emoji: faceOrientationEmoji,
+                            label: faceOrientationLabel,
+                            color: .blue,
+                            active: true
+                        )
+                        
+                        // Eye state indicator
+                        StatusPill(
+                            emoji: state.face.eyesClosed ? "😴" : "👀",
+                            label: state.face.eyesClosed ? "闭眼" : "睁眼",
+                            color: state.face.eyesClosed ? .purple : .green,
+                            active: true
+                        )
+                    }
+                } else {
+                    // No face detected - centered text with same height
+                    VStack {
+                        Spacer()
+                        Text("未检测到人脸")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
                 }
-            } else {
-                // No face detected
-                Text("未检测到人脸").font(.caption).foregroundStyle(.secondary)
             }
+            .frame(height: 60)  // Fixed height to prevent jumping
             
             // Emotion indicator
             if state.face.faceDetected {
