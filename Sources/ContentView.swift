@@ -3,6 +3,12 @@ import ARKit
 
 struct ContentView: View {
     var engine: HumanStateEngine
+    @ObservedObject private var sttManager: STTManager
+
+    init(engine: HumanStateEngine) {
+        self.engine = engine
+        self._sttManager = ObservedObject(wrappedValue: engine.sttManager)
+    }
 
     private var state: HumanState { engine.humanState }
     private var history: [(date: Date, activity: HumanActivity)] { engine.stateHistory }
@@ -40,10 +46,10 @@ struct ContentView: View {
                 .padding(.horizontal)
                 
                 // Speech text display — right-aligned, latest text anchored to trailing edge
-                if !state.speech.segments.isEmpty {
+                if !sttManager.speechState.segments.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 0) {
-                            ForEach(state.speech.segments) { segment in
+                            ForEach(sttManager.speechState.segments) { segment in
                                 Text(segment.text)
                                     .foregroundStyle(segmentColor(segment))
                             }
