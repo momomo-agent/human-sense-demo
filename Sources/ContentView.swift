@@ -56,6 +56,7 @@ struct ContentView: View {
                                 Color.clear.frame(width: 1, height: 1).id("end")
                             }
                             .font(sttFontSize)
+                            .animation(.easeInOut(duration: 0.3), value: sttFontSize)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -182,11 +183,34 @@ struct ContentView: View {
     
     private var sttFontSize: Font {
         let distance = state.face.distanceFromCamera
-        // 远 (0.8-1.2m) or 很远 (>1.2m) → larger font
-        if distance >= 0.8 {
-            return .title2  // Larger
-        } else {
-            return .body    // Normal
+        // Continuous scaling based on distance
+        // 0.3m (very close) → 17pt (body)
+        // 0.8m (far) → 22pt
+        // 1.2m (very far) → 28pt
+        // >1.5m → 34pt (max)
+        let baseFontSize: CGFloat = 17  // body font size
+        let scaleFactor: CGFloat
+        
+        switch distance {
+        case 0..<0.3:
+            scaleFactor = 1.0  // 17pt
+        case 0.3..<0.8:
+            // Linear interpolation from 1.0 to 1.3
+            let ratio = (distance - 0.3) / 0.5
+            scaleFactor = 1.0 + ratio * 0.3
+        case 0.8..<1.2:
+            // Linear interpolation from 1.3 to 1.65
+            let ratio = (distance - 0.8) / 0.4
+            scaleFactor = 1.3 + ratio * 0.35
+        case 1.2..<1.5:
+            // Linear interpolation from 1.65 to 2.0
+            let ratio = (distance - 1.2) / 0.3
+            scaleFactor = 1.65 + ratio * 0.35
+        default:
+            scaleFactor = 2.0  // 34pt max
         }
+        
+        let fontSize = baseFontSize * scaleFactor
+        return .system(size: fontSize)
     }
 }
