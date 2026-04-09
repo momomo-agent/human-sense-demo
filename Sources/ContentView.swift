@@ -51,7 +51,7 @@ struct ContentView: View {
                             HStack(spacing: 0) {
                                 ForEach(sttManager.segments) { segment in
                                     Text(segment.text)
-                                        .foregroundStyle(segment.isToScreen ? .blue : .orange)
+                                        .foregroundStyle(segment.isToScreen ? .yellow : .orange)
                                 }
                                 Color.clear.frame(width: 1, height: 1).id("end")
                             }

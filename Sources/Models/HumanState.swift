@@ -25,7 +25,7 @@ enum HumanActivity: String, CaseIterable {
         case .eyesClosed:       return "purple"
         case .distracted:       return "brown"
         case .listening:        return "green"
-        case .speakingToScreen: return "blue"
+        case .speakingToScreen: return "yellow"
         case .speakingToOther:  return "orange"
         }
     }

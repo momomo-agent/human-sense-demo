@@ -74,7 +74,7 @@ struct StateCard: View {
 
     var speechColor: Color {
         if !state.activity.isSpeaking { return .gray }
-        return state.face.isLookingAtScreen ? .blue : .orange
+        return state.face.isLookingAtScreen ? .yellow : .orange
     }
     
     var faceOrientationEmoji: String {
