@@ -189,22 +189,23 @@ struct ContentView: View {
         // 1.2m (very far) → 28pt
         // >1.5m → 34pt (max)
         let baseFontSize: CGFloat = 17  // body font size
+        let dist = CGFloat(distance)  // Convert Float to CGFloat
         let scaleFactor: CGFloat
         
-        switch distance {
+        switch dist {
         case 0..<0.3:
             scaleFactor = 1.0  // 17pt
         case 0.3..<0.8:
             // Linear interpolation from 1.0 to 1.3
-            let ratio = (distance - 0.3) / 0.5
+            let ratio = (dist - 0.3) / 0.5
             scaleFactor = 1.0 + ratio * 0.3
         case 0.8..<1.2:
             // Linear interpolation from 1.3 to 1.65
-            let ratio = (distance - 0.8) / 0.4
+            let ratio = (dist - 0.8) / 0.4
             scaleFactor = 1.3 + ratio * 0.35
         case 1.2..<1.5:
             // Linear interpolation from 1.65 to 2.0
-            let ratio = (distance - 1.2) / 0.3
+            let ratio = (dist - 1.2) / 0.3
             scaleFactor = 1.65 + ratio * 0.35
         default:
             scaleFactor = 2.0  // 34pt max
