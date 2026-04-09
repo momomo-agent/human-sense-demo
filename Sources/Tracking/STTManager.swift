@@ -25,6 +25,17 @@ class STTManager: NSObject, ObservableObject {
     private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
     private var lastUpdateTime: Date = Date()  // Track when last text was received
     private let sentenceGapThreshold: TimeInterval = 1.5  // 1.5 seconds gap = new sentence
+    private var speechStartCaptured: Bool = false  // Track if we captured speech start state
+    
+    func captureSpeechStartState() {
+        // Called when user starts speaking (from activity state change)
+        // This captures the state BEFORE STT recognizes any text
+        if !speechStartCaptured {
+            sentenceStartLookingAtScreen = isLookingAtScreen
+            speechStartCaptured = true
+            print("STT: Captured speech start state (from activity): \(sentenceStartLookingAtScreen)")
+        }
+    }
     
     func start() {
         print("STT: start() called")
@@ -96,8 +107,14 @@ class STTManager: NSObject, ObservableObject {
                     let isNewSentence = self.lastText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
                     
                     if isNewSentence && !newText.isEmpty {
-                        self.sentenceStartLookingAtScreen = self.isLookingAtScreen
-                        print("STT: New sentence detected, looking at screen: \(self.sentenceStartLookingAtScreen)")
+                        // If we haven't captured speech start state yet, capture it now
+                        // (fallback in case activity state didn't trigger)
+                        if !self.speechStartCaptured {
+                            self.sentenceStartLookingAtScreen = self.isLookingAtScreen
+                            print("STT: New sentence detected (fallback capture), looking at screen: \(self.sentenceStartLookingAtScreen)")
+                        } else {
+                            print("STT: New sentence detected, using pre-captured state: \(self.sentenceStartLookingAtScreen)")
+                        }
                         
                         // Add space before new sentence (except first one)
                         if !self.segments.isEmpty {
@@ -130,6 +147,7 @@ class STTManager: NSObject, ObservableObject {
                         print("STT: Sentence ended (isFinal), resetting state")
                         self.lastText = ""
                         self.sentenceStartLookingAtScreen = false
+                        self.speechStartCaptured = false
                     }
                 }
             }

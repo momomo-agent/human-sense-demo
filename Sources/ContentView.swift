@@ -149,6 +149,13 @@ struct ContentView: View {
         .onChange(of: state.face.isLookingAtScreen) { _, newValue in
             sttManager.isLookingAtScreen = newValue
         }
+        .onChange(of: state.activity.isSpeaking) { oldValue, newValue in
+            // When user starts speaking, immediately capture isLookingAtScreen
+            if !oldValue && newValue {
+                sttManager.captureSpeechStartState()
+                print("ContentView: User started speaking, captured isLookingAtScreen: \(state.face.isLookingAtScreen)")
+            }
+        }
         .onDisappear { 
             engine?.stop()
             deviceMotion.stop()
