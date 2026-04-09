@@ -22,6 +22,7 @@ class STTManager: NSObject, ObservableObject {
     
     private var lastText: String = ""
     var isLookingAtScreen: Bool = false  // Set by external observer
+    var isSpeaking: Bool = false  // Set by external observer (mouth + sound)
     private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
     private var lastUpdateTime: Date = Date()  // Track when last text was received
     private let sentenceGapThreshold: TimeInterval = 1.5  // 1.5 seconds gap = new sentence
@@ -93,23 +94,25 @@ class STTManager: NSObject, ObservableObject {
                         self.sentenceStartLookingAtScreen = self.isLookingAtScreen
                     }
                     
-                    // Always output text - color depends on isLookingAtScreen
-                    if isNewSentence && !newText.isEmpty && !self.segments.isEmpty {
-                        self.segments.append(SpeechSegment(
-                            text: " ",
-                            isToScreen: self.isLookingAtScreen,
-                            sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
-                        ))
-                    }
-                    
-                    if newText.count > self.lastText.count {
-                        let addedText = String(newText.dropFirst(self.lastText.count))
-                        if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // Only show text when user is speaking (mouth + sound)
+                    if self.isSpeaking {
+                        if isNewSentence && !newText.isEmpty && !self.segments.isEmpty {
                             self.segments.append(SpeechSegment(
-                                text: addedText,
+                                text: " ",
                                 isToScreen: self.isLookingAtScreen,
                                 sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
                             ))
+                        }
+                        
+                        if newText.count > self.lastText.count {
+                            let addedText = String(newText.dropFirst(self.lastText.count))
+                            if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
+                                self.segments.append(SpeechSegment(
+                                    text: addedText,
+                                    isToScreen: self.isLookingAtScreen,
+                                    sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
+                                ))
+                            }
                         }
                     }
                     
