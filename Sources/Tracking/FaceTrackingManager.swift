@@ -68,6 +68,7 @@ extension FaceTrackingManager: ARSessionDelegate {
         guard let anchor = frame.anchors.first as? ARFaceAnchor else {
             Task { @MainActor in
                 self.faceState.faceDetected = false
+                print("👻 No face anchor detected")
             }
             return
         }
@@ -114,6 +115,13 @@ extension FaceTrackingManager: ARSessionDelegate {
             
             // Update on main thread
             Task { @MainActor in
+                // Double-check anchor still exists (avoid race condition)
+                guard self.currentAnchor != nil || anchor.isTracked else {
+                    print("👻 Anchor lost during processing, skipping update")
+                    self.faceState.faceDetected = false
+                    return
+                }
+                
                 // Initialize filters if needed
                 if self.gazeFilterX == nil {
                     self.gazeFilterX = LowPassFilter(value: adjusted.x)
