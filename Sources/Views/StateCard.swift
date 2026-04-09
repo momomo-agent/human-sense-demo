@@ -78,7 +78,6 @@ struct StateCard: View {
     }
     
     var faceOrientationEmoji: String {
-        if !state.face.faceDetected { return "👻" }
         let yaw = state.face.headYaw
         if yaw > 0.3 { return "👈" }  // Looking left
         if yaw < -0.3 { return "👉" }  // Looking right
@@ -86,7 +85,6 @@ struct StateCard: View {
     }
     
     var faceOrientationLabel: String {
-        if !state.face.faceDetected { return "不在" }
         let yaw = state.face.headYaw
         if yaw > 0.3 { return "朝左" }
         if yaw < -0.3 { return "朝右" }
