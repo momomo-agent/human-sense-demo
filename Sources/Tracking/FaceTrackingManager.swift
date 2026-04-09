@@ -60,10 +60,10 @@ class FaceTrackingManager: NSObject, ObservableObject {
 
 extension FaceTrackingManager: ARSessionDelegate {
     nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
-        // Pass frame to hand gesture manager
-        Task { @MainActor in
-            self.handManager?.processFrame(frame)
-        }
+        // Hand gesture processing disabled for now (accuracy/perf needs work)
+        // Task { @MainActor in
+        //     self.handManager?.processFrame(frame)
+        // }
         
         guard let anchor = frame.anchors.first as? ARFaceAnchor else {
             // No face anchor at all - face is definitely not present

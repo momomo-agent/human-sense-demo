@@ -42,7 +42,7 @@ class HumanStateEngine {
     func start() {
         faceManager.start()
         audioManager.start()
-        handManager.start()
+        // handManager.start()  // Disabled: gesture recognition needs accuracy/perf work
         deviceMotionManager.start()
         sttManager.start()
     }
@@ -50,7 +50,7 @@ class HumanStateEngine {
     func stop() {
         faceManager.stop()
         audioManager.stop()
-        handManager.stop()
+        // handManager.stop()
         deviceMotionManager.stop()
         sttManager.stop()
     }

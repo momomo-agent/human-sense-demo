@@ -89,8 +89,9 @@ struct ContentView: View {
                 AudioVisualizerView(audio: state.audio)
                     .padding(.horizontal)
 
-                HandGestureView(hand: state.hand)
-                    .padding(.horizontal)
+                // Hand gesture (disabled: needs accuracy/perf work)
+                // HandGestureView(hand: state.hand)
+                //     .padding(.horizontal)
 
                 StateTimelineView(history: history)
                     .padding(.horizontal)
