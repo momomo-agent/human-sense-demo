@@ -17,7 +17,8 @@ class FaceTrackingManager: NSObject, ObservableObject {
     private var lastTrailAppend = Date.distantPast
     private let headGestureDetector = HeadGestureDetector()
     private let emotionDetector = EmotionDetector()
-    nonisolated(unsafe) private var noFaceFrames: Int = 0  // Consecutive frames without face
+    nonisolated(unsafe) private var noFaceFrames: Int = 0  // Consecutive frames without face anchor
+    nonisolated(unsafe) private var untrackedFrames: Int = 0  // Consecutive frames with untracked anchor
     private let noFaceThreshold = 5  // Frames before declaring face lost
     
     weak var handManager: HandGestureManager?
@@ -65,6 +66,7 @@ extension FaceTrackingManager: ARSessionDelegate {
         }
         
         guard let anchor = frame.anchors.first as? ARFaceAnchor else {
+            // No face anchor at all - face is definitely not present
             noFaceFrames += 1
             if noFaceFrames >= noFaceThreshold {
                 Task { @MainActor in
@@ -75,6 +77,18 @@ extension FaceTrackingManager: ARSessionDelegate {
         }
         
         noFaceFrames = 0  // Reset counter when face found
+        
+        // Also check if anchor is being actively tracked this frame
+        if !anchor.isTracked {
+            untrackedFrames += 1
+            if untrackedFrames >= noFaceThreshold {
+                Task { @MainActor in
+                    self.faceState.faceDetected = false
+                }
+            }
+            return
+        }
+        untrackedFrames = 0  // Reset when tracked again
         
         processingQueue.async { [weak self] in
             guard let self = self else { return }
