@@ -90,13 +90,14 @@ class STTManager: NSObject, ObservableObject {
                     // Capture sentence start state when first text appears
                     if self.lastText.isEmpty && !newText.isEmpty {
                         self.sentenceStartLookingAtScreen = self.isLookingAtScreen
-                        print("STT: Sentence started, looking at screen: \(self.sentenceStartLookingAtScreen)")
+                        print("STT: Sentence started, looking at screen: \(self.sentenceStartLookingAtScreen), current isLookingAtScreen: \(self.isLookingAtScreen)")
                     }
                     
                     // Check if new text was added
                     if newText.count > self.lastText.count {
                         let addedText = String(newText.dropFirst(self.lastText.count))
                         if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
+                            print("STT: Adding segment '\(addedText)', isToScreen: \(self.isLookingAtScreen), sentenceStart: \(self.sentenceStartLookingAtScreen)")
                             self.segments.append(SpeechSegment(
                                 text: addedText,
                                 isToScreen: self.isLookingAtScreen,
