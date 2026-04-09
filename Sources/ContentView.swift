@@ -39,30 +39,23 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
                 
-                // Speech text display
+                // Speech text display — right-aligned, latest text anchored to trailing edge
                 if !state.speech.segments.isEmpty {
-                    ScrollViewReader { proxy in
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 0) {
-                                ForEach(state.speech.segments) { segment in
-                                    Text(segment.text)
-                                        .foregroundStyle(segmentColor(segment))
-                                }
-                                Color.clear.frame(width: 1, height: 1).id("end")
-                            }
-                            .font(sttFontSize)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding(.horizontal)
-                        .onChange(of: state.speech.segments.count) { _ in
-                            withAnimation {
-                                proxy.scrollTo("end", anchor: .trailing)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 0) {
+                            ForEach(state.speech.segments) { segment in
+                                Text(segment.text)
+                                    .foregroundStyle(segmentColor(segment))
                             }
                         }
+                        .font(sttFontSize)
+                        .padding()
+                        .frame(minWidth: UIScreen.main.bounds.width - 32, alignment: .trailing)
                     }
+                    .defaultScrollAnchor(.trailing)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal)
                 }
 
                 // Face mesh + gaze overlay
