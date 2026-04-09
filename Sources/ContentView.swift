@@ -51,7 +51,7 @@ struct ContentView: View {
                             HStack(spacing: 0) {
                                 ForEach(sttManager.segments) { segment in
                                     Text(segment.text)
-                                        .foregroundStyle(segment.isToScreen ? .yellow : .orange)
+                                        .foregroundStyle(segmentColor(segment))
                                 }
                                 Color.clear.frame(width: 1, height: 1).id("end")
                             }
@@ -162,5 +162,16 @@ struct ContentView: View {
         let x = (point.x / screen.width) * (screen.width - 32)
         let y = (point.y / screen.height) * 200
         return CGPoint(x: x + 16, y: y)
+    }
+    
+    private func segmentColor(_ segment: SpeechSegment) -> Color {
+        // If sentence started while NOT looking at screen → all blue
+        if !segment.sentenceStartedLookingAtScreen {
+            return .blue
+        }
+        // If sentence started while looking at screen:
+        // - Currently looking at screen → yellow
+        // - Currently NOT looking at screen → orange
+        return segment.isToScreen ? .yellow : .orange
     }
 }

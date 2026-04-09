@@ -11,7 +11,7 @@ struct StateTimelineView: View {
             HStack(spacing: 12) {
                 LegendItem(color: .gray, label: "不在")
                 LegendItem(color: .purple, label: "闭眼")
-                LegendItem(color: .brown, label: "分心")
+                LegendItem(color: Color(red: 0, green: 0.5, blue: 0), label: "分心")
                 LegendItem(color: .green, label: "倾听")
                 LegendItem(color: .yellow, label: "对屏幕说")
                 LegendItem(color: .orange, label: "对别处说")
@@ -34,7 +34,7 @@ struct StateTimelineView: View {
                             switch entry.activity {
                             case .absent: return .gray
                             case .eyesClosed: return .purple
-                            case .distracted: return .brown
+                            case .distracted: return Color(red: 0, green: 0.5, blue: 0)
                             case .listening: return .green
                             case .speakingToScreen: return .yellow
                             case .speakingToOther: return .orange

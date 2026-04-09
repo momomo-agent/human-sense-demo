@@ -23,7 +23,7 @@ enum HumanActivity: String, CaseIterable {
         switch self {
         case .absent:           return "gray"
         case .eyesClosed:       return "purple"
-        case .distracted:       return "brown"
+        case .distracted:       return "darkGreen"
         case .listening:        return "green"
         case .speakingToScreen: return "yellow"
         case .speakingToOther:  return "orange"

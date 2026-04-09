@@ -7,6 +7,7 @@ struct SpeechSegment: Identifiable {
     let id = UUID()
     let text: String
     let isToScreen: Bool
+    let sentenceStartedLookingAtScreen: Bool  // Was looking at screen when sentence started
 }
 
 @MainActor
@@ -21,6 +22,7 @@ class STTManager: NSObject, ObservableObject {
     
     private var lastText: String = ""
     var isLookingAtScreen: Bool = false  // Set by external observer
+    private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
     
     func start() {
         print("STT: start() called")
@@ -85,13 +87,20 @@ class STTManager: NSObject, ObservableObject {
                     let newText = result.bestTranscription.formattedString
                     print("STT: Recognized text: \(newText)")
                     
+                    // Capture sentence start state when first text appears
+                    if self.lastText.isEmpty && !newText.isEmpty {
+                        self.sentenceStartLookingAtScreen = self.isLookingAtScreen
+                        print("STT: Sentence started, looking at screen: \(self.sentenceStartLookingAtScreen)")
+                    }
+                    
                     // Check if new text was added
                     if newText.count > self.lastText.count {
                         let addedText = String(newText.dropFirst(self.lastText.count))
                         if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
                             self.segments.append(SpeechSegment(
                                 text: addedText,
-                                isToScreen: self.isLookingAtScreen
+                                isToScreen: self.isLookingAtScreen,
+                                sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
                             ))
                         }
                     }
@@ -102,6 +111,10 @@ class STTManager: NSObject, ObservableObject {
             
             if error != nil || result?.isFinal == true {
                 print("STT: Recognition ended (error: \(error != nil), isFinal: \(result?.isFinal == true))")
+                Task { @MainActor in
+                    self.lastText = ""  // Reset for next sentence
+                    self.sentenceStartLookingAtScreen = false
+                }
                 self.audioEngine.stop()
                 self.audioEngine.inputNode.removeTap(onBus: 0)
                 self.recognitionRequest = nil
