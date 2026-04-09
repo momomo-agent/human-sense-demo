@@ -7,7 +7,9 @@ class AudioDetectionManager: NSObject, ObservableObject {
     @Published var audioState = AudioState()
     
     private let audioEngine = AVAudioEngine()
-    private let speechThreshold: Float = 0.0015  // Lowered to detect quieter speech
+    private let speechThreshold: Float = 0.0015
+    private var silenceTimer: Timer?
+    private let silenceDelay: TimeInterval = 0.5
     
     func start() {
         let inputNode = audioEngine.inputNode
@@ -24,11 +26,20 @@ class AudioDetectionManager: NSObject, ObservableObject {
             
             Task { @MainActor in
                 self.audioState.volume = rms
-                self.audioState.isSpeaking = rms > self.speechThreshold
+                let aboveThreshold = rms > self.speechThreshold
                 
-                // Debug output every 30 frames (~1 second)
-                if Int.random(in: 0..<30) == 0 {
-                    print("DEBUG Audio - volume: \(rms), threshold: \(self.speechThreshold), speaking: \(rms > self.speechThreshold)")
+                if aboveThreshold {
+                    self.silenceTimer?.invalidate()
+                    self.silenceTimer = nil
+                    self.audioState.isSpeaking = true
+                } else if self.audioState.isSpeaking && self.silenceTimer == nil {
+                    // Delay turning off to avoid flicker during brief pauses
+                    self.silenceTimer = Timer.scheduledTimer(withTimeInterval: self.silenceDelay, repeats: false) { [weak self] _ in
+                        Task { @MainActor in
+                            self?.audioState.isSpeaking = false
+                            self?.silenceTimer = nil
+                        }
+                    }
                 }
             }
         }

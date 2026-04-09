@@ -113,12 +113,12 @@ class HumanStateEngine {
         }
         
         // Sync state to STT manager
-        // Use raw audio.isSpeaking (not activity.isSpeaking which requires mouth+audio)
-        // This matches the old behavior where AudioDetectionManager drove STT directly
+        // Use activity.isSpeaking (debounced, mouth+audio) — the semantic "user is speaking" signal
         sttManager.isLookingAtScreen = face.isLookingAtScreen
-        if sttManager.isSpeaking != audio.isSpeaking {
-            sttManager.isSpeaking = audio.isSpeaking
-            if audio.isSpeaking {
+        let activitySpeaking = humanState.activity.isSpeaking
+        if sttManager.isSpeaking != activitySpeaking {
+            sttManager.isSpeaking = activitySpeaking
+            if activitySpeaking {
                 sttManager.captureSpeechStartState()
             }
         }
