@@ -56,7 +56,6 @@ struct ContentView: View {
                                 Color.clear.frame(width: 1, height: 1).id("end")
                             }
                             .font(sttFontSize)
-                            .animation(.easeInOut(duration: 0.3), value: sttFontSize)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }

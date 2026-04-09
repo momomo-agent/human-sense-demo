@@ -10,7 +10,6 @@ struct GazeOverlay: View {
                 .fill(isLooking ? Color.blue.opacity(0.7) : Color.red.opacity(0.5))
                 .frame(width: 20, height: 20)
                 .position(gazePoint)
-                .animation(.easeOut(duration: 0.05), value: gazePoint)
         }
     }
 }
