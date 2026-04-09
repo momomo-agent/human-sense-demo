@@ -33,38 +33,28 @@ class STTManager: NSObject, ObservableObject {
     
     // --- Sentence model ---
     
-    /// Each sentence is one object with a clear lifecycle.
     private struct Sentence {
         let id = UUID()
         var text: String
-        var isToScreen: Bool
-        var startedLookingAtScreen: Bool
+        let isToScreen: Bool
+        let startedLookingAtScreen: Bool
     }
     
-    /// Completed sentences — each was one recognition task's output.
     private var sentences: [Sentence] = []
-    
-    /// The sentence currently being recognized (nil if no active task).
     private var activeSentence: Sentence?
-    
     private let maxSentences = 20
     
     // --- Internal state ---
     private var speakingOutputEnabled: Bool = false
     private var speakingOffTimer: Timer?
     private var speechStartCaptured: Bool = false
-    
-    /// Generation counter — callbacks from stale tasks are ignored.
     private var taskGeneration: Int = 0
     
-    /// Silence-based sentence splitting
     private var lastRecognitionTime: Date?
     private var silenceTimer: Timer?
     private let sentenceGapThreshold: TimeInterval = 1.5
     
-    func captureSpeechStartState() {
-        // Captured at sentence creation time now, not externally
-    }
+    func captureSpeechStartState() {}
     
     func start() {
         guard let recognizer = speechRecognizer, recognizer.isAvailable else { return }
@@ -80,6 +70,7 @@ class STTManager: NSObject, ObservableObject {
         silenceTimer?.invalidate()
         silenceTimer = nil
         taskGeneration += 1
+        
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
@@ -87,9 +78,7 @@ class STTManager: NSObject, ObservableObject {
         recognitionTask = nil
         recognitionRequest = nil
         
-        // Finalize active sentence if any
         finalizeActiveSentence()
-        
         isListening = false
     }
     
@@ -101,8 +90,6 @@ class STTManager: NSObject, ObservableObject {
     
     // MARK: - Segment Output
     
-    /// Rebuild the published segments array from sentences + active sentence.
-    /// Uses each Sentence's stable UUID so SwiftUI doesn't re-render completed sentences.
     private func rebuildSegments() {
         guard speakingOutputEnabled else {
             segments = []
@@ -130,7 +117,6 @@ class STTManager: NSObject, ObservableObject {
     
     // MARK: - Sentence Lifecycle
     
-    /// Commit the active sentence to the completed list.
     private func finalizeActiveSentence() {
         guard let active = activeSentence, !active.text.isEmpty else {
             activeSentence = nil
@@ -144,11 +130,9 @@ class STTManager: NSObject, ObservableObject {
         rebuildSegments()
     }
     
-    // MARK: - Recognition
+    // MARK: - Audio Engine (start once, never restart)
     
     private func beginListening() {
-        startRecognitionTask()
-        
         let audioSession = AVAudioSession.sharedInstance()
         try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
         try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
@@ -161,6 +145,8 @@ class STTManager: NSObject, ObservableObject {
             return
         }
         
+        // Audio tap feeds whatever the current recognitionRequest is.
+        // Tap installed once, never removed until stop().
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             self?.recognitionRequest?.append(buffer)
         }
@@ -168,7 +154,62 @@ class STTManager: NSObject, ObservableObject {
         audioEngine.prepare()
         try? audioEngine.start()
         isListening = true
+        
+        startRecognitionTask()
         startSilenceTimer()
+    }
+    
+    // MARK: - Recognition Task (restartable without touching audio engine)
+    
+    private func startRecognitionTask() {
+        taskGeneration += 1
+        let myGeneration = taskGeneration
+        
+        // New sentence — gaze state locked at creation
+        activeSentence = Sentence(
+            text: "",
+            isToScreen: isLookingAtScreen,
+            startedLookingAtScreen: isLookingAtScreen
+        )
+        speechStartCaptured = false
+        
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        recognitionRequest = request
+        
+        recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
+            guard let self = self else { return }
+            
+            Task { @MainActor in
+                guard myGeneration == self.taskGeneration else { return }
+                
+                if let result = result {
+                    self.activeSentence?.text = result.bestTranscription.formattedString
+                    self.lastRecognitionTime = Date()
+                    
+                    // Lock gaze on first real text if not yet captured
+                    if !self.speechStartCaptured && !result.bestTranscription.formattedString.isEmpty {
+                        self.speechStartCaptured = true
+                    }
+                    
+                    if self.speakingOutputEnabled {
+                        self.rebuildSegments()
+                    }
+                    
+                    if result.isFinal {
+                        self.finalizeActiveSentence()
+                        // Start fresh task for next sentence (audio engine stays running)
+                        self.startRecognitionTask()
+                    }
+                }
+                
+                if error != nil && !result.map(\.isFinal).isTrue {
+                    // Error without isFinal — restart task
+                    self.finalizeActiveSentence()
+                    self.startRecognitionTask()
+                }
+            }
+        }
     }
     
     // MARK: - Silence Detection
@@ -187,111 +228,21 @@ class STTManager: NSObject, ObservableObject {
         guard Date().timeIntervalSince(lastTime) >= sentenceGapThreshold else { return }
         guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
         
-        // Silence gap detected — finalize current sentence, restart task for next sentence
-        finalizeActiveSentence()
-        
-        // Kill current task and start fresh
-        taskGeneration += 1
+        // Silence detected — finalize sentence, swap to new task
+        // No audio engine restart needed — just end the request and start a new one
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionTask = nil
         recognitionRequest = nil
         lastRecognitionTime = nil
         
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        restartAudioAndRecognition()
-    }
-    
-    /// Start a new recognition task = start a new sentence.
-    private func startRecognitionTask() {
-        taskGeneration += 1
-        let myGeneration = taskGeneration
-        
-        // New task = new sentence object. startedLookingAtScreen will be
-        // captured on first actual speech text, not here.
-        activeSentence = Sentence(
-            text: "",
-            isToScreen: isLookingAtScreen,
-            startedLookingAtScreen: isLookingAtScreen
-        )
-        speechStartCaptured = false
-        
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let request = recognitionRequest else { return }
-        request.shouldReportPartialResults = true
-        
-        recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
-            guard let self = self else { return }
-            
-            // Capture generation at callback creation
-            let callbackGeneration = myGeneration
-            
-            if let result = result {
-                Task { @MainActor in
-                    // Drop callbacks from stale tasks
-                    guard callbackGeneration == self.taskGeneration else { return }
-                    
-                    // The cumulative text IS this sentence's text — direct assignment
-                    self.activeSentence?.text = result.bestTranscription.formattedString
-                    // Capture gaze state once on first real text — locked for this sentence
-                    if !self.speechStartCaptured && !result.bestTranscription.formattedString.isEmpty {
-                        self.activeSentence?.isToScreen = self.isLookingAtScreen
-                        self.activeSentence?.startedLookingAtScreen = self.isLookingAtScreen
-                        self.speechStartCaptured = true
-                    }
-                    
-                    self.lastRecognitionTime = Date()
-                    
-                    if self.speakingOutputEnabled {
-                        self.rebuildSegments()
-                    }
-                    
-                    if result.isFinal {
-                        self.finalizeActiveSentence()
-                    }
-                }
-            }
-            
-            // Task ended — restart to begin next sentence
-            // But only if this task is still current (checkSilence may have already restarted)
-            if error != nil || result?.isFinal == true {
-                Task { @MainActor in
-                    guard callbackGeneration == self.taskGeneration else { return }
-                    
-                    self.audioEngine.stop()
-                    self.audioEngine.inputNode.removeTap(onBus: 0)
-                    self.recognitionRequest = nil
-                    self.recognitionTask = nil
-                    
-                    try? await Task.sleep(for: .milliseconds(500))
-                    guard self.isListening else { return }
-                    
-                    self.finalizeActiveSentence()
-                    self.restartAudioAndRecognition()
-                }
-            }
-        }
-    }
-    
-    /// Restart audio engine + new recognition task after the previous one ended.
-    private func restartAudioAndRecognition() {
+        finalizeActiveSentence()
         startRecognitionTask()
-        
-        let audioSession = AVAudioSession.sharedInstance()
-        try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-        try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        
-        guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else { return }
-        
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
-        }
-        
-        audioEngine.prepare()
-        try? audioEngine.start()
     }
+}
+
+// MARK: - Helpers
+
+private extension Optional where Wrapped == Bool {
+    var isTrue: Bool { self == true }
 }
