@@ -102,7 +102,7 @@ class STTManager: NSObject, ObservableObject {
     // MARK: - Segment Output
     
     /// Rebuild the published segments array from sentences + active sentence.
-    /// Each sentence maps to one segment. Simple, no duplication possible.
+    /// Uses each Sentence's stable UUID so SwiftUI doesn't re-render completed sentences.
     private func rebuildSegments() {
         guard speakingOutputEnabled else {
             segments = []
@@ -115,14 +115,14 @@ class STTManager: NSObject, ObservableObject {
             if !result.isEmpty {
                 result.append(SpeechSegment(text: " ", isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
             }
-            result.append(SpeechSegment(text: s.text, isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
+            result.append(SpeechSegment(id: s.id, text: s.text, isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
         }
         
         if let active = activeSentence, !active.text.isEmpty {
             if !result.isEmpty {
                 result.append(SpeechSegment(text: " ", isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
             }
-            result.append(SpeechSegment(text: active.text, isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
+            result.append(SpeechSegment(id: active.id, text: active.text, isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
         }
         
         segments = result
