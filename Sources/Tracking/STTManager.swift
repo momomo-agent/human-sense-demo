@@ -43,8 +43,8 @@ class STTManager: NSObject, ObservableObject {
     private struct Sentence {
         let id = UUID()
         var text: String
-        let startedLookingAtScreen: Bool
-        var gazeSpans: [GazeSpan]  // only used when startedLookingAtScreen == true
+        var startedLookingAtScreen: Bool  // determined on first recognized text, not task creation
+        var gazeSpans: [GazeSpan]
     }
     
     private var sentences: [Sentence] = []
@@ -101,10 +101,9 @@ class STTManager: NSObject, ObservableObject {
     // MARK: - Segment Output
     
     private func rebuildSegments() {
-        guard speakingOutputEnabled else {
-            segments = []
-            return
-        }
+        // Don't clear segments when speaking stops — keep showing last state.
+        // Only skip updating while not speaking.
+        guard speakingOutputEnabled else { return }
         
         var result: [SpeechSegment] = []
         
@@ -210,11 +209,11 @@ class STTManager: NSObject, ObservableObject {
         taskGeneration += 1
         let myGeneration = taskGeneration
         
-        let startedLooking = isLookingAtScreen
+        // Sentence created with placeholder gaze — will be locked on first recognized text
         activeSentence = Sentence(
             text: "",
-            startedLookingAtScreen: startedLooking,
-            gazeSpans: startedLooking ? [GazeSpan(charCount: 0, isToScreen: isLookingAtScreen)] : []
+            startedLookingAtScreen: false,
+            gazeSpans: []
         )
         lastCharCount = 0
         speechStartCaptured = false
@@ -237,12 +236,22 @@ class STTManager: NSObject, ObservableObject {
                     self.activeSentence?.text = newText
                     self.lastRecognitionTime = Date()
                     
-                    // Track gaze spans for sentences that started looking at screen
-                    if addedChars > 0, self.activeSentence?.startedLookingAtScreen == true {
+                    // Lock gaze direction on first recognized text
+                    if !self.speechStartCaptured && !newText.isEmpty {
+                        let looking = self.isLookingAtScreen
+                        self.activeSentence?.startedLookingAtScreen = looking
+                        if looking {
+                            self.activeSentence?.gazeSpans = [GazeSpan(charCount: newCharCount, isToScreen: looking)]
+                        }
+                        self.lastCharCount = newCharCount
+                        self.speechStartCaptured = true
+                    } else if addedChars > 0, self.activeSentence?.startedLookingAtScreen == true {
+                        // Track gaze spans for sentences that started looking at screen
                         self.updateGazeSpans(addedChars: addedChars)
+                        self.lastCharCount = newCharCount
+                    } else {
+                        self.lastCharCount = newCharCount
                     }
-                    
-                    self.lastCharCount = newCharCount
                     
                     if self.speakingOutputEnabled {
                         self.rebuildSegments()
