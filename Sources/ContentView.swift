@@ -136,7 +136,6 @@ struct ContentView: View {
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .task {
-            print("ContentView: task started")
             faceManager.handManager = handManager
             let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
             engine = e
@@ -153,7 +152,6 @@ struct ContentView: View {
             // When user starts speaking, immediately capture isLookingAtScreen
             if !oldValue && newValue {
                 sttManager.captureSpeechStartState()
-                print("ContentView: User started speaking, captured isLookingAtScreen: \(state.face.isLookingAtScreen)")
             }
         }
         .onDisappear { 

@@ -26,12 +26,9 @@ class FaceTrackingManager: NSObject, ObservableObject {
     }
     
     func start() {
-        print("🔍 ARFaceTracking isSupported: \(ARFaceTrackingConfiguration.isSupported)")
         guard ARFaceTrackingConfiguration.isSupported else {
-            print("❌ Face tracking not supported on this device")
             return
         }
-        print("✅ Starting ARSession with face tracking")
         let config = ARFaceTrackingConfiguration()
         config.worldAlignment = .camera
         arSession.delegate = self
@@ -68,12 +65,9 @@ extension FaceTrackingManager: ARSessionDelegate {
         guard let anchor = frame.anchors.first as? ARFaceAnchor else {
             Task { @MainActor in
                 self.faceState.faceDetected = false
-                print("👻 No face anchor detected")
             }
             return
         }
-        
-        print("📸 Face anchor detected, blend shapes count: \(anchor.blendShapes.count)")
         
         processingQueue.async { [weak self] in
             guard let self = self else { return }
