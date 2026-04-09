@@ -150,8 +150,6 @@ struct ContentView: View {
             sttManager.isLookingAtScreen = newValue
         }
         .onChange(of: state.activity.isSpeaking) { oldValue, newValue in
-            // Update STT gating: isSpeaking = sound + mouth
-            sttManager.isSpeaking = newValue
             // When user starts speaking, immediately capture isLookingAtScreen
             if !oldValue && newValue {
                 sttManager.captureSpeechStartState()
