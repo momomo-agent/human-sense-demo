@@ -23,6 +23,8 @@ class STTManager: NSObject, ObservableObject {
     private var lastText: String = ""
     var isLookingAtScreen: Bool = false  // Set by external observer
     private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
+    private var lastUpdateTime: Date = Date()  // Track when last text was received
+    private let sentenceGapThreshold: TimeInterval = 1.5  // 1.5 seconds gap = new sentence
     
     func start() {
         print("STT: start() called")
@@ -85,12 +87,17 @@ class STTManager: NSObject, ObservableObject {
             if let result = result {
                 Task { @MainActor in
                     let newText = result.bestTranscription.formattedString
-                    print("STT: Recognized text: \(newText)")
+                    let now = Date()
+                    let timeSinceLastUpdate = now.timeIntervalSince(self.lastUpdateTime)
                     
-                    // Capture sentence start state when first text appears
-                    if self.lastText.isEmpty && !newText.isEmpty {
+                    print("STT: Recognized text: \(newText), time since last: \(timeSinceLastUpdate)s")
+                    
+                    // Detect new sentence: either first text OR gap > threshold
+                    let isNewSentence = self.lastText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
+                    
+                    if isNewSentence && !newText.isEmpty {
                         self.sentenceStartLookingAtScreen = self.isLookingAtScreen
-                        print("STT: Sentence started, looking at screen: \(self.sentenceStartLookingAtScreen), current isLookingAtScreen: \(self.isLookingAtScreen)")
+                        print("STT: New sentence detected, looking at screen: \(self.sentenceStartLookingAtScreen)")
                     }
                     
                     // Check if new text was added
@@ -107,6 +114,7 @@ class STTManager: NSObject, ObservableObject {
                     }
                     
                     self.lastText = newText
+                    self.lastUpdateTime = now
                     
                     // Reset for next sentence when isFinal
                     if result.isFinal {
