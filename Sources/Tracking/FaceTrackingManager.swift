@@ -64,7 +64,12 @@ extension FaceTrackingManager: ARSessionDelegate {
         
         guard let anchor = frame.anchors.first as? ARFaceAnchor else {
             Task { @MainActor in
+                let wasFaceDetected = self.faceState.faceDetected
                 self.faceState.faceDetected = false
+                // Debug: log when face is lost
+                if wasFaceDetected {
+                    print("👻 Face lost")
+                }
             }
             return
         }
