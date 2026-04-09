@@ -107,15 +107,18 @@ class STTManager: NSObject, ObservableObject {
                     }
                     
                     self.lastText = newText
+                    
+                    // Reset for next sentence when isFinal
+                    if result.isFinal {
+                        print("STT: Sentence ended (isFinal), resetting state")
+                        self.lastText = ""
+                        self.sentenceStartLookingAtScreen = false
+                    }
                 }
             }
             
             if error != nil || result?.isFinal == true {
                 print("STT: Recognition ended (error: \(error != nil), isFinal: \(result?.isFinal == true))")
-                Task { @MainActor in
-                    self.lastText = ""  // Reset for next sentence
-                    self.sentenceStartLookingAtScreen = false
-                }
                 self.audioEngine.stop()
                 self.audioEngine.inputNode.removeTap(onBus: 0)
                 self.recognitionRequest = nil
