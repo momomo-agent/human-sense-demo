@@ -45,13 +45,18 @@ struct ContentView: View {
                 .padding(.horizontal)
                 
                 // Speech text display with segmented colors
-                if !sttManager.segments.isEmpty {
+                if !sttManager.segments.isEmpty || !sttManager.partialText.isEmpty {
                     ScrollViewReader { proxy in
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 0) {
                                 ForEach(sttManager.segments) { segment in
                                     Text(segment.text)
                                         .foregroundStyle(segment.isToScreen ? .yellow : .orange)
+                                }
+                                // Partial text in gray
+                                if !sttManager.partialText.isEmpty {
+                                    Text(sttManager.partialText)
+                                        .foregroundStyle(.gray)
                                 }
                                 Color.clear.frame(width: 1, height: 1).id("end")
                             }
