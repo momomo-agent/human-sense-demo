@@ -44,6 +44,10 @@ class STTManager: NSObject, ObservableObject {
     private var lastRecognizedText: String = ""
     private let maxCompletedSentences = 20
     
+    /// The cumulative formattedString at the point we last finalized a sentence.
+    /// We subtract this prefix to get only the new (incremental) text.
+    private var finalizedPrefix: String = ""
+    
     func captureSpeechStartState() {
         if !speechStartCaptured {
             sentenceStartLookingAtScreen = isLookingAtScreen
@@ -74,6 +78,29 @@ class STTManager: NSObject, ObservableObject {
         completedSentences = []
         currentSentenceText = ""
         lastRecognizedText = ""
+        finalizedPrefix = ""
+    }
+    
+    // MARK: - Incremental Text Extraction
+    
+    /// Given the full cumulative text from the recognizer, strip the
+    /// already-finalized prefix and return only the new portion.
+    private func extractIncremental(from cumulative: String) -> String {
+        guard !finalizedPrefix.isEmpty, cumulative.hasPrefix(finalizedPrefix) else {
+            return cumulative
+        }
+        return String(cumulative.dropFirst(finalizedPrefix.count))
+            .trimmingCharacters(in: .whitespaces)
+    }
+    
+    /// Compute the new finalized prefix: everything in cumulative except the trailing newText.
+    private func trimmedCumulativePrefix(_ cumulative: String, excluding newText: String) -> String {
+        if newText.isEmpty { return cumulative }
+        // The prefix is everything before the incremental part
+        let prefixEnd = cumulative.count - newText.count
+        guard prefixEnd > 0 else { return cumulative }
+        let idx = cumulative.index(cumulative.startIndex, offsetBy: min(prefixEnd, cumulative.count))
+        return String(cumulative[..<idx]).trimmingCharacters(in: .whitespaces)
     }
     
     // MARK: - Private
@@ -133,9 +160,12 @@ class STTManager: NSObject, ObservableObject {
             
             if let result = result {
                 Task { @MainActor in
-                    let newText = result.bestTranscription.formattedString
+                    let cumulativeText = result.bestTranscription.formattedString
                     let now = Date()
                     let timeSinceLastUpdate = now.timeIntervalSince(self.lastUpdateTime)
+                    
+                    // Strip the already-finalized prefix to get only new text
+                    let newText = self.extractIncremental(from: cumulativeText)
                     
                     let isNewSentence = self.lastRecognizedText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
                     
@@ -149,6 +179,8 @@ class STTManager: NSObject, ObservableObject {
                             if self.completedSentences.count > self.maxCompletedSentences {
                                 self.completedSentences = Array(self.completedSentences.suffix(self.maxCompletedSentences))
                             }
+                            // Advance the prefix past the sentence we just finalized
+                            self.finalizedPrefix = self.trimmedCumulativePrefix(cumulativeText, excluding: newText)
                         }
                         self.currentSentenceText = ""
                         self.speechStartCaptured = false
@@ -173,6 +205,7 @@ class STTManager: NSObject, ObservableObject {
                         }
                         self.currentSentenceText = ""
                         self.lastRecognizedText = ""
+                        self.finalizedPrefix = ""
                         self.speechStartCaptured = false
                     }
                 }
