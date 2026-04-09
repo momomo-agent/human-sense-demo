@@ -14,7 +14,6 @@ struct SpeechSegment: Identifiable {
 class STTManager: NSObject, ObservableObject {
     @Published var segments: [SpeechSegment] = []
     @Published var isListening: Bool = false
-    @Published var partialText: String = ""  // Real-time partial text during recognition
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -93,9 +92,8 @@ class STTManager: NSObject, ObservableObject {
                         self.sentenceStartLooking = self.isLookingAtScreen
                     }
                     
-                    // Update current sentence and show as partial
+                    // Update current sentence
                     self.currentSentence = newText
-                    self.partialText = newText
                 }
             }
             
@@ -109,7 +107,6 @@ class STTManager: NSObject, ObservableObject {
                         ))
                     }
                     self.currentSentence = ""
-                    self.partialText = ""
                     self.sentenceStartLooking = false
                 }
                 print("STT: Recognition ended (error: \(error != nil), isFinal: \(result?.isFinal == true))")
