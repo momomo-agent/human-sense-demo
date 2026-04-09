@@ -8,13 +8,12 @@ struct StateCard: View {
             // Status indicators (fixed height to prevent jumping)
             ZStack {
                 if state.face.faceDetected {
-                    // Multiple simultaneous indicators
                     HStack(spacing: 16) {
-                        // Gaze indicator
+                        // Combined presence/gaze indicator
                         StatusPill(
-                            emoji: state.face.isLookingAtScreen ? "👁" : "👀",
-                            label: state.face.isLookingAtScreen ? "看屏幕" : "看别处",
-                            color: state.face.isLookingAtScreen ? .green : .orange,
+                            emoji: presenceEmoji,
+                            label: presenceLabel,
+                            color: presenceColor,
                             active: true
                         )
 
@@ -33,27 +32,18 @@ struct StateCard: View {
                             color: .blue,
                             active: true
                         )
-                        
-                        // Eye state indicator
-                        StatusPill(
-                            emoji: state.face.eyesClosed ? "😴" : "👀",
-                            label: state.face.eyesClosed ? "闭眼" : "睁眼",
-                            color: state.face.eyesClosed ? .purple : .green,
-                            active: true
-                        )
                     }
                 } else {
-                    // No face detected - centered text with same height
-                    VStack {
-                        Spacer()
-                        Text("未检测到人脸")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
+                    // No face detected
+                    StatusPill(
+                        emoji: "🚫",
+                        label: "无人",
+                        color: .secondary,
+                        active: true
+                    )
                 }
             }
-            .frame(height: 60)  // Fixed height to prevent jumping
+            .frame(height: 60)
             
             // Emotion indicator
             if state.face.faceDetected {
@@ -85,6 +75,22 @@ struct StateCard: View {
     var speechColor: Color {
         if !state.activity.isSpeaking { return .gray }
         return state.face.isLookingAtScreen ? .yellow : .orange
+    }
+    
+    // Combined presence/gaze state: 看屏幕 / 看别处 / 闭眼
+    var presenceEmoji: String {
+        if state.face.eyesClosed { return "😴" }
+        return state.face.isLookingAtScreen ? "👁" : "👀"
+    }
+    
+    var presenceLabel: String {
+        if state.face.eyesClosed { return "闭眼" }
+        return state.face.isLookingAtScreen ? "看屏幕" : "看别处"
+    }
+    
+    var presenceColor: Color {
+        if state.face.eyesClosed { return .purple }
+        return state.face.isLookingAtScreen ? .green : .orange
     }
     
     var faceOrientationEmoji: String {
