@@ -234,15 +234,14 @@ class STTManager: NSObject, ObservableObject {
                     
                     // The cumulative text IS this sentence's text — direct assignment
                     self.activeSentence?.text = result.bestTranscription.formattedString
-                    // Keep isToScreen live — reflects state at time of speech
-                    self.activeSentence?.isToScreen = self.isLookingAtScreen
-                    self.lastRecognitionTime = Date()
-                    
-                    // Capture startedLookingAtScreen once on first real text
+                    // Capture gaze state once on first real text — locked for this sentence
                     if !self.speechStartCaptured && !result.bestTranscription.formattedString.isEmpty {
+                        self.activeSentence?.isToScreen = self.isLookingAtScreen
                         self.activeSentence?.startedLookingAtScreen = self.isLookingAtScreen
                         self.speechStartCaptured = true
                     }
+                    
+                    self.lastRecognitionTime = Date()
                     
                     if self.speakingOutputEnabled {
                         self.rebuildSegments()
