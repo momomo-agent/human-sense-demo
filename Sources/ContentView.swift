@@ -26,13 +26,6 @@ struct ContentView: View {
                         .background(Color.white.opacity(0.1))
                         .clipShape(Capsule())
                     
-                    Text("🔄 \(deviceMotion.motionState.orientation.rawValue)")
-                        .font(.caption)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(Capsule())
-                    
                     Text(deviceMotion.motionState.isHolding ? "✋ 持握" : "📍 放置")
                         .font(.caption)
                         .padding(.horizontal, 12)
