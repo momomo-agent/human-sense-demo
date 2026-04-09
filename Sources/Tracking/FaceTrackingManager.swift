@@ -149,15 +149,17 @@ extension FaceTrackingManager: ARSessionDelegate {
                 // Distance from camera (Z axis in meters)
                 newState.distanceFromCamera = abs(anchor.transform.columns.3.z)
                 
-                // Looking at screen: gaze point is within center 80% of screen
+                // Looking at screen: gaze in center 80% AND head facing forward
                 let screenSize = UIScreen.main.bounds.size
                 let marginRatio: CGFloat = 0.1  // 10% margin on each side = 80% center area
                 let marginX = screenSize.width * marginRatio
                 let marginY = screenSize.height * marginRatio
                 let gazeX = self.gazeFilterX?.value ?? adjusted.x
                 let gazeY = self.gazeFilterY?.value ?? adjusted.y
-                newState.isLookingAtScreen = gazeX > marginX && gazeX < screenSize.width - marginX &&
-                                             gazeY > marginY && gazeY < screenSize.height - marginY
+                let gazeInCenter = gazeX > marginX && gazeX < screenSize.width - marginX &&
+                                   gazeY > marginY && gazeY < screenSize.height - marginY
+                let headFacingForward = abs(yaw) < 0.3  // Head yaw within ~17 degrees
+                newState.isLookingAtScreen = gazeInCenter && headFacingForward
                 
                 newState.jawOpen = jawOpen
                 newState.mouthClose = mouthClose
