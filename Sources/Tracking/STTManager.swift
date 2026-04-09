@@ -57,6 +57,11 @@ class STTManager: NSObject, ObservableObject {
     /// Generation counter — callbacks from stale tasks are ignored.
     private var taskGeneration: Int = 0
     
+    /// Silence-based sentence splitting
+    private var lastRecognitionTime: Date?
+    private var silenceTimer: Timer?
+    private let sentenceGapThreshold: TimeInterval = 1.5
+    
     func captureSpeechStartState() {
         // Captured at sentence creation time now, not externally
     }
@@ -72,6 +77,8 @@ class STTManager: NSObject, ObservableObject {
     }
     
     func stop() {
+        silenceTimer?.invalidate()
+        silenceTimer = nil
         taskGeneration += 1
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
@@ -161,6 +168,39 @@ class STTManager: NSObject, ObservableObject {
         audioEngine.prepare()
         try? audioEngine.start()
         isListening = true
+        startSilenceTimer()
+    }
+    
+    // MARK: - Silence Detection
+    
+    private func startSilenceTimer() {
+        silenceTimer?.invalidate()
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkSilence()
+            }
+        }
+    }
+    
+    private func checkSilence() {
+        guard let lastTime = lastRecognitionTime else { return }
+        guard Date().timeIntervalSince(lastTime) >= sentenceGapThreshold else { return }
+        guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
+        
+        // Silence gap detected — finalize current sentence, restart task for next sentence
+        finalizeActiveSentence()
+        
+        // Kill current task and start fresh
+        taskGeneration += 1
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
+        lastRecognitionTime = nil
+        
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        restartAudioAndRecognition()
     }
     
     /// Start a new recognition task = start a new sentence.
@@ -193,6 +233,7 @@ class STTManager: NSObject, ObservableObject {
                     self.activeSentence?.text = result.bestTranscription.formattedString
                     // Keep isToScreen live — reflects state at time of speech
                     self.activeSentence?.isToScreen = self.isLookingAtScreen
+                    self.lastRecognitionTime = Date()
                     
                     // Capture startedLookingAtScreen once on first real text
                     if !self.speechStartCaptured && !result.bestTranscription.formattedString.isEmpty {
