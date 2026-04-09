@@ -33,16 +33,26 @@ class STTManager: NSObject, ObservableObject {
     
     // --- Sentence model ---
     
+    /// A gaze span within a sentence: a run of text with the same gaze direction.
+    private struct GazeSpan {
+        let id = UUID()
+        var charCount: Int       // number of characters in this span
+        let isToScreen: Bool
+    }
+    
     private struct Sentence {
         let id = UUID()
         var text: String
-        let isToScreen: Bool
         let startedLookingAtScreen: Bool
+        var gazeSpans: [GazeSpan]  // only used when startedLookingAtScreen == true
     }
     
     private var sentences: [Sentence] = []
     private var activeSentence: Sentence?
     private let maxSentences = 20
+    
+    /// Track the last known char count so we can attribute new chars to current gaze
+    private var lastCharCount: Int = 0
     
     // --- Internal state ---
     private var speakingOutputEnabled: Bool = false
@@ -98,19 +108,56 @@ class STTManager: NSObject, ObservableObject {
         
         var result: [SpeechSegment] = []
         
-        for s in sentences {
+        func appendSentence(_ s: Sentence) {
             if !result.isEmpty {
-                result.append(SpeechSegment(text: " ", isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
+                result.append(SpeechSegment(
+                    text: " ",
+                    isToScreen: false,
+                    sentenceStartedLookingAtScreen: s.startedLookingAtScreen
+                ))
             }
-            result.append(SpeechSegment(id: s.id, text: s.text, isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
+            
+            if !s.startedLookingAtScreen {
+                // P0: whole sentence is blue
+                result.append(SpeechSegment(
+                    id: s.id,
+                    text: s.text,
+                    isToScreen: false,
+                    sentenceStartedLookingAtScreen: false
+                ))
+            } else {
+                // P1: split by gaze spans — yellow (looking) / orange (not looking)
+                var offset = s.text.startIndex
+                for (i, span) in s.gazeSpans.enumerated() {
+                    let end = s.text.index(offset, offsetBy: span.charCount, limitedBy: s.text.endIndex) ?? s.text.endIndex
+                    let spanText = String(s.text[offset..<end])
+                    if !spanText.isEmpty {
+                        // Use span's own stable id
+                        result.append(SpeechSegment(
+                            id: i == 0 ? s.id : span.id,
+                            text: spanText,
+                            isToScreen: span.isToScreen,
+                            sentenceStartedLookingAtScreen: true
+                        ))
+                    }
+                    offset = end
+                }
+                // Any remaining text (edge case: spans charCount sum < text.count)
+                if offset < s.text.endIndex {
+                    let remaining = String(s.text[offset...])
+                    if !remaining.isEmpty {
+                        result.append(SpeechSegment(
+                            text: remaining,
+                            isToScreen: s.gazeSpans.last?.isToScreen ?? true,
+                            sentenceStartedLookingAtScreen: true
+                        ))
+                    }
+                }
+            }
         }
         
-        if let active = activeSentence, !active.text.isEmpty {
-            if !result.isEmpty {
-                result.append(SpeechSegment(text: " ", isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
-            }
-            result.append(SpeechSegment(id: active.id, text: active.text, isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
-        }
+        for s in sentences { appendSentence(s) }
+        if let active = activeSentence, !active.text.isEmpty { appendSentence(active) }
         
         segments = result
     }
@@ -145,8 +192,6 @@ class STTManager: NSObject, ObservableObject {
             return
         }
         
-        // Audio tap feeds whatever the current recognitionRequest is.
-        // Tap installed once, never removed until stop().
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
             self?.recognitionRequest?.append(buffer)
         }
@@ -159,18 +204,19 @@ class STTManager: NSObject, ObservableObject {
         startSilenceTimer()
     }
     
-    // MARK: - Recognition Task (restartable without touching audio engine)
+    // MARK: - Recognition Task
     
     private func startRecognitionTask() {
         taskGeneration += 1
         let myGeneration = taskGeneration
         
-        // New sentence — gaze state locked at creation
+        let startedLooking = isLookingAtScreen
         activeSentence = Sentence(
             text: "",
-            isToScreen: isLookingAtScreen,
-            startedLookingAtScreen: isLookingAtScreen
+            startedLookingAtScreen: startedLooking,
+            gazeSpans: startedLooking ? [GazeSpan(charCount: 0, isToScreen: isLookingAtScreen)] : []
         )
+        lastCharCount = 0
         speechStartCaptured = false
         
         let request = SFSpeechAudioBufferRecognitionRequest()
@@ -184,13 +230,19 @@ class STTManager: NSObject, ObservableObject {
                 guard myGeneration == self.taskGeneration else { return }
                 
                 if let result = result {
-                    self.activeSentence?.text = result.bestTranscription.formattedString
+                    let newText = result.bestTranscription.formattedString
+                    let newCharCount = newText.count
+                    let addedChars = max(0, newCharCount - self.lastCharCount)
+                    
+                    self.activeSentence?.text = newText
                     self.lastRecognitionTime = Date()
                     
-                    // Lock gaze on first real text if not yet captured
-                    if !self.speechStartCaptured && !result.bestTranscription.formattedString.isEmpty {
-                        self.speechStartCaptured = true
+                    // Track gaze spans for sentences that started looking at screen
+                    if addedChars > 0, self.activeSentence?.startedLookingAtScreen == true {
+                        self.updateGazeSpans(addedChars: addedChars)
                     }
+                    
+                    self.lastCharCount = newCharCount
                     
                     if self.speakingOutputEnabled {
                         self.rebuildSegments()
@@ -198,18 +250,35 @@ class STTManager: NSObject, ObservableObject {
                     
                     if result.isFinal {
                         self.finalizeActiveSentence()
-                        // Start fresh task for next sentence (audio engine stays running)
                         self.startRecognitionTask()
                     }
                 }
                 
-                if error != nil && !result.map(\.isFinal).isTrue {
-                    // Error without isFinal — restart task
+                if error != nil && !(result?.isFinal ?? false) {
                     self.finalizeActiveSentence()
                     self.startRecognitionTask()
                 }
             }
         }
+    }
+    
+    /// Attribute newly added characters to the current gaze direction.
+    private func updateGazeSpans(addedChars: Int) {
+        guard var spans = activeSentence?.gazeSpans, !spans.isEmpty else { return }
+        
+        let lastSpan = spans[spans.count - 1]
+        if lastSpan.isToScreen == isLookingAtScreen {
+            // Same direction — extend current span
+            spans[spans.count - 1] = GazeSpan(
+                charCount: lastSpan.charCount + addedChars,
+                isToScreen: lastSpan.isToScreen
+            )
+        } else {
+            // Direction changed — new span
+            spans.append(GazeSpan(charCount: addedChars, isToScreen: isLookingAtScreen))
+        }
+        
+        activeSentence?.gazeSpans = spans
     }
     
     // MARK: - Silence Detection
@@ -228,8 +297,6 @@ class STTManager: NSObject, ObservableObject {
         guard Date().timeIntervalSince(lastTime) >= sentenceGapThreshold else { return }
         guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
         
-        // Silence detected — finalize sentence, swap to new task
-        // No audio engine restart needed — just end the request and start a new one
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionTask = nil
@@ -239,10 +306,4 @@ class STTManager: NSObject, ObservableObject {
         finalizeActiveSentence()
         startRecognitionTask()
     }
-}
-
-// MARK: - Helpers
-
-private extension Optional where Wrapped == Bool {
-    var isTrue: Bool { self == true }
 }
