@@ -20,6 +20,8 @@ class STTManager: NSObject, ObservableObject {
                 speakingOutputEnabled = true
                 speakingOffTimer?.invalidate()
                 speakingOffTimer = nil
+                // Capture gaze at the moment of speech onset — real-time, no STT delay
+                gazeAtSpeechOnset = isLookingAtScreen
             } else {
                 speakingOffTimer?.invalidate()
                 speakingOffTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
@@ -30,6 +32,10 @@ class STTManager: NSObject, ObservableObject {
             }
         }
     }
+    
+    /// Gaze state captured at the instant isSpeaking becomes true.
+    /// Used to determine sentence color instead of STT callback time.
+    private var gazeAtSpeechOnset: Bool = false
     
     // --- Sentence model ---
     
@@ -236,12 +242,13 @@ class STTManager: NSObject, ObservableObject {
                     self.activeSentence?.text = newText
                     self.lastRecognitionTime = Date()
                     
-                    // Lock gaze direction on first recognized text
+                    // Lock gaze direction on first recognized text,
+                    // using the gaze captured at speech onset (isSpeaking=true moment)
                     if !self.speechStartCaptured && !newText.isEmpty {
-                        let looking = self.isLookingAtScreen
+                        let looking = self.gazeAtSpeechOnset
                         self.activeSentence?.startedLookingAtScreen = looking
                         if looking {
-                            self.activeSentence?.gazeSpans = [GazeSpan(charCount: newCharCount, isToScreen: looking)]
+                            self.activeSentence?.gazeSpans = [GazeSpan(charCount: newCharCount, isToScreen: self.isLookingAtScreen)]
                         }
                         self.lastCharCount = newCharCount
                         self.speechStartCaptured = true
