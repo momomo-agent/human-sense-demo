@@ -13,6 +13,11 @@ class AudioDetectionManager: NSObject, ObservableObject {
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
         
+        guard format.sampleRate > 0 && format.channelCount > 0 else {
+            print("Audio: invalid input format (simulator?), skipping")
+            return
+        }
+        
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
             guard let self = self else { return }
             let rms = self.calculateRMS(buffer: buffer)

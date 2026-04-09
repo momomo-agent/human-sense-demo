@@ -197,6 +197,12 @@ class STTManager: NSObject, ObservableObject {
         
         let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
+        
+        guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else {
+            print("STT: invalid audio format (simulator?), skipping")
+            return
+        }
+        
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             recognitionRequest.append(buffer)
         }
