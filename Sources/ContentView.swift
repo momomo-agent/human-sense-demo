@@ -44,22 +44,6 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
                 
-                // Debug info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("DEBUG INFO").font(.caption2.bold()).foregroundStyle(.yellow)
-                    Text("Head Roll: \(String(format: "%.2f", state.face.headRoll))").font(.caption2.monospacedDigit())
-                    Text("Jaw Open: \(String(format: "%.2f", state.face.jawOpen))").font(.caption2.monospacedDigit())
-                    Text("Jaw Delta: \(String(format: "%.3f", state.debugJawDelta))").font(.caption2.monospacedDigit())
-                    Text("Audio Volume: \(String(format: "%.4f", state.audio.volume))").font(.caption2.monospacedDigit())
-                    Text("Activity: \(state.activity.rawValue)").font(.caption2.monospacedDigit())
-                    Text("Gravity Y: \(String(format: "%.2f", deviceMotion.debugGravityY))").font(.caption2.monospacedDigit())
-                    Text("Gravity Z: \(String(format: "%.2f", deviceMotion.debugGravityZ))").font(.caption2.monospacedDigit())
-                }
-                .padding()
-                .background(Color.yellow.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .padding(.horizontal)
-                
                 // Speech text display with segmented colors
                 if !sttManager.segments.isEmpty {
                     ScrollViewReader { proxy in
@@ -124,6 +108,22 @@ struct ContentView: View {
                     HeadOrientationView(yaw: state.face.headYaw, pitch: state.face.headPitch, roll: state.face.headRoll)
                     BlendShapePanel(face: state.face)
                     AudioVisualizerView(audio: state.audio)
+                }
+                .padding()
+                .background(Color.white.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+
+                // Debug info (at bottom)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("DEBUG INFO").font(.caption2.bold()).foregroundStyle(.yellow)
+                    Text("Head Roll: \(String(format: "%.2f", state.face.headRoll))").font(.caption2.monospacedDigit())
+                    Text("Jaw Open: \(String(format: "%.2f", state.face.jawOpen))").font(.caption2.monospacedDigit())
+                    Text("Jaw Delta: \(String(format: "%.3f", state.debugJawDelta))").font(.caption2.monospacedDigit())
+                    Text("Audio Volume: \(String(format: "%.4f", state.audio.volume))").font(.caption2.monospacedDigit())
+                    Text("Activity: \(state.activity.rawValue)").font(.caption2.monospacedDigit())
+                    Text("Gravity Y: \(String(format: "%.2f", deviceMotion.debugGravityY))").font(.caption2.monospacedDigit())
+                    Text("Gravity Z: \(String(format: "%.2f", deviceMotion.debugGravityZ))").font(.caption2.monospacedDigit())
                 }
                 .padding()
                 .background(Color.white.opacity(0.05))
