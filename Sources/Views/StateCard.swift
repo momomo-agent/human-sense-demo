@@ -94,17 +94,19 @@ struct StateCard: View {
     }
     
     var faceOrientationEmoji: String {
-        let yaw = state.face.headYaw
-        if yaw > 0.3 { return "👈" }  // Looking left
-        if yaw < -0.3 { return "👉" }  // Looking right
-        return "😊"  // Facing forward
+        switch state.face.headOrientation {
+        case .left: return "👈"
+        case .right: return "👉"
+        case .forward: return "😊"
+        }
     }
     
     var faceOrientationLabel: String {
-        let yaw = state.face.headYaw
-        if yaw > 0.3 { return "朝左" }
-        if yaw < -0.3 { return "朝右" }
-        return "朝前"
+        switch state.face.headOrientation {
+        case .left: return "朝左"
+        case .right: return "朝右"
+        case .forward: return "朝前"
+        }
     }
 }
 

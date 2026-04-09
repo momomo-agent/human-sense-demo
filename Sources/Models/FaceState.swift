@@ -1,6 +1,20 @@
 import Foundation
 import ARKit
 
+enum HeadOrientation {
+    case forward, left, right
+    
+    static let threshold: Float = 0.3  // ~17 degrees
+    
+    init(yaw: Float) {
+        if yaw > Self.threshold { self = .left }
+        else if yaw < -Self.threshold { self = .right }
+        else { self = .forward }
+    }
+    
+    var isFacingForward: Bool { self == .forward }
+}
+
 struct FaceState {
     // Gaze
     var gazePoint: CGPoint = .zero
@@ -35,6 +49,8 @@ struct FaceState {
     var gazeV: Float { ((eyeLookDownLeft - eyeLookUpLeft) + (eyeLookDownRight - eyeLookUpRight)) / 2 }
     var eyesClosed: Bool { eyeBlinkLeft > 0.8 && eyeBlinkRight > 0.8 }
     var faceDetected: Bool = false
+    
+    var headOrientation: HeadOrientation { HeadOrientation(yaw: headYaw) }
 
     // Head gesture
     var headGesture: HeadGesture = .none
