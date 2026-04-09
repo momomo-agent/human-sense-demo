@@ -158,6 +158,6 @@ class DeviceMotionManager: ObservableObject {
         
         // If variance is above threshold, device is being held (micro-movements)
         // If variance is near zero, device is placed on a surface
-        motionState.isHolding = variance > 0.000005  // Lowered from 0.00001 for more sensitivity
+        motionState.isHolding = variance > 0.00002  // Increased from 0.000005 to reduce false positives
     }
 }
