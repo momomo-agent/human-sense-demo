@@ -83,7 +83,9 @@ class HumanStateEngine {
         // Speaking requires BOTH mouth movement AND audio
         // Only check audio if mouth is moving
         if mouthMoving {
-            if audio.isSpeaking { return .speaking }
+            if audio.isSpeaking {
+                return face.isLookingAtScreen ? .speakingToScreen : .speakingToOther
+            }
         }
 
         if !face.isLookingAtScreen { return .distracted }

@@ -7,6 +7,7 @@ struct SpeechSegment: Identifiable {
     let id = UUID()
     let text: String
     let isToScreen: Bool
+    var isPartial: Bool = false  // true = still recognizing
 }
 
 @MainActor
@@ -21,6 +22,8 @@ class STTManager: NSObject, ObservableObject {
     
     private var lastText: String = ""
     var isLookingAtScreen: Bool = false  // Set by external observer
+    private var sentenceStartLooking: Bool = false  // Captured at sentence start
+    private var currentSentence: String = ""  // Accumulated text for current sentence
     
     func start() {
         print("STT: start() called")
@@ -83,24 +86,29 @@ class STTManager: NSObject, ObservableObject {
             if let result = result {
                 Task { @MainActor in
                     let newText = result.bestTranscription.formattedString
-                    print("STT: Recognized text: \(newText)")
                     
-                    // Check if new text was added
-                    if newText.count > self.lastText.count {
-                        let addedText = String(newText.dropFirst(self.lastText.count))
-                        if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
-                            self.segments.append(SpeechSegment(
-                                text: addedText,
-                                isToScreen: self.isLookingAtScreen
-                            ))
-                        }
+                    // Capture isLookingAtScreen at sentence start
+                    if self.currentSentence.isEmpty {
+                        self.sentenceStartLooking = self.isLookingAtScreen
                     }
                     
-                    self.lastText = newText
+                    // Update current sentence
+                    self.currentSentence = newText
                 }
             }
             
             if error != nil || result?.isFinal == true {
+                Task { @MainActor in
+                    // Create segment for the complete sentence
+                    if !self.currentSentence.trimmingCharacters(in: .whitespaces).isEmpty {
+                        self.segments.append(SpeechSegment(
+                            text: self.currentSentence,
+                            isToScreen: self.sentenceStartLooking
+                        ))
+                    }
+                    self.currentSentence = ""
+                    self.sentenceStartLooking = false
+                }
                 print("STT: Recognition ended (error: \(error != nil), isFinal: \(result?.isFinal == true))")
                 self.audioEngine.stop()
                 self.audioEngine.inputNode.removeTap(onBus: 0)
