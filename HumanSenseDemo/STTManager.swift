@@ -12,7 +12,7 @@ class STTManager: ObservableObject {
     struct RecognizedSentence: Identifiable {
         let id = UUID()
         let text: String
-        let colorSeed: Int  // Stable color — assigned once, never changes
+        let colorSeed: Int
     }
     
     private var speechRecognizer: SFSpeechRecognizer?
@@ -22,7 +22,10 @@ class STTManager: ObservableObject {
     
     private var lastRecognitionTime: Date?
     private var silenceTimer: Timer?
-    private var sentenceCounter = 0  // Monotonic counter for stable colors
+    private var sentenceCounter = 0
+    
+    /// Incremented on each restart. Callbacks from stale tasks are ignored.
+    private var taskGeneration: Int = 0
     
     private let silenceThreshold: TimeInterval = 1.5
     
@@ -46,25 +49,7 @@ class STTManager: ObservableObject {
             try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
             
-            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-            guard let recognitionRequest = recognitionRequest else { return }
-            recognitionRequest.shouldReportPartialResults = true
-            
-            recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-                Task { @MainActor in
-                    guard let self = self else { return }
-                    
-                    if let result = result {
-                        let text = result.bestTranscription.formattedString
-                        self.currentPartialText = text
-                        self.lastRecognitionTime = Date()
-                    }
-                    
-                    if error != nil {
-                        self.stopEngine()
-                    }
-                }
-            }
+            startRecognitionTask()
             
             let inputNode = audioEngine.inputNode
             let recordingFormat = inputNode.outputFormat(forBus: 0)
@@ -84,21 +69,11 @@ class STTManager: ObservableObject {
     }
     
     func stopListening() {
-        stopEngine()
-        
-        // Finalize any remaining partial text
-        finalizeSentence()
-        
-        recognizedSentences = []
-        currentPartialText = ""
-        sentenceCounter = 0
-    }
-    
-    // MARK: - Private
-    
-    private func stopEngine() {
         silenceTimer?.invalidate()
         silenceTimer = nil
+        
+        // Bump generation so any pending callbacks are ignored
+        taskGeneration += 1
         
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
@@ -107,8 +82,44 @@ class STTManager: ObservableObject {
         recognitionTask = nil
         recognitionRequest = nil
         
+        // Finalize remaining text
+        commitSentence()
+        
+        recognizedSentences = []
+        currentPartialText = ""
+        sentenceCounter = 0
         isListening = false
     }
+    
+    // MARK: - Recognition Task Lifecycle
+    
+    private func startRecognitionTask() {
+        taskGeneration += 1
+        let myGeneration = taskGeneration
+        
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let request = recognitionRequest else { return }
+        request.shouldReportPartialResults = true
+        
+        recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
+            Task { @MainActor in
+                guard let self = self else { return }
+                // Ignore callbacks from a previous (stale) task
+                guard myGeneration == self.taskGeneration else { return }
+                
+                if let result = result {
+                    self.currentPartialText = result.bestTranscription.formattedString
+                    self.lastRecognitionTime = Date()
+                }
+                
+                if error != nil {
+                    self.stopListening()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Silence Detection
     
     private func startSilenceTimer() {
         silenceTimer?.invalidate()
@@ -123,35 +134,34 @@ class STTManager: ObservableObject {
         guard let lastTime = lastRecognitionTime else { return }
         
         if Date().timeIntervalSince(lastTime) >= silenceThreshold {
-            finalizeSentence()
+            commitSentence()
             restartRecognition()
         }
     }
     
-    /// Commit current partial text as a finalized sentence, then clear it.
-    /// Because we restart recognition after each sentence, `currentPartialText`
-    /// is always relative to the current recognition task — no cumulative drift.
-    private func finalizeSentence() {
+    // MARK: - Sentence Management
+    
+    /// Save current partial text as a finalized sentence.
+    private func commitSentence() {
         let text = currentPartialText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         
-        let sentence = RecognizedSentence(text: text, colorSeed: sentenceCounter)
+        recognizedSentences.append(RecognizedSentence(text: text, colorSeed: sentenceCounter))
         sentenceCounter += 1
-        recognizedSentences.append(sentence)
         currentPartialText = ""
         
-        // Keep last 20
         if recognizedSentences.count > 20 {
             recognizedSentences.removeFirst()
         }
     }
     
-    /// Tear down the current recognition task and start a fresh one.
-    /// This resets the cumulative `formattedString` so the next sentence
-    /// starts from scratch — the simplest way to get clean sentence boundaries.
+    /// Kill the current recognition task and start a fresh one.
+    /// The generation counter ensures stale callbacks from the dying task
+    /// cannot overwrite `currentPartialText` after we've cleared it.
     private func restartRecognition() {
         lastRecognitionTime = nil
         
+        // End old task (this may fire one last callback — ignored via generation check)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         recognitionTask = nil
@@ -159,38 +169,7 @@ class STTManager: ObservableObject {
         
         guard isListening else { return }
         
-        do {
-            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-            guard let recognitionRequest = recognitionRequest else { return }
-            recognitionRequest.shouldReportPartialResults = true
-            
-            recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-                Task { @MainActor in
-                    guard let self = self else { return }
-                    
-                    if let result = result {
-                        let text = result.bestTranscription.formattedString
-                        self.currentPartialText = text
-                        self.lastRecognitionTime = Date()
-                    }
-                    
-                    if error != nil {
-                        self.stopEngine()
-                    }
-                }
-            }
-            
-            // Re-install tap only if needed (engine still running)
-            if !audioEngine.isRunning {
-                let inputNode = audioEngine.inputNode
-                let recordingFormat = inputNode.outputFormat(forBus: 0)
-                inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-                    self?.recognitionRequest?.append(buffer)
-                }
-                try audioEngine.start()
-            }
-        } catch {
-            errorMessage = "Restart failed: \(error.localizedDescription)"
-        }
+        // Fresh task — cumulative formattedString starts from ""
+        startRecognitionTask()
     }
 }
