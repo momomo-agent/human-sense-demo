@@ -68,6 +68,9 @@ struct ContentView: View {
                                 proxy.scrollTo("end", anchor: .trailing)
                             }
                         }
+                        .onChange(of: state.face.distanceFromCamera) { _ in
+                            proxy.scrollTo("end", anchor: .trailing)
+                        }
                     }
                 }
 

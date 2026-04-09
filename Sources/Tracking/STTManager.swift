@@ -22,7 +22,26 @@ class STTManager: NSObject, ObservableObject {
     
     private var lastText: String = ""
     var isLookingAtScreen: Bool = false  // Set by external observer
-    var isSpeaking: Bool = false  // Set by external observer (mouth + sound)
+    var isSpeaking: Bool = false {  // Set by external observer (mouth + sound)
+        didSet {
+            if isSpeaking {
+                // Speaking started - immediately enable output
+                speakingOutputEnabled = true
+                speakingOffTimer?.invalidate()
+                speakingOffTimer = nil
+            } else {
+                // Speaking stopped - delay disabling output by 1s to catch trailing words
+                speakingOffTimer?.invalidate()
+                speakingOffTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.speakingOutputEnabled = false
+                    }
+                }
+            }
+        }
+    }
+    private var speakingOutputEnabled: Bool = false
+    private var speakingOffTimer: Timer?
     private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
     private var lastUpdateTime: Date = Date()  // Track when last text was received
     private let sentenceGapThreshold: TimeInterval = 1.5  // 1.5 seconds gap = new sentence
@@ -94,8 +113,8 @@ class STTManager: NSObject, ObservableObject {
                         self.sentenceStartLookingAtScreen = self.isLookingAtScreen
                     }
                     
-                    // Only show text when user is speaking (mouth + sound)
-                    if self.isSpeaking {
+                    // Only show text when user is speaking (with 1s trailing buffer)
+                    if self.speakingOutputEnabled {
                         if isNewSentence && !newText.isEmpty && !self.segments.isEmpty {
                             self.segments.append(SpeechSegment(
                                 text: " ",
