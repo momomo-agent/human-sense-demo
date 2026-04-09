@@ -31,28 +31,34 @@ class STTManager: NSObject, ObservableObject {
         }
     }
     
+    // --- Sentence model ---
+    
+    /// Each sentence is one object with a clear lifecycle.
+    private struct Sentence {
+        let id = UUID()
+        var text: String
+        let isToScreen: Bool
+        let startedLookingAtScreen: Bool
+    }
+    
+    /// Completed sentences — each was one recognition task's output.
+    private var sentences: [Sentence] = []
+    
+    /// The sentence currently being recognized (nil if no active task).
+    private var activeSentence: Sentence?
+    
+    private let maxSentences = 20
+    
     // --- Internal state ---
     private var speakingOutputEnabled: Bool = false
     private var speakingOffTimer: Timer?
-    private var sentenceStartLookingAtScreen: Bool = false
     private var speechStartCaptured: Bool = false
-    private var lastUpdateTime: Date = Date()
-    private let sentenceGapThreshold: TimeInterval = 1.5
     
-    private var completedSentences: [CompletedSentence] = []
-    private var currentSentenceText: String = ""
-    private var lastRecognizedText: String = ""
-    private let maxCompletedSentences = 20
-    
-    /// The cumulative formattedString at the point we last finalized a sentence.
-    /// We subtract this prefix to get only the new (incremental) text.
-    private var finalizedPrefix: String = ""
+    /// Generation counter — callbacks from stale tasks are ignored.
+    private var taskGeneration: Int = 0
     
     func captureSpeechStartState() {
-        if !speechStartCaptured {
-            sentenceStartLookingAtScreen = isLookingAtScreen
-            speechStartCaptured = true
-        }
+        // Captured at sentence creation time now, not externally
     }
     
     func start() {
@@ -60,170 +66,81 @@ class STTManager: NSObject, ObservableObject {
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             guard status == .authorized else { return }
             Task { @MainActor in
-                self?.startRecognition()
+                self?.beginListening()
             }
         }
     }
     
     func stop() {
+        taskGeneration += 1
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
+        
+        // Finalize active sentence if any
+        finalizeActiveSentence()
+        
         isListening = false
     }
     
     func clearSegments() {
-        segments = []
-        completedSentences = []
-        currentSentenceText = ""
-        lastRecognizedText = ""
-        finalizedPrefix = ""
+        sentences = []
+        activeSentence = nil
+        rebuildSegments()
     }
     
-    // MARK: - Incremental Text Extraction
+    // MARK: - Segment Output
     
-    /// Given the full cumulative text from the recognizer, strip the
-    /// already-finalized prefix and return only the new portion.
-    private func extractIncremental(from cumulative: String) -> String {
-        guard !finalizedPrefix.isEmpty, cumulative.hasPrefix(finalizedPrefix) else {
-            return cumulative
-        }
-        return String(cumulative.dropFirst(finalizedPrefix.count))
-            .trimmingCharacters(in: .whitespaces)
-    }
-    
-    /// Compute the new finalized prefix: everything in cumulative except the trailing newText.
-    private func trimmedCumulativePrefix(_ cumulative: String, excluding newText: String) -> String {
-        if newText.isEmpty { return cumulative }
-        // The prefix is everything before the incremental part
-        let prefixEnd = cumulative.count - newText.count
-        guard prefixEnd > 0 else { return cumulative }
-        let idx = cumulative.index(cumulative.startIndex, offsetBy: min(prefixEnd, cumulative.count))
-        return String(cumulative[..<idx]).trimmingCharacters(in: .whitespaces)
-    }
-    
-    // MARK: - Private
-    
-    private struct CompletedSentence {
-        let text: String
-        let isToScreen: Bool
-        let sentenceStartedLookingAtScreen: Bool
-    }
-    
+    /// Rebuild the published segments array from sentences + active sentence.
+    /// Each sentence maps to one segment. Simple, no duplication possible.
     private func rebuildSegments() {
-        var newSegments: [SpeechSegment] = []
-        
-        for sentence in completedSentences {
-            if !newSegments.isEmpty {
-                newSegments.append(SpeechSegment(
-                    text: " ",
-                    isToScreen: sentence.isToScreen,
-                    sentenceStartedLookingAtScreen: sentence.sentenceStartedLookingAtScreen
-                ))
-            }
-            newSegments.append(SpeechSegment(
-                text: sentence.text,
-                isToScreen: sentence.isToScreen,
-                sentenceStartedLookingAtScreen: sentence.sentenceStartedLookingAtScreen
-            ))
+        guard speakingOutputEnabled else {
+            segments = []
+            return
         }
         
-        if !currentSentenceText.isEmpty {
-            if !newSegments.isEmpty {
-                newSegments.append(SpeechSegment(
-                    text: " ",
-                    isToScreen: isLookingAtScreen,
-                    sentenceStartedLookingAtScreen: sentenceStartLookingAtScreen
-                ))
+        var result: [SpeechSegment] = []
+        
+        for s in sentences {
+            if !result.isEmpty {
+                result.append(SpeechSegment(text: " ", isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
             }
-            newSegments.append(SpeechSegment(
-                text: currentSentenceText,
-                isToScreen: isLookingAtScreen,
-                sentenceStartedLookingAtScreen: sentenceStartLookingAtScreen
-            ))
+            result.append(SpeechSegment(text: s.text, isToScreen: s.isToScreen, sentenceStartedLookingAtScreen: s.startedLookingAtScreen))
         }
         
-        segments = newSegments
+        if let active = activeSentence, !active.text.isEmpty {
+            if !result.isEmpty {
+                result.append(SpeechSegment(text: " ", isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
+            }
+            result.append(SpeechSegment(text: active.text, isToScreen: active.isToScreen, sentenceStartedLookingAtScreen: active.startedLookingAtScreen))
+        }
+        
+        segments = result
     }
     
-    private func startRecognition() {
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
-        recognitionRequest.shouldReportPartialResults = true
-        
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            guard let self = self else { return }
-            
-            if let result = result {
-                Task { @MainActor in
-                    let cumulativeText = result.bestTranscription.formattedString
-                    let now = Date()
-                    let timeSinceLastUpdate = now.timeIntervalSince(self.lastUpdateTime)
-                    
-                    // Strip the already-finalized prefix to get only new text
-                    let newText = self.extractIncremental(from: cumulativeText)
-                    
-                    let isNewSentence = self.lastRecognizedText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
-                    
-                    if isNewSentence && !newText.isEmpty {
-                        if !self.currentSentenceText.isEmpty && self.speakingOutputEnabled {
-                            self.completedSentences.append(CompletedSentence(
-                                text: self.currentSentenceText,
-                                isToScreen: self.isLookingAtScreen,
-                                sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
-                            ))
-                            if self.completedSentences.count > self.maxCompletedSentences {
-                                self.completedSentences = Array(self.completedSentences.suffix(self.maxCompletedSentences))
-                            }
-                            // Advance the prefix past the sentence we just finalized
-                            self.finalizedPrefix = self.trimmedCumulativePrefix(cumulativeText, excluding: newText)
-                        }
-                        self.currentSentenceText = ""
-                        self.speechStartCaptured = false
-                        self.sentenceStartLookingAtScreen = self.isLookingAtScreen
-                    }
-                    
-                    if self.speakingOutputEnabled {
-                        self.currentSentenceText = newText
-                        self.rebuildSegments()
-                    }
-                    
-                    self.lastRecognizedText = newText
-                    self.lastUpdateTime = now
-                    
-                    if result.isFinal {
-                        if !self.currentSentenceText.isEmpty && self.speakingOutputEnabled {
-                            self.completedSentences.append(CompletedSentence(
-                                text: self.currentSentenceText,
-                                isToScreen: self.isLookingAtScreen,
-                                sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
-                            ))
-                        }
-                        self.currentSentenceText = ""
-                        self.lastRecognizedText = ""
-                        self.finalizedPrefix = ""
-                        self.speechStartCaptured = false
-                    }
-                }
-            }
-            
-            if error != nil || result?.isFinal == true {
-                self.audioEngine.stop()
-                self.audioEngine.inputNode.removeTap(onBus: 0)
-                self.recognitionRequest = nil
-                self.recognitionTask = nil
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if self.isListening {
-                        self.startRecognition()
-                    }
-                }
-            }
+    // MARK: - Sentence Lifecycle
+    
+    /// Commit the active sentence to the completed list.
+    private func finalizeActiveSentence() {
+        guard let active = activeSentence, !active.text.isEmpty else {
+            activeSentence = nil
+            return
         }
+        sentences.append(active)
+        if sentences.count > maxSentences {
+            sentences.removeFirst()
+        }
+        activeSentence = nil
+        rebuildSegments()
+    }
+    
+    // MARK: - Recognition
+    
+    private func beginListening() {
+        startRecognitionTask()
         
         let audioSession = AVAudioSession.sharedInstance()
         try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
@@ -237,12 +154,89 @@ class STTManager: NSObject, ObservableObject {
             return
         }
         
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            recognitionRequest.append(buffer)
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+            self?.recognitionRequest?.append(buffer)
         }
         
         audioEngine.prepare()
         try? audioEngine.start()
         isListening = true
+    }
+    
+    /// Start a new recognition task = start a new sentence.
+    private func startRecognitionTask() {
+        taskGeneration += 1
+        let myGeneration = taskGeneration
+        
+        // New task = new sentence object. The task's cumulative formattedString
+        // IS this sentence's text — no prefix stripping needed.
+        activeSentence = Sentence(
+            text: "",
+            isToScreen: isLookingAtScreen,
+            startedLookingAtScreen: isLookingAtScreen
+        )
+        
+        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+        guard let request = recognitionRequest else { return }
+        request.shouldReportPartialResults = true
+        
+        recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
+            guard let self = self else { return }
+            
+            if let result = result {
+                Task { @MainActor in
+                    // Drop callbacks from stale tasks
+                    guard myGeneration == self.taskGeneration else { return }
+                    
+                    // The cumulative text IS this sentence's text — direct assignment
+                    self.activeSentence?.text = result.bestTranscription.formattedString
+                    
+                    if self.speakingOutputEnabled {
+                        self.rebuildSegments()
+                    }
+                    
+                    if result.isFinal {
+                        self.finalizeActiveSentence()
+                    }
+                }
+            }
+            
+            // Task ended — restart to begin next sentence
+            if error != nil || result?.isFinal == true {
+                self.audioEngine.stop()
+                self.audioEngine.inputNode.removeTap(onBus: 0)
+                self.recognitionRequest = nil
+                self.recognitionTask = nil
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if self.isListening {
+                        // Finalize if not already done (e.g. error path)
+                        self.finalizeActiveSentence()
+                        self.restartAudioAndRecognition()
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Restart audio engine + new recognition task after the previous one ended.
+    private func restartAudioAndRecognition() {
+        startRecognitionTask()
+        
+        let audioSession = AVAudioSession.sharedInstance()
+        try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        
+        let inputNode = audioEngine.inputNode
+        let recordingFormat = inputNode.outputFormat(forBus: 0)
+        
+        guard recordingFormat.sampleRate > 0 && recordingFormat.channelCount > 0 else { return }
+        
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+            self?.recognitionRequest?.append(buffer)
+        }
+        
+        audioEngine.prepare()
+        try? audioEngine.start()
     }
 }
