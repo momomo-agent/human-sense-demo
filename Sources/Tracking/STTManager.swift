@@ -37,8 +37,8 @@ class STTManager: NSObject, ObservableObject {
     private struct Sentence {
         let id = UUID()
         var text: String
-        let isToScreen: Bool
-        let startedLookingAtScreen: Bool
+        var isToScreen: Bool
+        var startedLookingAtScreen: Bool
     }
     
     /// Completed sentences — each was one recognition task's output.
@@ -168,13 +168,14 @@ class STTManager: NSObject, ObservableObject {
         taskGeneration += 1
         let myGeneration = taskGeneration
         
-        // New task = new sentence object. The task's cumulative formattedString
-        // IS this sentence's text — no prefix stripping needed.
+        // New task = new sentence object. startedLookingAtScreen will be
+        // captured on first actual speech text, not here.
         activeSentence = Sentence(
             text: "",
             isToScreen: isLookingAtScreen,
             startedLookingAtScreen: isLookingAtScreen
         )
+        speechStartCaptured = false
         
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let request = recognitionRequest else { return }
@@ -190,6 +191,14 @@ class STTManager: NSObject, ObservableObject {
                     
                     // The cumulative text IS this sentence's text — direct assignment
                     self.activeSentence?.text = result.bestTranscription.formattedString
+                    // Keep isToScreen live — reflects state at time of speech
+                    self.activeSentence?.isToScreen = self.isLookingAtScreen
+                    
+                    // Capture startedLookingAtScreen once on first real text
+                    if !self.speechStartCaptured && !result.bestTranscription.formattedString.isEmpty {
+                        self.activeSentence?.startedLookingAtScreen = self.isLookingAtScreen
+                        self.speechStartCaptured = true
+                    }
                     
                     if self.speakingOutputEnabled {
                         self.rebuildSegments()
