@@ -17,7 +17,7 @@ class FaceTrackingManager: NSObject, ObservableObject {
     private var lastTrailAppend = Date.distantPast
     private let headGestureDetector = HeadGestureDetector()
     private let emotionDetector = EmotionDetector()
-    private var noFaceFrames: Int = 0  // Consecutive frames without face
+    nonisolated(unsafe) private var noFaceFrames: Int = 0  // Consecutive frames without face
     private let noFaceThreshold = 5  // Frames before declaring face lost
     
     weak var handManager: HandGestureManager?
