@@ -125,6 +125,7 @@ struct ContentView: View {
                     Text("Gravity Y: \(String(format: "%.2f", deviceMotion.debugGravityY))").font(.caption2.monospacedDigit())
                     Text("Gravity Z: \(String(format: "%.2f", deviceMotion.debugGravityZ))").font(.caption2.monospacedDigit())
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(Color.white.opacity(0.05))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
