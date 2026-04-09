@@ -55,7 +55,7 @@ struct ContentView: View {
                                 }
                                 Color.clear.frame(width: 1, height: 1).id("end")
                             }
-                            .font(.body)
+                            .font(sttFontSize)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -180,5 +180,15 @@ struct ContentView: View {
         // - Currently looking at screen → yellow
         // - Currently NOT looking at screen → orange
         return segment.isToScreen ? .yellow : .orange
+    }
+    
+    private var sttFontSize: Font {
+        let distance = state.face.distanceFromCamera
+        // 远 (0.8-1.2m) or 很远 (>1.2m) → larger font
+        if distance >= 0.8 {
+            return .title2  // Larger
+        } else {
+            return .body    // Normal
+        }
     }
 }
