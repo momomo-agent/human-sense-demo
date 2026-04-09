@@ -115,13 +115,6 @@ extension FaceTrackingManager: ARSessionDelegate {
             
             // Update on main thread
             Task { @MainActor in
-                // Double-check anchor is still being tracked (avoid race condition)
-                guard anchor.isTracked else {
-                    print("👻 Anchor no longer tracked, skipping update")
-                    self.faceState.faceDetected = false
-                    return
-                }
-                
                 // Initialize filters if needed
                 if self.gazeFilterX == nil {
                     self.gazeFilterX = LowPassFilter(value: adjusted.x)
