@@ -17,6 +17,21 @@ struct HandGestureView: View {
                     .foregroundStyle(hand.detected ? .primary : .secondary)
             }
             
+            // Finger curl indicators
+            if hand.detected && !hand.fingerData.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(Finger.allCases, id: \.rawValue) { finger in
+                        if let data = hand.fingerData[finger] {
+                            VStack(spacing: 2) {
+                                Text(fingerEmoji(finger))
+                                    .font(.caption2)
+                                curlIndicator(data.curl)
+                            }
+                        }
+                    }
+                }
+            }
+            
             // Fixed height canvas to prevent layout jumping
             Canvas { context, size in
                 if hand.detected && !hand.handPoints.isEmpty {
@@ -34,5 +49,27 @@ struct HandGestureView: View {
             .background(Color.white.opacity(0.05))
             .clipShape(RoundedRectangle(cornerRadius: 4))
         }
+    }
+    
+    private func fingerEmoji(_ finger: Finger) -> String {
+        switch finger {
+        case .thumb: return "👆"
+        case .index: return "☝️"
+        case .middle: return "🖕"
+        case .ring: return "💍"
+        case .pinky: return "🤙"
+        }
+    }
+    
+    @ViewBuilder
+    private func curlIndicator(_ curl: FingerCurl) -> some View {
+        let (color, height): (Color, CGFloat) = switch curl {
+        case .noCurl: (.green, 16)
+        case .halfCurl: (.yellow, 10)
+        case .fullCurl: (.red, 4)
+        }
+        RoundedRectangle(cornerRadius: 1)
+            .fill(color)
+            .frame(width: 6, height: height)
     }
 }

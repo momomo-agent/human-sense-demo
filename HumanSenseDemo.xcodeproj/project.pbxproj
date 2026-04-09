@@ -16,6 +16,7 @@
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
+		62AD1DBFA305A83766D5A504 /* FingerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FD5CD493F50D8821058526 /* FingerState.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
 		709D80E0A91136F9603A31E9 /* STTManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFD931BD6B3C66165DD7A01 /* STTManager.swift */; };
 		76DD57A7E20E1048CB848DAC /* FaceTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */; };
@@ -41,6 +42,7 @@
 
 /* Begin PBXFileReference section */
 		0172B83F79DBD9E9C24DFC59 /* HumanStateEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanStateEngine.swift; sourceTree = "<group>"; };
+		01FD5CD493F50D8821058526 /* FingerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingerState.swift; sourceTree = "<group>"; };
 		0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
 		0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlendShapePanel.swift; sourceTree = "<group>"; };
 		1E97A04943DCE08E5B7613F9 /* DeviceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceState.swift; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 				1E97A04943DCE08E5B7613F9 /* DeviceState.swift */,
 				43637E98DD394F0EBDE12B91 /* Emotion.swift */,
 				CFC13D4B67894F553B3E450C /* FaceState.swift */,
+				01FD5CD493F50D8821058526 /* FingerState.swift */,
 				26A0E7E236543F198157F61B /* HandState.swift */,
 				704BCA8FF77A5E3ABD01C277 /* HumanState.swift */,
 				C7489EFB730377FB00CAA65D /* SpeechState.swift */,
@@ -225,6 +228,7 @@
 				960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */,
 				CF1CAF5E66624C4286A3F4A7 /* FaceState.swift in Sources */,
 				76DD57A7E20E1048CB848DAC /* FaceTrackingManager.swift in Sources */,
+				62AD1DBFA305A83766D5A504 /* FingerState.swift in Sources */,
 				CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */,
 				2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */,
 				A59CE330AB1B1EB65B8A5B16 /* HandGestureManager.swift in Sources */,
