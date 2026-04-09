@@ -115,9 +115,9 @@ extension FaceTrackingManager: ARSessionDelegate {
             
             // Update on main thread
             Task { @MainActor in
-                // Double-check anchor still exists (avoid race condition)
-                guard self.currentAnchor != nil || anchor.isTracked else {
-                    print("👻 Anchor lost during processing, skipping update")
+                // Double-check anchor is still being tracked (avoid race condition)
+                guard anchor.isTracked else {
+                    print("👻 Anchor no longer tracked, skipping update")
                     self.faceState.faceDetected = false
                     return
                 }

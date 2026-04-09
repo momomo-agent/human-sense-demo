@@ -98,6 +98,15 @@ class STTManager: NSObject, ObservableObject {
                     if isNewSentence && !newText.isEmpty {
                         self.sentenceStartLookingAtScreen = self.isLookingAtScreen
                         print("STT: New sentence detected, looking at screen: \(self.sentenceStartLookingAtScreen)")
+                        
+                        // Add space before new sentence (except first one)
+                        if !self.segments.isEmpty {
+                            self.segments.append(SpeechSegment(
+                                text: " ",
+                                isToScreen: self.isLookingAtScreen,
+                                sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
+                            ))
+                        }
                     }
                     
                     // Check if new text was added
