@@ -224,10 +224,13 @@ class STTManager: NSObject, ObservableObject {
         recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self else { return }
             
+            // Capture generation at callback creation
+            let callbackGeneration = myGeneration
+            
             if let result = result {
                 Task { @MainActor in
                     // Drop callbacks from stale tasks
-                    guard myGeneration == self.taskGeneration else { return }
+                    guard callbackGeneration == self.taskGeneration else { return }
                     
                     // The cumulative text IS this sentence's text — direct assignment
                     self.activeSentence?.text = result.bestTranscription.formattedString
@@ -252,18 +255,21 @@ class STTManager: NSObject, ObservableObject {
             }
             
             // Task ended — restart to begin next sentence
+            // But only if this task is still current (checkSilence may have already restarted)
             if error != nil || result?.isFinal == true {
-                self.audioEngine.stop()
-                self.audioEngine.inputNode.removeTap(onBus: 0)
-                self.recognitionRequest = nil
-                self.recognitionTask = nil
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if self.isListening {
-                        // Finalize if not already done (e.g. error path)
-                        self.finalizeActiveSentence()
-                        self.restartAudioAndRecognition()
-                    }
+                Task { @MainActor in
+                    guard callbackGeneration == self.taskGeneration else { return }
+                    
+                    self.audioEngine.stop()
+                    self.audioEngine.inputNode.removeTap(onBus: 0)
+                    self.recognitionRequest = nil
+                    self.recognitionTask = nil
+                    
+                    try? await Task.sleep(for: .milliseconds(500))
+                    guard self.isListening else { return }
+                    
+                    self.finalizeActiveSentence()
+                    self.restartAudioAndRecognition()
                 }
             }
         }
