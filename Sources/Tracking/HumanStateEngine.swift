@@ -80,10 +80,11 @@ class HumanStateEngine {
             }
             .store(in: &cancellables)
         
-        // STT → humanState.speech
-        sttManager.$speechState
-            .sink { [weak self] speech in
-                self?.humanState.speech = speech
+        // STT → humanState.speech (for non-UI consumers)
+        sttManager.$segments
+            .combineLatest(sttManager.$isListening)
+            .sink { [weak self] segments, isListening in
+                self?.humanState.speech = SpeechState(segments: segments, isListening: isListening)
             }
             .store(in: &cancellables)
     }

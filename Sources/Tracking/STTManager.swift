@@ -4,7 +4,8 @@ import AVFoundation
 
 @MainActor
 class STTManager: NSObject, ObservableObject {
-    @Published var speechState = SpeechState()
+    @Published var segments: [SpeechSegment] = []
+    @Published var isListening: Bool = false
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -65,11 +66,11 @@ class STTManager: NSObject, ObservableObject {
         audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
-        speechState.isListening = false
+        isListening = false
     }
     
     func clearSegments() {
-        speechState.segments = []
+        segments = []
         completedSentences = []
         currentSentenceText = ""
         lastRecognizedText = ""
@@ -116,7 +117,7 @@ class STTManager: NSObject, ObservableObject {
             ))
         }
         
-        speechState.segments = newSegments
+        segments = newSegments
     }
     
     private func startRecognition() {
@@ -184,7 +185,7 @@ class STTManager: NSObject, ObservableObject {
                 self.recognitionTask = nil
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if self.speechState.isListening {
+                    if self.isListening {
                         self.startRecognition()
                     }
                 }
@@ -209,6 +210,6 @@ class STTManager: NSObject, ObservableObject {
         
         audioEngine.prepare()
         try? audioEngine.start()
-        speechState.isListening = true
+        isListening = true
     }
 }

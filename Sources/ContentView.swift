@@ -46,10 +46,10 @@ struct ContentView: View {
                 .padding(.horizontal)
                 
                 // Speech text display — right-aligned, latest text anchored to trailing edge
-                if !sttManager.speechState.segments.isEmpty {
+                if !sttManager.segments.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 0) {
-                            ForEach(sttManager.speechState.segments) { segment in
+                            ForEach(sttManager.segments) { segment in
                                 Text(segment.text)
                                     .foregroundStyle(segmentColor(segment))
                             }
