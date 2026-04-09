@@ -12,7 +12,14 @@ struct SpeechSegment: Identifiable {
 
 @MainActor
 class STTManager: NSObject, ObservableObject {
-    @Published var segments: [SpeechSegment] = []
+    @Published var segments: [SpeechSegment] = [] {
+        didSet {
+            // Keep only last 200 segments to prevent unbounded growth
+            if segments.count > 200 {
+                segments = Array(segments.suffix(150))
+            }
+        }
+    }
     @Published var isListening: Bool = false
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
