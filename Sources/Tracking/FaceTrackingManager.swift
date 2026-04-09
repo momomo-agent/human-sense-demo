@@ -145,7 +145,7 @@ extension FaceTrackingManager: ARSessionDelegate {
                 let gazeY = self.gazeFilterY?.value ?? adjusted.y
                 let gazeInCenter = gazeX > marginX && gazeX < screenSize.width - marginX &&
                                    gazeY > marginY && gazeY < screenSize.height - marginY
-                let headFacingForward = abs(yaw) < 0.3  // Head yaw within ~17 degrees
+                let headFacingForward = abs(yaw) < 0.5  // Head yaw within ~29 degrees (relaxed)
                 newState.isLookingAtScreen = gazeInCenter && headFacingForward
                 
                 newState.jawOpen = jawOpen
