@@ -40,8 +40,16 @@ class STTManager: NSObject, ObservableObject {
             }
         }
     }
-    private var speakingOutputEnabled: Bool = false
+    private var speakingOutputEnabled: Bool = false {
+        didSet {
+            if speakingOutputEnabled && !oldValue {
+                // Just became enabled - flush any buffered text
+                flushPendingText()
+            }
+        }
+    }
     private var speakingOffTimer: Timer?
+    private var pendingTextStart: Int = 0  // lastText index when speaking was off
     private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
     private var lastUpdateTime: Date = Date()  // Track when last text was received
     private let sentenceGapThreshold: TimeInterval = 1.5  // 1.5 seconds gap = new sentence
@@ -54,6 +62,22 @@ class STTManager: NSObject, ObservableObject {
             sentenceStartLookingAtScreen = isLookingAtScreen
             speechStartCaptured = true
         }
+    }
+    
+    private func flushPendingText() {
+        // Output text that was buffered while speakingOutputEnabled was false
+        let currentText = lastText
+        if currentText.count > pendingTextStart {
+            let buffered = String(currentText.dropFirst(pendingTextStart))
+            if !buffered.trimmingCharacters(in: .whitespaces).isEmpty {
+                segments.append(SpeechSegment(
+                    text: buffered,
+                    isToScreen: isLookingAtScreen,
+                    sentenceStartedLookingAtScreen: sentenceStartLookingAtScreen
+                ))
+            }
+        }
+        pendingTextStart = currentText.count
     }
     
     func start() {
@@ -133,6 +157,11 @@ class STTManager: NSObject, ObservableObject {
                                 ))
                             }
                         }
+                        self.pendingTextStart = newText.count
+                    } else {
+                        // Not speaking yet - just track position for later flush
+                        // pendingTextStart stays where it was, so when speaking
+                        // starts, flushPendingText() outputs the buffered text
                     }
                     
                     self.lastText = newText
@@ -141,6 +170,7 @@ class STTManager: NSObject, ObservableObject {
                     // Reset for next sentence when isFinal
                     if result.isFinal {
                         self.lastText = ""
+                        self.pendingTextStart = 0
                         self.sentenceStartLookingAtScreen = false
                         self.speechStartCaptured = false
                     }
