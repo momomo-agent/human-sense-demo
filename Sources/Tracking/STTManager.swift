@@ -1,33 +1,17 @@
 import Foundation
 import Speech
 import AVFoundation
-import SwiftUI
-
-struct SpeechSegment: Identifiable {
-    let id = UUID()
-    let text: String
-    let isToScreen: Bool
-    let sentenceStartedLookingAtScreen: Bool
-}
-
-/// Represents a completed sentence with its color context
-private struct CompletedSentence {
-    let text: String
-    let isToScreen: Bool
-    let sentenceStartedLookingAtScreen: Bool
-}
 
 @MainActor
 class STTManager: NSObject, ObservableObject {
-    @Published var segments: [SpeechSegment] = []
-    @Published var isListening: Bool = false
+    @Published var speechState = SpeechState()
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     
-    // --- State ---
+    // --- External inputs (set by Engine) ---
     var isLookingAtScreen: Bool = false
     var isSpeaking: Bool = false {
         didSet {
@@ -46,20 +30,17 @@ class STTManager: NSObject, ObservableObject {
         }
     }
     
+    // --- Internal state ---
     private var speakingOutputEnabled: Bool = false
     private var speakingOffTimer: Timer?
-    
-    // Sentence tracking
     private var sentenceStartLookingAtScreen: Bool = false
     private var speechStartCaptured: Bool = false
     private var lastUpdateTime: Date = Date()
     private let sentenceGapThreshold: TimeInterval = 1.5
     
-    // Completed sentences + current live sentence
     private var completedSentences: [CompletedSentence] = []
     private var currentSentenceText: String = ""
     private var lastRecognizedText: String = ""
-    
     private let maxCompletedSentences = 20
     
     func captureSpeechStartState() {
@@ -69,7 +50,39 @@ class STTManager: NSObject, ObservableObject {
         }
     }
     
-    /// Rebuild segments from completed sentences + current live text
+    func start() {
+        guard let recognizer = speechRecognizer, recognizer.isAvailable else { return }
+        SFSpeechRecognizer.requestAuthorization { [weak self] status in
+            guard status == .authorized else { return }
+            Task { @MainActor in
+                self?.startRecognition()
+            }
+        }
+    }
+    
+    func stop() {
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        speechState.isListening = false
+    }
+    
+    func clearSegments() {
+        speechState.segments = []
+        completedSentences = []
+        currentSentenceText = ""
+        lastRecognizedText = ""
+    }
+    
+    // MARK: - Private
+    
+    private struct CompletedSentence {
+        let text: String
+        let isToScreen: Bool
+        let sentenceStartedLookingAtScreen: Bool
+    }
+    
     private func rebuildSegments() {
         var newSegments: [SpeechSegment] = []
         
@@ -88,7 +101,6 @@ class STTManager: NSObject, ObservableObject {
             ))
         }
         
-        // Add current live sentence
         if !currentSentenceText.isEmpty {
             if !newSegments.isEmpty {
                 newSegments.append(SpeechSegment(
@@ -104,32 +116,7 @@ class STTManager: NSObject, ObservableObject {
             ))
         }
         
-        segments = newSegments
-    }
-    
-    func start() {
-        guard let recognizer = speechRecognizer, recognizer.isAvailable else { return }
-        SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            guard status == .authorized else { return }
-            Task { @MainActor in
-                self?.startRecognition()
-            }
-        }
-    }
-    
-    func stop() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        isListening = false
-    }
-    
-    func clearSegments() {
-        segments = []
-        completedSentences = []
-        currentSentenceText = ""
-        lastRecognizedText = ""
+        speechState.segments = newSegments
     }
     
     private func startRecognition() {
@@ -149,18 +136,15 @@ class STTManager: NSObject, ObservableObject {
                     let now = Date()
                     let timeSinceLastUpdate = now.timeIntervalSince(self.lastUpdateTime)
                     
-                    // Detect new sentence
                     let isNewSentence = self.lastRecognizedText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
                     
                     if isNewSentence && !newText.isEmpty {
-                        // Commit current sentence if any
                         if !self.currentSentenceText.isEmpty && self.speakingOutputEnabled {
                             self.completedSentences.append(CompletedSentence(
                                 text: self.currentSentenceText,
                                 isToScreen: self.isLookingAtScreen,
                                 sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
                             ))
-                            // Trim old sentences
                             if self.completedSentences.count > self.maxCompletedSentences {
                                 self.completedSentences = Array(self.completedSentences.suffix(self.maxCompletedSentences))
                             }
@@ -171,7 +155,6 @@ class STTManager: NSObject, ObservableObject {
                     }
                     
                     if self.speakingOutputEnabled {
-                        // Live update: replace current sentence with full text from STT
                         self.currentSentenceText = newText
                         self.rebuildSegments()
                     }
@@ -180,7 +163,6 @@ class STTManager: NSObject, ObservableObject {
                     self.lastUpdateTime = now
                     
                     if result.isFinal {
-                        // Commit final sentence
                         if !self.currentSentenceText.isEmpty && self.speakingOutputEnabled {
                             self.completedSentences.append(CompletedSentence(
                                 text: self.currentSentenceText,
@@ -202,7 +184,7 @@ class STTManager: NSObject, ObservableObject {
                 self.recognitionTask = nil
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if self.isListening {
+                    if self.speechState.isListening {
                         self.startRecognition()
                     }
                 }
@@ -221,6 +203,6 @@ class STTManager: NSObject, ObservableObject {
         
         audioEngine.prepare()
         try? audioEngine.start()
-        isListening = true
+        speechState.isListening = true
     }
 }

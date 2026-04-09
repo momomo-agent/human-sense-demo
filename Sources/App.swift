@@ -2,15 +2,13 @@ import SwiftUI
 
 @main
 struct HumanSenseDemoApp: App {
-    @StateObject private var sttManager = STTManager()
+    @State private var engine = HumanStateEngine()
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(sttManager)
+            ContentView(engine: engine)
                 .onAppear {
-                    print("App: onAppear called, starting STT...")
-                    sttManager.start()
+                    engine.start()
                 }
         }
     }

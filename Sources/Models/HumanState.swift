@@ -19,17 +19,6 @@ enum HumanActivity: String, CaseIterable {
         }
     }
 
-    var color: String {
-        switch self {
-        case .absent:           return "gray"
-        case .eyesClosed:       return "purple"
-        case .distracted:       return "darkGreen"
-        case .listening:        return "green"
-        case .speakingToScreen: return "yellow"
-        case .speakingToOther:  return "orange"
-        }
-    }
-    
     var isSpeaking: Bool {
         self == .speakingToScreen || self == .speakingToOther
     }
@@ -40,5 +29,6 @@ struct HumanState {
     var face: FaceState = FaceState()
     var audio: AudioState = AudioState()
     var hand: HandState = HandState()
-    var debugJawDelta: Float = 0  // For debugging speech detection
+    var device: DeviceState = DeviceState()
+    var speech: SpeechState = SpeechState()
 }

@@ -2,38 +2,33 @@ import SwiftUI
 import ARKit
 
 struct ContentView: View {
-    @State private var faceManager = FaceTrackingManager()
-    @State private var audioManager = AudioDetectionManager()
-    @State private var handManager = HandGestureManager()
-    @EnvironmentObject var sttManager: STTManager
-    @State private var deviceMotion = DeviceMotionManager()
-    @State private var engine: HumanStateEngine?
+    var engine: HumanStateEngine
 
-    var state: HumanState { engine?.humanState ?? HumanState() }
-    var history: [(date: Date, activity: HumanActivity)] { engine?.stateHistory ?? [] }
+    private var state: HumanState { engine.humanState }
+    private var history: [(date: Date, activity: HumanActivity)] { engine.stateHistory }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
                 StateCard(state: state).padding(.horizontal)
                 
-                // Device motion state
+                // Device state
                 HStack(spacing: 12) {
-                    Text("📱 \(deviceMotion.motionState.posture.rawValue)")
+                    Text("📱 \(state.device.posture.rawValue)")
                         .font(.caption)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color.white.opacity(0.1))
                         .clipShape(Capsule())
                     
-                    Text(deviceMotion.motionState.isHolding ? "✋ 持握" : "📍 放置")
+                    Text(state.device.isHolding ? "✋ 持握" : "📍 放置")
                         .font(.caption)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(deviceMotion.motionState.isHolding ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
+                        .background(state.device.isHolding ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
                         .clipShape(Capsule())
                     
-                    if deviceMotion.motionState.isWalking {
+                    if state.device.isWalking {
                         Text("🚶 行走中")
                             .font(.caption)
                             .padding(.horizontal, 12)
@@ -44,12 +39,12 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
                 
-                // Speech text display with segmented colors
-                if !sttManager.segments.isEmpty {
+                // Speech text display
+                if !state.speech.segments.isEmpty {
                     ScrollViewReader { proxy in
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 0) {
-                                ForEach(sttManager.segments) { segment in
+                                ForEach(state.speech.segments) { segment in
                                     Text(segment.text)
                                         .foregroundStyle(segmentColor(segment))
                                 }
@@ -62,7 +57,7 @@ struct ContentView: View {
                         .background(Color.white.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal)
-                        .onChange(of: sttManager.segments.count) { _ in
+                        .onChange(of: state.speech.segments.count) { _ in
                             withAnimation {
                                 proxy.scrollTo("end", anchor: .trailing)
                             }
@@ -74,143 +69,86 @@ struct ContentView: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.05))
                     if state.face.faceDetected {
-                        FaceMeshView(faceAnchor: faceManager.currentAnchor)
+                        FaceMeshView(faceAnchor: engine.currentFaceAnchor)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         GazeTrailView(trail: mappedTrail)
                         GazeOverlay(gazePoint: mappedGaze(state.face.gazePoint), isLooking: state.face.isLookingAtScreen)
                     } else {
-                        Text("未检测到人脸").font(.caption).foregroundStyle(.secondary)
+                        Text("未检测到人脸").foregroundStyle(.secondary)
                     }
                 }
-                .frame(height: 200)
+                .frame(height: 300)
                 .padding(.horizontal)
 
-                // Eyes + mouth + distance
+                // Panels
                 HStack(spacing: 12) {
                     EyeVisualizerView(face: state.face)
                     MouthVisualizerView(jawOpen: state.face.jawOpen, mouthClose: state.face.mouthClose)
+                }
+                .padding(.horizontal)
+
+                HStack(spacing: 12) {
+                    HeadOrientationView(yaw: state.face.headYaw, pitch: state.face.headPitch, roll: state.face.headRoll)
                     DistanceIndicatorView(distance: state.face.distanceFromCamera, label: state.face.distanceLabel)
                 }
                 .padding(.horizontal)
 
-                // Hand gesture (temporarily hidden - needs tuning)
-                /*
-                HandGestureView(hand: state.hand)
-                    .padding()
-                    .background(Color.white.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                AudioVisualizerView(audio: state.audio)
                     .padding(.horizontal)
-                */
 
-                // Data panels
-                VStack(spacing: 10) {
-                    StateTimelineView(history: history)
-                    HeadOrientationView(yaw: state.face.headYaw, pitch: state.face.headPitch, roll: state.face.headRoll)
-                    BlendShapePanel(face: state.face)
-                    AudioVisualizerView(audio: state.audio)
-                }
-                .padding()
-                .background(Color.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal)
+                HandGestureView(hand: state.hand)
+                    .padding(.horizontal)
 
-                // Debug info (at bottom)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("DEBUG INFO").font(.caption2.bold()).foregroundStyle(.yellow)
-                    Text("Head Roll: \(String(format: "%.2f", state.face.headRoll))").font(.caption2.monospacedDigit())
-                    Text("Jaw Open: \(String(format: "%.2f", state.face.jawOpen))").font(.caption2.monospacedDigit())
-                    Text("Jaw Delta: \(String(format: "%.3f", state.debugJawDelta))").font(.caption2.monospacedDigit())
-                    Text("Audio Volume: \(String(format: "%.4f", state.audio.volume))").font(.caption2.monospacedDigit())
-                    Text("Activity: \(state.activity.rawValue)").font(.caption2.monospacedDigit())
-                    Text("Gravity Y: \(String(format: "%.2f", deviceMotion.debugGravityY))").font(.caption2.monospacedDigit())
-                    Text("Gravity Z: \(String(format: "%.2f", deviceMotion.debugGravityZ))").font(.caption2.monospacedDigit())
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(Color.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal)
+                StateTimelineView(history: history)
+                    .padding(.horizontal)
             }
-            .padding(.top)
+            .padding(.vertical)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.black)
         .preferredColorScheme(.dark)
-        .task {
-            faceManager.handManager = handManager
-            let e = HumanStateEngine(faceManager: faceManager, audioManager: audioManager, handManager: handManager)
-            engine = e
-            e.start()
-            deviceMotion.start()
-            
-            // Temporarily disable hand gesture processing
-            // handManager.start()
-        }
-        .onChange(of: state.face.isLookingAtScreen) { _, newValue in
-            sttManager.isLookingAtScreen = newValue
-        }
-        .onChange(of: state.activity.isSpeaking) { oldValue, newValue in
-            sttManager.isSpeaking = newValue
-            if !oldValue && newValue {
-                sttManager.captureSpeechStartState()
-            }
-        }
-        .onDisappear { 
-            engine?.stop()
-            deviceMotion.stop()
-        }
     }
 
-    private var mappedTrail: [CGPoint] { faceManager.gazeTrail.map { mappedGaze($0) } }
+    // MARK: - Helpers
 
-    private func mappedGaze(_ point: CGPoint) -> CGPoint {
-        let screen = UIScreen.main.bounds.size
-        let x = (point.x / screen.width) * (screen.width - 32)
-        let y = (point.y / screen.height) * 200
-        return CGPoint(x: x + 16, y: y)
-    }
-    
     private func segmentColor(_ segment: SpeechSegment) -> Color {
-        // If sentence started while NOT looking at screen → all blue
         if !segment.sentenceStartedLookingAtScreen {
             return .blue
         }
-        // If sentence started while looking at screen:
-        // - Currently looking at screen → yellow
-        // - Currently NOT looking at screen → orange
         return segment.isToScreen ? .yellow : .orange
     }
     
+    private func mappedGaze(_ point: CGPoint) -> CGPoint {
+        let screenSize = UIScreen.main.bounds.size
+        return CGPoint(
+            x: point.x / screenSize.width * 300,
+            y: point.y / screenSize.height * 300
+        )
+    }
+    
+    private var mappedTrail: [CGPoint] { engine.gazeTrail.map { mappedGaze($0) } }
+    
     private var sttFontSize: Font {
         let distance = state.face.distanceFromCamera
-        // Continuous scaling based on distance
-        // 0.3m (very close) → 17pt (body)
-        // 0.8m (far) → 22pt
-        // 1.2m (very far) → 28pt
-        // >1.5m → 34pt (max)
-        let baseFontSize: CGFloat = 17  // body font size
-        let dist = CGFloat(distance)  // Convert Float to CGFloat
+        let baseFontSize: CGFloat = 17
+        let dist = CGFloat(distance)
         let scaleFactor: CGFloat
         
         switch dist {
         case 0..<0.3:
-            scaleFactor = 1.0  // 17pt
+            scaleFactor = 1.0
         case 0.3..<0.8:
-            // Linear interpolation from 1.0 to 1.3
             let ratio = (dist - 0.3) / 0.5
             scaleFactor = 1.0 + ratio * 0.3
         case 0.8..<1.2:
-            // Linear interpolation from 1.3 to 1.65
             let ratio = (dist - 0.8) / 0.4
             scaleFactor = 1.3 + ratio * 0.35
         case 1.2..<1.5:
-            // Linear interpolation from 1.65 to 2.0
             let ratio = (dist - 1.2) / 0.3
             scaleFactor = 1.65 + ratio * 0.35
         default:
-            scaleFactor = 2.0  // 34pt max
+            scaleFactor = 2.0
         }
         
-        let fontSize = baseFontSize * scaleFactor
-        return .system(size: fontSize)
+        return .system(size: baseFontSize * scaleFactor)
     }
 }

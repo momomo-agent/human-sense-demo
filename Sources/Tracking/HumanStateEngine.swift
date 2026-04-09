@@ -1,4 +1,5 @@
 import Foundation
+import ARKit
 import Combine
 
 @MainActor
@@ -6,10 +7,17 @@ import Combine
 class HumanStateEngine {
     var humanState = HumanState()
     var stateHistory: [(date: Date, activity: HumanActivity)] = []
+    
+    // Expose for views that need ARFaceAnchor (FaceMeshView)
+    var currentFaceAnchor: ARFaceAnchor? { faceManager.currentAnchor }
+    var gazeTrail: [CGPoint] { faceManager.gazeTrail }
 
-    private let faceManager: FaceTrackingManager
-    private let audioManager: AudioDetectionManager
-    private let handManager: HandGestureManager
+    // --- Owned managers ---
+    let faceManager: FaceTrackingManager
+    let audioManager: AudioDetectionManager
+    let handManager: HandGestureManager
+    let deviceMotionManager: DeviceMotionManager
+    let sttManager: STTManager
 
     private var cancellables = Set<AnyCancellable>()
     private var pendingActivity: HumanActivity?
@@ -18,11 +26,39 @@ class HumanStateEngine {
     private var previousJawOpen: Float = 0
     private var lastHistoryAppend = Date.distantPast
 
-    init(faceManager: FaceTrackingManager, audioManager: AudioDetectionManager, handManager: HandGestureManager) {
-        self.faceManager = faceManager
-        self.audioManager = audioManager
-        self.handManager = handManager
+    init() {
+        self.faceManager = FaceTrackingManager()
+        self.audioManager = AudioDetectionManager()
+        self.handManager = HandGestureManager()
+        self.deviceMotionManager = DeviceMotionManager()
+        self.sttManager = STTManager()
+        
+        // Wire up face → hand (ARFrame sharing)
+        faceManager.handManager = handManager
+        
+        setupBindings()
+    }
 
+    func start() {
+        faceManager.start()
+        audioManager.start()
+        handManager.start()
+        deviceMotionManager.start()
+        sttManager.start()
+    }
+
+    func stop() {
+        faceManager.stop()
+        audioManager.stop()
+        handManager.stop()
+        deviceMotionManager.stop()
+        sttManager.stop()
+    }
+    
+    // MARK: - Private
+    
+    private func setupBindings() {
+        // Face + Audio → activity inference + STT sync
         faceManager.$faceState
             .combineLatest(audioManager.$audioState)
             .sink { [weak self] face, audio in
@@ -30,9 +66,24 @@ class HumanStateEngine {
             }
             .store(in: &cancellables)
 
+        // Hand → humanState.hand
         handManager.$handState
             .sink { [weak self] hand in
                 self?.humanState.hand = hand
+            }
+            .store(in: &cancellables)
+        
+        // Device → humanState.device
+        deviceMotionManager.$deviceState
+            .sink { [weak self] device in
+                self?.humanState.device = device
+            }
+            .store(in: &cancellables)
+        
+        // STT → humanState.speech
+        sttManager.$speechState
+            .sink { [weak self] speech in
+                self?.humanState.speech = speech
             }
             .store(in: &cancellables)
     }
@@ -59,7 +110,18 @@ class HumanStateEngine {
             pendingActivity = nil
             pendingActivityStartTime = nil
         }
+        
+        // Sync state to STT manager
+        sttManager.isLookingAtScreen = face.isLookingAtScreen
+        let activitySpeaking = humanState.activity.isSpeaking
+        if sttManager.isSpeaking != activitySpeaking {
+            sttManager.isSpeaking = activitySpeaking
+            if activitySpeaking {
+                sttManager.captureSpeechStartState()
+            }
+        }
 
+        // History
         let now = Date()
         if now.timeIntervalSince(lastHistoryAppend) >= 0.1 {
             stateHistory.append((date: now, activity: humanState.activity))
@@ -76,31 +138,13 @@ class HumanStateEngine {
         if face.eyesClosed { return .eyesClosed }
 
         let jawDelta = abs(face.jawOpen - previousJawOpen)
-        humanState.debugJawDelta = jawDelta  // Expose for debugging
-        
-        let mouthMoving = jawDelta > 0.02 || face.jawOpen > 0.2  // Back to OR
-        
-        // Speaking requires BOTH mouth movement AND audio
-        // Only check audio if mouth is moving
-        if mouthMoving {
-            if audio.isSpeaking {
-                return face.isLookingAtScreen ? .speakingToScreen : .speakingToOther
-            }
+        let mouthMoving = jawDelta > 0.02 || face.jawOpen > 0.2
+
+        if mouthMoving && audio.isSpeaking {
+            return face.isLookingAtScreen ? .speakingToScreen : .speakingToOther
         }
 
         if !face.isLookingAtScreen { return .distracted }
         return .listening
-    }
-
-    func start() {
-        faceManager.start()
-        audioManager.start()
-        handManager.start()
-    }
-
-    func stop() {
-        faceManager.stop()
-        audioManager.stop()
-        handManager.stop()
     }
 }
