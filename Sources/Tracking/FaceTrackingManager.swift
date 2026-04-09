@@ -149,9 +149,9 @@ extension FaceTrackingManager: ARSessionDelegate {
                 // Distance from camera (Z axis in meters)
                 newState.distanceFromCamera = abs(anchor.transform.columns.3.z)
                 
-                // Looking at screen: gaze point is within center 40% of screen
+                // Looking at screen: gaze point is within center 80% of screen
                 let screenSize = UIScreen.main.bounds.size
-                let marginRatio: CGFloat = 0.3  // 30% margin on each side = 40% center area
+                let marginRatio: CGFloat = 0.1  // 10% margin on each side = 80% center area
                 let marginX = screenSize.width * marginRatio
                 let marginY = screenSize.height * marginRatio
                 let gazeX = self.gazeFilterX?.value ?? adjusted.x
