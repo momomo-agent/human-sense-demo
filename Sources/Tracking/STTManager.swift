@@ -7,19 +7,19 @@ struct SpeechSegment: Identifiable {
     let id = UUID()
     let text: String
     let isToScreen: Bool
-    let sentenceStartedLookingAtScreen: Bool  // Was looking at screen when sentence started
+    let sentenceStartedLookingAtScreen: Bool
+}
+
+/// Represents a completed sentence with its color context
+private struct CompletedSentence {
+    let text: String
+    let isToScreen: Bool
+    let sentenceStartedLookingAtScreen: Bool
 }
 
 @MainActor
 class STTManager: NSObject, ObservableObject {
-    @Published var segments: [SpeechSegment] = [] {
-        didSet {
-            // Keep only last 200 segments to prevent unbounded growth
-            if segments.count > 200 {
-                segments = Array(segments.suffix(150))
-            }
-        }
-    }
+    @Published var segments: [SpeechSegment] = []
     @Published var isListening: Bool = false
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "zh-CN"))
@@ -27,17 +27,15 @@ class STTManager: NSObject, ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     
-    private var lastText: String = ""
-    var isLookingAtScreen: Bool = false  // Set by external observer
-    var isSpeaking: Bool = false {  // Set by external observer (mouth + sound)
+    // --- State ---
+    var isLookingAtScreen: Bool = false
+    var isSpeaking: Bool = false {
         didSet {
             if isSpeaking {
-                // Speaking started - immediately enable output
                 speakingOutputEnabled = true
                 speakingOffTimer?.invalidate()
                 speakingOffTimer = nil
             } else {
-                // Speaking stopped - delay disabling output by 1s to catch trailing words
                 speakingOffTimer?.invalidate()
                 speakingOffTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
                     Task { @MainActor in
@@ -47,58 +45,72 @@ class STTManager: NSObject, ObservableObject {
             }
         }
     }
-    private var speakingOutputEnabled: Bool = false {
-        didSet {
-            if speakingOutputEnabled && !oldValue {
-                // Just became enabled - flush any buffered text
-                flushPendingText()
-            }
-        }
-    }
+    
+    private var speakingOutputEnabled: Bool = false
     private var speakingOffTimer: Timer?
-    private var pendingTextStart: Int = 0  // lastText index when speaking was off
-    private var sentenceStartLookingAtScreen: Bool = false  // Captured at sentence start
-    private var lastUpdateTime: Date = Date()  // Track when last text was received
-    private let sentenceGapThreshold: TimeInterval = 1.5  // 1.5 seconds gap = new sentence
-    private var speechStartCaptured: Bool = false  // Track if we captured speech start state
+    
+    // Sentence tracking
+    private var sentenceStartLookingAtScreen: Bool = false
+    private var speechStartCaptured: Bool = false
+    private var lastUpdateTime: Date = Date()
+    private let sentenceGapThreshold: TimeInterval = 1.5
+    
+    // Completed sentences + current live sentence
+    private var completedSentences: [CompletedSentence] = []
+    private var currentSentenceText: String = ""
+    private var lastRecognizedText: String = ""
+    
+    private let maxCompletedSentences = 20
     
     func captureSpeechStartState() {
-        // Called when user starts speaking (from activity state change)
-        // This captures the state BEFORE STT recognizes any text
         if !speechStartCaptured {
             sentenceStartLookingAtScreen = isLookingAtScreen
             speechStartCaptured = true
         }
     }
     
-    private func flushPendingText() {
-        // Output text that was buffered while speakingOutputEnabled was false
-        let currentText = lastText
-        if currentText.count > pendingTextStart {
-            let buffered = String(currentText.dropFirst(pendingTextStart))
-            if !buffered.trimmingCharacters(in: .whitespaces).isEmpty {
-                segments.append(SpeechSegment(
-                    text: buffered,
+    /// Rebuild segments from completed sentences + current live text
+    private func rebuildSegments() {
+        var newSegments: [SpeechSegment] = []
+        
+        for sentence in completedSentences {
+            if !newSegments.isEmpty {
+                newSegments.append(SpeechSegment(
+                    text: " ",
+                    isToScreen: sentence.isToScreen,
+                    sentenceStartedLookingAtScreen: sentence.sentenceStartedLookingAtScreen
+                ))
+            }
+            newSegments.append(SpeechSegment(
+                text: sentence.text,
+                isToScreen: sentence.isToScreen,
+                sentenceStartedLookingAtScreen: sentence.sentenceStartedLookingAtScreen
+            ))
+        }
+        
+        // Add current live sentence
+        if !currentSentenceText.isEmpty {
+            if !newSegments.isEmpty {
+                newSegments.append(SpeechSegment(
+                    text: " ",
                     isToScreen: isLookingAtScreen,
                     sentenceStartedLookingAtScreen: sentenceStartLookingAtScreen
                 ))
             }
+            newSegments.append(SpeechSegment(
+                text: currentSentenceText,
+                isToScreen: isLookingAtScreen,
+                sentenceStartedLookingAtScreen: sentenceStartLookingAtScreen
+            ))
         }
-        pendingTextStart = currentText.count
+        
+        segments = newSegments
     }
     
     func start() {
-        // Check if recognizer is available
-        guard let recognizer = speechRecognizer, recognizer.isAvailable else {
-            return
-        }
-        
-        // Request authorization
+        guard let recognizer = speechRecognizer, recognizer.isAvailable else { return }
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
-            guard status == .authorized else {
-                return
-            }
-            
+            guard status == .authorized else { return }
             Task { @MainActor in
                 self?.startRecognition()
             }
@@ -107,24 +119,27 @@ class STTManager: NSObject, ObservableObject {
     
     func stop() {
         audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
         recognitionRequest?.endAudio()
         recognitionTask?.cancel()
         isListening = false
     }
     
+    func clearSegments() {
+        segments = []
+        completedSentences = []
+        currentSentenceText = ""
+        lastRecognizedText = ""
+    }
+    
     private func startRecognition() {
-        // Cancel previous task
         recognitionTask?.cancel()
         recognitionTask = nil
         
-        // Create recognition request
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { 
-            return 
-        }
+        guard let recognitionRequest = recognitionRequest else { return }
         recognitionRequest.shouldReportPartialResults = true
         
-        // Start recognition task
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
             guard let self = self else { return }
             
@@ -134,51 +149,47 @@ class STTManager: NSObject, ObservableObject {
                     let now = Date()
                     let timeSinceLastUpdate = now.timeIntervalSince(self.lastUpdateTime)
                     
-                    // Detect new sentence: either first text OR gap > threshold
-                    let isNewSentence = self.lastText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
+                    // Detect new sentence
+                    let isNewSentence = self.lastRecognizedText.isEmpty || timeSinceLastUpdate > self.sentenceGapThreshold
                     
                     if isNewSentence && !newText.isEmpty {
-                        // Reset capture flag for new sentence
+                        // Commit current sentence if any
+                        if !self.currentSentenceText.isEmpty && self.speakingOutputEnabled {
+                            self.completedSentences.append(CompletedSentence(
+                                text: self.currentSentenceText,
+                                isToScreen: self.isLookingAtScreen,
+                                sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
+                            ))
+                            // Trim old sentences
+                            if self.completedSentences.count > self.maxCompletedSentences {
+                                self.completedSentences = Array(self.completedSentences.suffix(self.maxCompletedSentences))
+                            }
+                        }
+                        self.currentSentenceText = ""
                         self.speechStartCaptured = false
-                        // Capture state for new sentence
                         self.sentenceStartLookingAtScreen = self.isLookingAtScreen
                     }
                     
-                    // Only show text when user is speaking (with 1s trailing buffer)
                     if self.speakingOutputEnabled {
-                        if isNewSentence && !newText.isEmpty && !self.segments.isEmpty {
-                            self.segments.append(SpeechSegment(
-                                text: " ",
+                        // Live update: replace current sentence with full text from STT
+                        self.currentSentenceText = newText
+                        self.rebuildSegments()
+                    }
+                    
+                    self.lastRecognizedText = newText
+                    self.lastUpdateTime = now
+                    
+                    if result.isFinal {
+                        // Commit final sentence
+                        if !self.currentSentenceText.isEmpty && self.speakingOutputEnabled {
+                            self.completedSentences.append(CompletedSentence(
+                                text: self.currentSentenceText,
                                 isToScreen: self.isLookingAtScreen,
                                 sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
                             ))
                         }
-                        
-                        if newText.count > self.lastText.count {
-                            let addedText = String(newText.dropFirst(self.lastText.count))
-                            if !addedText.trimmingCharacters(in: .whitespaces).isEmpty {
-                                self.segments.append(SpeechSegment(
-                                    text: addedText,
-                                    isToScreen: self.isLookingAtScreen,
-                                    sentenceStartedLookingAtScreen: self.sentenceStartLookingAtScreen
-                                ))
-                            }
-                        }
-                        self.pendingTextStart = newText.count
-                    } else {
-                        // Not speaking yet - just track position for later flush
-                        // pendingTextStart stays where it was, so when speaking
-                        // starts, flushPendingText() outputs the buffered text
-                    }
-                    
-                    self.lastText = newText
-                    self.lastUpdateTime = now
-                    
-                    // Reset for next sentence when isFinal
-                    if result.isFinal {
-                        self.lastText = ""
-                        self.pendingTextStart = 0
-                        self.sentenceStartLookingAtScreen = false
+                        self.currentSentenceText = ""
+                        self.lastRecognizedText = ""
                         self.speechStartCaptured = false
                     }
                 }
@@ -190,7 +201,6 @@ class STTManager: NSObject, ObservableObject {
                 self.recognitionRequest = nil
                 self.recognitionTask = nil
                 
-                // Restart recognition after a short delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if self.isListening {
                         self.startRecognition()
@@ -199,12 +209,10 @@ class STTManager: NSObject, ObservableObject {
             }
         }
         
-        // Configure audio session
         let audioSession = AVAudioSession.sharedInstance()
         try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
         try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         
-        // Start audio engine
         let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
