@@ -56,14 +56,20 @@ class STTManager: NSObject, ObservableObject {
     /// Index of the first segment belonging to the current active sentence.
     /// All segments before this index have been finalized into sentences.
     private var activeSentenceStartSegmentIndex: Int = 0
-    /// Timestamp of the last finalized segment's end, for gap detection.
+    /// Timestamp of the last finalized segment's end, for gap detection and resync.
     private var lastFinalizedSegmentEndTime: TimeInterval = 0
+    /// End time of the most recent segment seen in any recognition result.
+    private var lastSeenSegmentEndTime: TimeInterval = 0
     /// Minimum gap between segments to trigger a sentence break (seconds).
     private let sentenceGapThreshold: TimeInterval = 1.2
     
     /// Timer to finalize the trailing active sentence when recognition goes quiet.
     private var trailingTimer: Timer?
     private let trailingTimeout: TimeInterval = 2.0
+    
+    /// When trailing timeout finalizes a sentence mid-task, we need to resync
+    /// activeSentenceStartSegmentIndex on the next recognition result.
+    private var needsSegmentIndexResync: Bool = false
     
     /// Apple Speech has a ~60s per-task limit. We proactively restart before hitting it.
     private var taskStartTime: Date?
@@ -217,6 +223,8 @@ class STTManager: NSObject, ObservableObject {
         speechStartCaptured = false
         activeSentenceStartSegmentIndex = 0
         lastFinalizedSegmentEndTime = 0
+        lastSeenSegmentEndTime = 0
+        needsSegmentIndexResync = false
         
         taskStartTime = Date()
         taskDurationTimer?.invalidate()
@@ -268,6 +276,22 @@ class STTManager: NSObject, ObservableObject {
         let allSegments = transcription.segments
         
         guard !allSegments.isEmpty else { return }
+        
+        // If trailing timeout finalized a sentence mid-task, resync our segment index.
+        // All segments whose end time <= lastFinalizedSegmentEndTime belong to finalized sentences.
+        if needsSegmentIndexResync {
+            needsSegmentIndexResync = false
+            var newStart = 0
+            for i in 0..<allSegments.count {
+                let segEnd = allSegments[i].timestamp + allSegments[i].duration
+                if segEnd <= lastFinalizedSegmentEndTime + 0.05 {
+                    newStart = i + 1
+                }
+            }
+            activeSentenceStartSegmentIndex = min(newStart, allSegments.count)
+            lastCharCount = 0
+            speechStartCaptured = false
+        }
         
         // Reset trailing timer — we got new data
         trailingTimer?.invalidate()
@@ -342,6 +366,11 @@ class STTManager: NSObject, ObservableObject {
         )
         updateActiveSentenceText(activeText)
         
+        // Track the latest segment end time for trailing timeout resync
+        if let lastSeg = allSegments.last {
+            lastSeenSegmentEndTime = lastSeg.timestamp + lastSeg.duration
+        }
+        
         rebuildSegments()
     }
     
@@ -413,12 +442,14 @@ class STTManager: NSObject, ObservableObject {
     /// Called when no new recognition results arrive for `trailingTimeout`.
     private func handleTrailingTimeout() {
         guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
+        // Record the end time of what we're finalizing so resync can skip past it
+        lastFinalizedSegmentEndTime = lastSeenSegmentEndTime
         finalizeActiveSentence()
-        // Prepare for next sentence within the same task
+        // Prepare for next sentence within the same task.
         activeSentence = Sentence(text: "", startedLookingAtScreen: false, gazeSpans: [])
         lastCharCount = 0
         speechStartCaptured = false
-        // activeSentenceStartSegmentIndex stays — next result will set it correctly
+        needsSegmentIndexResync = true
     }
     
     /// Proactively restart the recognition task before Apple's ~60s limit.
