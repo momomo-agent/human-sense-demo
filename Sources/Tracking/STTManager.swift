@@ -148,6 +148,9 @@ class STTManager: NSObject, ObservableObject {
         for s in sentences { appendSentence(s) }
         if let active = activeSentence, !active.text.isEmpty { appendSentence(active) }
         
+        let texts = result.map { "\($0.text)(\($0.isToScreen ? "Y" : "B"))" }.joined(separator: " | ")
+        print("[STT] REBUILD: \(sentences.count) finalized + \(activeSentence?.text.isEmpty == false ? 1 : 0) active → \(result.count) segments: \(texts)")
+        
         segments = result
     }
     
@@ -158,8 +161,10 @@ class STTManager: NSObject, ObservableObject {
             activeSentence = nil
             return
         }
+        print("[STT] FINALIZE: \"\(active.text)\" → sentences[\(sentences.count)]")
         sentences.append(active)
         if sentences.count > maxSentences {
+            print("[STT] TRIM: removing oldest sentence, count was \(sentences.count)")
             sentences.removeFirst()
         }
         activeSentence = nil
@@ -218,11 +223,17 @@ class STTManager: NSObject, ObservableObject {
         recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
             guard let self = self else { return }
             Task { @MainActor in
-                guard generation == self.taskGeneration else { return }
+                guard generation == self.taskGeneration else {
+                    if let result = result {
+                        print("[STT] STALE gen=\(generation) current=\(self.taskGeneration) text=\"\(result.bestTranscription.formattedString)\" isFinal=\(result.isFinal)")
+                    }
+                    return
+                }
                 
                 if let result = result {
                     self.handleResult(result)
                     if result.isFinal {
+                        print("[STT] isFinal gen=\(generation) text=\"\(result.bestTranscription.formattedString)\"")
                         self.finalizeActiveSentence()
                         self.startRecognitionTask()
                     }
@@ -244,6 +255,7 @@ class STTManager: NSObject, ObservableObject {
     private func startRecognitionTask() {
         taskGeneration += 1
         let gen = taskGeneration
+        print("[STT] START TASK gen=\(gen), sentences=\(sentences.count)")
         
         resetActiveSentence()
         resetTaskDurationTimer()
@@ -257,6 +269,8 @@ class STTManager: NSObject, ObservableObject {
     /// Swaps recognitionRequest BEFORE endAudio so the audio tap never has a gap.
     private func splitSentence() {
         guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
+        
+        print("[STT] SPLIT: finalizing \"\(activeSentence?.text ?? "")\" and starting new task")
         
         let oldRequest = recognitionRequest
         let oldTask = recognitionTask
