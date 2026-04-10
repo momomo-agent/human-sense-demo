@@ -18,6 +18,12 @@ struct ContentView: View {
             VStack(spacing: 12) {
                 StateCard(state: state).padding(.horizontal)
                 
+                // Debug: all raw signals
+                if state.face.faceDetected {
+                    DebugSignalsView(state: state, sttManager: sttManager)
+                        .padding(.horizontal)
+                }
+                
                 // Device state
                 HStack(spacing: 12) {
                     Text("📱 \(state.device.posture.rawValue)")
