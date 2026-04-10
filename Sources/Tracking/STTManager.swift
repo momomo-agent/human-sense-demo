@@ -20,17 +20,7 @@ class STTManager: NSObject, ObservableObject {
     var isSpeaking: Bool = false {
         didSet {
             if isSpeaking {
-                speakingOutputEnabled = true
-                speakingOffTimer?.invalidate()
-                speakingOffTimer = nil
                 gazeAtSpeechOnset = isLookingAtScreen
-            } else {
-                speakingOffTimer?.invalidate()
-                speakingOffTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-                    Task { @MainActor in
-                        self?.speakingOutputEnabled = false
-                    }
-                }
             }
         }
     }
@@ -59,8 +49,6 @@ class STTManager: NSObject, ObservableObject {
     private var lastCharCount: Int = 0
     
     // --- Internal state ---
-    private var speakingOutputEnabled: Bool = false
-    private var speakingOffTimer: Timer?
     private var speechStartCaptured: Bool = false
     private var taskGeneration: Int = 0
     
@@ -124,8 +112,6 @@ class STTManager: NSObject, ObservableObject {
     // MARK: - Segment Output
     
     private func rebuildSegments() {
-        guard speakingOutputEnabled else { return }
-        
         var result: [SpeechSegment] = []
         
         func appendSentence(_ s: Sentence) {
@@ -364,9 +350,7 @@ class STTManager: NSObject, ObservableObject {
             updateActiveSentenceText(newText)
         }
         
-        if speakingOutputEnabled {
-            rebuildSegments()
-        }
+        rebuildSegments()
     }
     
     /// Build text from a range of segments using their NSRange positions in formattedString.
