@@ -121,6 +121,10 @@ struct ContentView: View {
     // MARK: - Helpers
 
     private func segmentColor(_ segment: SpeechSegment) -> Color {
+        // Ambient sound / other people speaking — gray
+        if !segment.isFromUser {
+            return .gray
+        }
         if !segment.sentenceStartedLookingAtScreen {
             return .blue
         }

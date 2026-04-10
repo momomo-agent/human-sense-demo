@@ -5,12 +5,15 @@ struct SpeechSegment: Identifiable {
     let text: String
     let isToScreen: Bool
     let sentenceStartedLookingAtScreen: Bool
+    /// true = user's own speech (mouth moving + audio), false = ambient/other people
+    let isFromUser: Bool
     
-    init(id: UUID = UUID(), text: String, isToScreen: Bool, sentenceStartedLookingAtScreen: Bool) {
+    init(id: UUID = UUID(), text: String, isToScreen: Bool, sentenceStartedLookingAtScreen: Bool, isFromUser: Bool = true) {
         self.id = id
         self.text = text
         self.isToScreen = isToScreen
         self.sentenceStartedLookingAtScreen = sentenceStartedLookingAtScreen
+        self.isFromUser = isFromUser
     }
 }
 
