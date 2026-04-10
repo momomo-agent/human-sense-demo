@@ -147,7 +147,10 @@ class HumanStateEngine {
         let mouthMoving = jawDelta > 0.02 || face.jawOpen > 0.2
 
         if mouthMoving && audio.isSpeaking {
-            return face.isLookingAtScreen ? .speakingToScreen : .speakingToOther
+            // "Speaking to screen" requires all four: mouth + audio + gaze + head forward
+            let headForward = face.headOrientation.isFacingForward
+            let toScreen = face.isLookingAtScreen && headForward
+            return toScreen ? .speakingToScreen : .speakingToOther
         }
 
         if !face.isLookingAtScreen { return .distracted }
