@@ -227,6 +227,9 @@ class STTManager: NSObject, ObservableObject {
                     if let result = result {
                         print("[STT] STALE gen=\(generation) current=\(self.taskGeneration) text=\"\(result.bestTranscription.formattedString)\" isFinal=\(result.isFinal)")
                     }
+                    if let error = error {
+                        print("[STT] STALE ERROR gen=\(generation) current=\(self.taskGeneration) error=\(error.localizedDescription)")
+                    }
                     return
                 }
                 
@@ -240,11 +243,15 @@ class STTManager: NSObject, ObservableObject {
                 }
                 
                 if error != nil && !(result?.isFinal ?? false) {
+                    print("[STT] ERROR gen=\(generation) current=\(self.taskGeneration) error=\(error!.localizedDescription)")
                     self.taskGeneration += 1
                     let gen = self.taskGeneration
                     self.finalizeActiveSentence()
                     if gen == self.taskGeneration {
+                        print("[STT] RESTART after error, new gen=\(gen + 1)")
                         self.startRecognitionTask()
+                    } else {
+                        print("[STT] SKIP restart: gen changed \(gen) → \(self.taskGeneration)")
                     }
                 }
             }
@@ -263,6 +270,9 @@ class STTManager: NSObject, ObservableObject {
         let request = makeRequest()
         recognitionRequest = request
         bindTask(to: request, generation: gen)
+        if recognitionTask == nil {
+            print("[STT] ⚠️ recognitionTask is nil! recognizer available=\(speechRecognizer?.isAvailable ?? false)")
+        }
     }
     
     /// Finalize current sentence and seamlessly start a new task.
