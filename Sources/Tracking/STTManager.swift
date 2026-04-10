@@ -12,6 +12,9 @@ class STTManager: NSObject, ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     
+    /// AudioDetectionManager receives buffers from our shared tap.
+    weak var audioDetectionManager: AudioDetectionManager?
+    
     // --- External inputs (set by Engine) ---
     var isLookingAtScreen: Bool = false
     var isSpeaking: Bool = false {
@@ -20,7 +23,6 @@ class STTManager: NSObject, ObservableObject {
                 speakingOutputEnabled = true
                 speakingOffTimer?.invalidate()
                 speakingOffTimer = nil
-                // Capture gaze at the moment of speech onset — real-time, no STT delay
                 gazeAtSpeechOnset = isLookingAtScreen
             } else {
                 speakingOffTimer?.invalidate()
@@ -33,23 +35,20 @@ class STTManager: NSObject, ObservableObject {
         }
     }
     
-    /// Gaze state captured at the instant isSpeaking becomes true.
-    /// Used to determine sentence color instead of STT callback time.
     private var gazeAtSpeechOnset: Bool = false
     
     // --- Sentence model ---
     
-    /// A gaze span within a sentence: a run of text with the same gaze direction.
     private struct GazeSpan {
         let id = UUID()
-        var charCount: Int       // number of characters in this span
+        var charCount: Int
         let isToScreen: Bool
     }
     
     private struct Sentence {
         let id = UUID()
         var text: String
-        var startedLookingAtScreen: Bool  // determined on first recognized text, not task creation
+        var startedLookingAtScreen: Bool
         var gazeSpans: [GazeSpan]
     }
     
@@ -57,7 +56,6 @@ class STTManager: NSObject, ObservableObject {
     private var activeSentence: Sentence?
     private let maxSentences = 20
     
-    /// Track the last known char count so we can attribute new chars to current gaze
     private var lastCharCount: Int = 0
     
     // --- Internal state ---
@@ -66,9 +64,26 @@ class STTManager: NSObject, ObservableObject {
     private var speechStartCaptured: Bool = false
     private var taskGeneration: Int = 0
     
-    private var lastRecognitionTime: Date?
-    private var silenceTimer: Timer?
-    private let sentenceGapThreshold: TimeInterval = 1.5
+    // --- Segment-based sentence splitting ---
+    /// Number of segments already committed to finalized sentences in the current task.
+    /// When Apple adds new segments after a pause, we detect the time gap to split.
+    private var committedSegmentCount: Int = 0
+    /// Text of segments already finalized as sentences within this task.
+    private var committedText: String = ""
+    /// Timestamp of the last segment's end (timestamp + duration) for gap detection.
+    private var lastSegmentEndTime: TimeInterval = 0
+    /// Minimum gap between segments to trigger a sentence break (seconds).
+    private let sentenceGapThreshold: TimeInterval = 1.2
+    
+    /// Timer to finalize the trailing active sentence when recognition goes quiet.
+    private var trailingTimer: Timer?
+    private let trailingTimeout: TimeInterval = 2.0
+    
+    /// Apple Speech has a ~60s per-task limit. We track task start time and
+    /// proactively restart before hitting it to avoid forced isFinal + lost audio.
+    private var taskStartTime: Date?
+    private let maxTaskDuration: TimeInterval = 50.0
+    private var taskDurationTimer: Timer?
     
     func captureSpeechStartState() {}
     
@@ -83,8 +98,10 @@ class STTManager: NSObject, ObservableObject {
     }
     
     func stop() {
-        silenceTimer?.invalidate()
-        silenceTimer = nil
+        trailingTimer?.invalidate()
+        trailingTimer = nil
+        taskDurationTimer?.invalidate()
+        taskDurationTimer = nil
         taskGeneration += 1
         
         audioEngine.stop()
@@ -107,8 +124,6 @@ class STTManager: NSObject, ObservableObject {
     // MARK: - Segment Output
     
     private func rebuildSegments() {
-        // Don't clear segments when speaking stops — keep showing last state.
-        // Only skip updating while not speaking.
         guard speakingOutputEnabled else { return }
         
         var result: [SpeechSegment] = []
@@ -123,7 +138,6 @@ class STTManager: NSObject, ObservableObject {
             }
             
             if !s.startedLookingAtScreen {
-                // P0: whole sentence is blue
                 result.append(SpeechSegment(
                     id: s.id,
                     text: s.text,
@@ -131,13 +145,11 @@ class STTManager: NSObject, ObservableObject {
                     sentenceStartedLookingAtScreen: false
                 ))
             } else {
-                // P1: split by gaze spans — yellow (looking) / orange (not looking)
                 var offset = s.text.startIndex
                 for (i, span) in s.gazeSpans.enumerated() {
                     let end = s.text.index(offset, offsetBy: span.charCount, limitedBy: s.text.endIndex) ?? s.text.endIndex
                     let spanText = String(s.text[offset..<end])
                     if !spanText.isEmpty {
-                        // Use span's own stable id
                         result.append(SpeechSegment(
                             id: i == 0 ? s.id : span.id,
                             text: spanText,
@@ -147,7 +159,6 @@ class STTManager: NSObject, ObservableObject {
                     }
                     offset = end
                 }
-                // Any remaining text (edge case: spans charCount sum < text.count)
                 if offset < s.text.endIndex {
                     let remaining = String(s.text[offset...])
                     if !remaining.isEmpty {
@@ -182,7 +193,7 @@ class STTManager: NSObject, ObservableObject {
         rebuildSegments()
     }
     
-    // MARK: - Audio Engine (start once, never restart)
+    // MARK: - Audio Engine (single shared instance)
     
     private func beginListening() {
         let audioSession = AVAudioSession.sharedInstance()
@@ -197,8 +208,14 @@ class STTManager: NSObject, ObservableObject {
             return
         }
         
+        // Single tap feeds both STT recognition and audio level detection
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
+            guard let self = self else { return }
+            self.recognitionRequest?.append(buffer)
+            // Feed the same buffer to AudioDetectionManager for RMS
+            Task { @MainActor in
+                self.audioDetectionManager?.processBuffer(buffer)
+            }
         }
         
         audioEngine.prepare()
@@ -206,7 +223,6 @@ class STTManager: NSObject, ObservableObject {
         isListening = true
         
         startRecognitionTask()
-        startSilenceTimer()
     }
     
     // MARK: - Recognition Task
@@ -215,17 +231,29 @@ class STTManager: NSObject, ObservableObject {
         taskGeneration += 1
         let myGeneration = taskGeneration
         
-        // Sentence created with placeholder gaze — will be locked on first recognized text
-        activeSentence = Sentence(
-            text: "",
-            startedLookingAtScreen: false,
-            gazeSpans: []
-        )
+        activeSentence = Sentence(text: "", startedLookingAtScreen: false, gazeSpans: [])
         lastCharCount = 0
         speechStartCaptured = false
+        committedSegmentCount = 0
+        committedText = ""
+        lastSegmentEndTime = 0
+        
+        taskStartTime = Date()
+        taskDurationTimer?.invalidate()
+        taskDurationTimer = Timer.scheduledTimer(withTimeInterval: maxTaskDuration, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.gracefulTaskRestart()
+            }
+        }
         
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        // Provide context hints for better Chinese recognition
+        request.contextualStrings = ["看屏幕", "看别处", "说话", "识别"]
+        // Use on-device recognition when available (lower latency, no network dependency)
+        if #available(iOS 13, *) {
+            request.requiresOnDeviceRecognition = speechRecognizer?.supportsOnDeviceRecognition ?? false
+        }
         recognitionRequest = request
         
         recognitionTask = speechRecognizer?.recognitionTask(with: request) { [weak self] result, error in
@@ -235,46 +263,211 @@ class STTManager: NSObject, ObservableObject {
                 guard myGeneration == self.taskGeneration else { return }
                 
                 if let result = result {
-                    let newText = result.bestTranscription.formattedString
-                    let newCharCount = newText.count
-                    let addedChars = max(0, newCharCount - self.lastCharCount)
-                    
-                    self.activeSentence?.text = newText
-                    self.lastRecognitionTime = Date()
-                    
-                    // Lock gaze direction on first recognized text,
-                    // using the gaze captured at speech onset (isSpeaking=true moment)
-                    if !self.speechStartCaptured && !newText.isEmpty {
-                        let looking = self.gazeAtSpeechOnset
-                        self.activeSentence?.startedLookingAtScreen = looking
-                        if looking {
-                            self.activeSentence?.gazeSpans = [GazeSpan(charCount: newCharCount, isToScreen: self.isLookingAtScreen)]
-                        }
-                        self.lastCharCount = newCharCount
-                        self.speechStartCaptured = true
-                    } else if addedChars > 0, self.activeSentence?.startedLookingAtScreen == true {
-                        // Track gaze spans for sentences that started looking at screen
-                        self.updateGazeSpans(addedChars: addedChars)
-                        self.lastCharCount = newCharCount
-                    } else {
-                        self.lastCharCount = newCharCount
-                    }
-                    
-                    if self.speakingOutputEnabled {
-                        self.rebuildSegments()
-                    }
+                    self.handleRecognitionResult(result)
                     
                     if result.isFinal {
+                        // Apple decided this task is done — finalize and restart
                         self.finalizeActiveSentence()
                         self.startRecognitionTask()
                     }
                 }
                 
                 if error != nil && !(result?.isFinal ?? false) {
+                    self.taskGeneration += 1
+                    let gen = self.taskGeneration
                     self.finalizeActiveSentence()
-                    self.startRecognitionTask()
+                    if gen == self.taskGeneration {
+                        self.startRecognitionTask()
+                    }
                 }
             }
+        }
+    }
+    
+    // MARK: - Segment-Based Sentence Splitting
+    
+    private func handleRecognitionResult(_ result: SFSpeechRecognitionResult) {
+        let transcription = result.bestTranscription
+        let allSegments = transcription.segments
+        
+        // Reset trailing timer — we got new data
+        trailingTimer?.invalidate()
+        trailingTimer = Timer.scheduledTimer(withTimeInterval: trailingTimeout, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleTrailingTimeout()
+            }
+        }
+        
+        // Check for sentence breaks by examining time gaps between segments.
+        // Segments already committed (committedSegmentCount) belong to finalized sentences.
+        // We scan from committedSegmentCount forward looking for gaps.
+        
+        var newSentenceBreakIndex: Int? = nil
+        
+        if committedSegmentCount > 0 && allSegments.count > committedSegmentCount {
+            // Check gap between last committed segment and first new segment
+            let firstNewSeg = allSegments[committedSegmentCount]
+            if firstNewSeg.timestamp - lastSegmentEndTime >= sentenceGapThreshold {
+                newSentenceBreakIndex = committedSegmentCount
+            }
+        }
+        
+        // Also scan within the uncommitted range for gaps
+        if newSentenceBreakIndex == nil {
+            for i in max(committedSegmentCount, 1)..<allSegments.count {
+                let prev = allSegments[i - 1]
+                let curr = allSegments[i]
+                let prevEnd = prev.timestamp + prev.duration
+                if curr.timestamp - prevEnd >= sentenceGapThreshold && i > committedSegmentCount {
+                    newSentenceBreakIndex = i
+                    break  // Take the first break
+                }
+            }
+        }
+        
+        if let breakIdx = newSentenceBreakIndex {
+            // Finalize everything before breakIdx as a sentence
+            let priorSegments = allSegments[0..<breakIdx]
+            if !priorSegments.isEmpty {
+                // Build text from prior segments (more accurate than substring of formattedString)
+                let priorText = buildTextFromSegments(Array(priorSegments), fullText: transcription.formattedString)
+                
+                if !priorText.isEmpty && priorText != committedText {
+                    // Update active sentence with the finalized text, then commit
+                    let sentenceText = extractNewText(fullText: priorText, committed: committedText)
+                    if !sentenceText.isEmpty {
+                        activeSentence?.text = sentenceText
+                        updateGazeForFullText(sentenceText)
+                        finalizeActiveSentence()
+                    }
+                }
+            }
+            
+            // Update committed state
+            committedSegmentCount = breakIdx
+            let lastPrior = allSegments[breakIdx - 1]
+            lastSegmentEndTime = lastPrior.timestamp + lastPrior.duration
+            committedText = buildTextFromSegments(Array(allSegments[0..<breakIdx]), fullText: transcription.formattedString)
+            
+            // Start new active sentence with remaining segments
+            let remainingText = extractNewText(fullText: transcription.formattedString, committed: committedText)
+            activeSentence = Sentence(text: "", startedLookingAtScreen: false, gazeSpans: [])
+            lastCharCount = 0
+            speechStartCaptured = false
+            
+            if !remainingText.isEmpty {
+                updateActiveSentenceText(remainingText)
+            }
+        } else {
+            // No sentence break — update active sentence with text after committed portion
+            let newText = extractNewText(fullText: transcription.formattedString, committed: committedText)
+            updateActiveSentenceText(newText)
+        }
+        
+        if speakingOutputEnabled {
+            rebuildSegments()
+        }
+    }
+    
+    /// Build text from a range of segments using their NSRange positions in formattedString.
+    private func buildTextFromSegments(_ segs: [SFTranscriptionSegment], fullText: String) -> String {
+        guard let first = segs.first, let last = segs.last else { return "" }
+        let nsString = fullText as NSString
+        let startLoc = first.substringRange.location
+        let endLoc = last.substringRange.location + last.substringRange.length
+        guard startLoc < nsString.length && endLoc <= nsString.length else { return fullText }
+        let range = NSRange(location: startLoc, length: endLoc - startLoc)
+        return nsString.substring(with: range)
+    }
+    
+    /// Extract the portion of fullText that comes after committedText.
+    private func extractNewText(fullText: String, committed: String) -> String {
+        if committed.isEmpty { return fullText }
+        // formattedString always starts with committed text
+        if fullText.hasPrefix(committed) {
+            let remainder = String(fullText.dropFirst(committed.count))
+            // Trim leading whitespace from the boundary
+            return remainder.trimmingLeadingWhitespace()
+        }
+        // Fallback: Apple rewrote earlier text (rare but possible)
+        return fullText
+    }
+    
+    /// Update the active sentence text and gaze tracking.
+    private func updateActiveSentenceText(_ newText: String) {
+        let newCharCount = newText.count
+        let addedChars = max(0, newCharCount - lastCharCount)
+        
+        activeSentence?.text = newText
+        
+        if !speechStartCaptured && !newText.isEmpty {
+            let looking = gazeAtSpeechOnset
+            activeSentence?.startedLookingAtScreen = looking
+            if looking {
+                activeSentence?.gazeSpans = [GazeSpan(charCount: newCharCount, isToScreen: isLookingAtScreen)]
+            }
+            lastCharCount = newCharCount
+            speechStartCaptured = true
+        } else if addedChars > 0, activeSentence?.startedLookingAtScreen == true {
+            updateGazeSpans(addedChars: addedChars)
+            lastCharCount = newCharCount
+        } else {
+            lastCharCount = newCharCount
+        }
+    }
+    
+    /// Reset gaze spans to match the full text (used after sentence break).
+    private func updateGazeForFullText(_ text: String) {
+        guard activeSentence?.startedLookingAtScreen == true else { return }
+        // Ensure gaze spans cover the full text length
+        let totalChars = activeSentence?.gazeSpans.reduce(0) { $0 + $1.charCount } ?? 0
+        let textCount = text.count
+        if totalChars < textCount, var spans = activeSentence?.gazeSpans, !spans.isEmpty {
+            spans[spans.count - 1] = GazeSpan(
+                charCount: spans[spans.count - 1].charCount + (textCount - totalChars),
+                isToScreen: spans[spans.count - 1].isToScreen
+            )
+            activeSentence?.gazeSpans = spans
+        }
+    }
+    
+    /// Called when no new recognition results arrive for `trailingTimeout`.
+    /// Finalizes the current active sentence so it doesn't hang forever.
+    private func handleTrailingTimeout() {
+        guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
+        
+        // Commit the active sentence's segments
+        committedText = (committedText.isEmpty ? "" : committedText + " ") + (activeSentence?.text ?? "")
+        // We don't know exact segment count here, but the next result will recalculate
+        
+        finalizeActiveSentence()
+        
+        // Prepare for next sentence within the same task
+        activeSentence = Sentence(text: "", startedLookingAtScreen: false, gazeSpans: [])
+        lastCharCount = 0
+        speechStartCaptured = false
+    }
+    
+    /// Proactively restart the recognition task before Apple's ~60s limit.
+    private func gracefulTaskRestart() {
+        taskDurationTimer?.invalidate()
+        taskDurationTimer = nil
+        trailingTimer?.invalidate()
+        trailingTimer = nil
+        
+        taskGeneration += 1
+        
+        // End audio gracefully (not cancel) so final results can flush
+        recognitionRequest?.endAudio()
+        // Give a brief moment for final result, then force restart
+        let gen = taskGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self, gen == self.taskGeneration else { return }
+            self.recognitionTask?.cancel()
+            self.recognitionTask = nil
+            self.recognitionRequest = nil
+            self.finalizeActiveSentence()
+            self.startRecognitionTask()
         }
     }
     
@@ -284,42 +477,26 @@ class STTManager: NSObject, ObservableObject {
         
         let lastSpan = spans[spans.count - 1]
         if lastSpan.isToScreen == isLookingAtScreen {
-            // Same direction — extend current span
             spans[spans.count - 1] = GazeSpan(
                 charCount: lastSpan.charCount + addedChars,
                 isToScreen: lastSpan.isToScreen
             )
         } else {
-            // Direction changed — new span
             spans.append(GazeSpan(charCount: addedChars, isToScreen: isLookingAtScreen))
         }
         
         activeSentence?.gazeSpans = spans
     }
-    
-    // MARK: - Silence Detection
-    
-    private func startSilenceTimer() {
-        silenceTimer?.invalidate()
-        silenceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkSilence()
-            }
+}
+
+// MARK: - String Helpers
+
+private extension String {
+    func trimmingLeadingWhitespace() -> String {
+        var idx = startIndex
+        while idx < endIndex && self[idx].isWhitespace {
+            idx = index(after: idx)
         }
-    }
-    
-    private func checkSilence() {
-        guard let lastTime = lastRecognitionTime else { return }
-        guard Date().timeIntervalSince(lastTime) >= sentenceGapThreshold else { return }
-        guard activeSentence != nil, !(activeSentence?.text.isEmpty ?? true) else { return }
-        
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        recognitionRequest = nil
-        lastRecognitionTime = nil
-        
-        finalizeActiveSentence()
-        startRecognitionTask()
+        return String(self[idx...])
     }
 }

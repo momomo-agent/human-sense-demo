@@ -36,12 +36,16 @@ class HumanStateEngine {
         // Wire up face → hand (ARFrame sharing)
         faceManager.handManager = handManager
         
+        // Share audio pipeline: STTManager owns the AudioEngine,
+        // AudioDetectionManager receives buffers from it.
+        sttManager.audioDetectionManager = audioManager
+        
         setupBindings()
     }
 
     func start() {
         faceManager.start()
-        audioManager.start()
+        // audioManager no longer has its own engine — it receives buffers from sttManager
         // handManager.start()  // Disabled: gesture recognition needs accuracy/perf work
         deviceMotionManager.start()
         sttManager.start()
