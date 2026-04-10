@@ -285,6 +285,25 @@ class STTManager: NSObject, ObservableObject {
         
         // Check all segment boundaries within the active range
         let scanStart = max(activeSentenceStartSegmentIndex + 1, 1)
+        // Guard: if Apple returned fewer segments than expected (e.g. after revision),
+        // reset our tracking to avoid out-of-bounds.
+        if activeSentenceStartSegmentIndex >= allSegments.count {
+            activeSentenceStartSegmentIndex = 0
+            lastCharCount = 0
+            speechStartCaptured = false
+        }
+        guard scanStart < allSegments.count else {
+            // Only one segment (or fewer than scanStart) — just update active sentence
+            let activeText = buildTextFromSegmentRange(
+                from: activeSentenceStartSegmentIndex,
+                to: allSegments.count,
+                segments: allSegments,
+                fullText: transcription.formattedString
+            )
+            updateActiveSentenceText(activeText)
+            rebuildSegments()
+            return
+        }
         for i in scanStart..<allSegments.count {
             let prev = allSegments[i - 1]
             let curr = allSegments[i]
