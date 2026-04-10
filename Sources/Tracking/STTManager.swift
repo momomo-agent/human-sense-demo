@@ -307,9 +307,11 @@ class STTManager: NSObject, ObservableObject {
         activeSentence?.text = newText
         lastRecognitionTime = Date()
         
-        // Lock gaze on first recognized text
+        // Lock gaze on first recognized text.
+        // Only use gazeAtSpeechOnset if user is actually speaking (isSpeaking=true).
+        // Otherwise default to not-looking (blue) to avoid stale gaze state.
         if !speechStartCaptured && !newText.isEmpty {
-            let looking = gazeAtSpeechOnset
+            let looking = isSpeaking ? gazeAtSpeechOnset : false
             activeSentence?.startedLookingAtScreen = looking
             if looking {
                 activeSentence?.gazeSpans = [GazeSpan(charCount: newCharCount, isToScreen: isLookingAtScreen)]

@@ -71,6 +71,7 @@ extension FaceTrackingManager: ARSessionDelegate {
             if noFaceFrames >= noFaceThreshold {
                 Task { @MainActor in
                     self.faceState.faceDetected = false
+                    self.faceState.isLookingAtScreen = false
                 }
             }
             return
@@ -84,6 +85,7 @@ extension FaceTrackingManager: ARSessionDelegate {
             if untrackedFrames >= noFaceThreshold {
                 Task { @MainActor in
                     self.faceState.faceDetected = false
+                    self.faceState.isLookingAtScreen = false
                 }
             }
             return
