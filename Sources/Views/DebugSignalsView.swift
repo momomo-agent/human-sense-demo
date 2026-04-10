@@ -3,7 +3,8 @@ import SwiftUI
 /// Shows all raw signals that feed into activity/STT decisions.
 struct DebugSignalsView: View {
     let state: HumanState
-    @ObservedObject var sttManager: STTManager
+    let sttIsSpeaking: Bool
+    let sttIsListening: Bool
     
     private var face: FaceState { state.face }
     private var audio: AudioState { state.audio }
@@ -22,8 +23,8 @@ struct DebugSignalsView: View {
             }
             
             HStack(spacing: 12) {
-                signal("🗣 isSpeaking", sttManager.isSpeaking)
-                signal("📝 STT Active", sttManager.isListening)
+                signal("🗣 isSpeaking", sttIsSpeaking)
+                signal("📝 STT Active", sttIsListening)
             }
             
             // Raw values
@@ -45,7 +46,7 @@ struct DebugSignalsView: View {
     }
     
     private var mouthMoving: Bool {
-        face.jawOpen > 0.2 // simplified — actual uses jawDelta too
+        face.jawOpen > 0.2
     }
     
     private var activityColor: Color {

@@ -20,8 +20,12 @@ struct ContentView: View {
                 
                 // Debug: all raw signals
                 if state.face.faceDetected {
-                    DebugSignalsView(state: state, sttManager: sttManager)
-                        .padding(.horizontal)
+                    DebugSignalsView(
+                        state: state,
+                        sttIsSpeaking: sttManager.isSpeaking,
+                        sttIsListening: sttManager.isListening
+                    )
+                    .padding(.horizontal)
                 }
                 
                 // Device state
