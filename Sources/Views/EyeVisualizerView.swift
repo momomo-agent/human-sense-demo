@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 struct EyeVisualizerView: View {
     let face: FaceState

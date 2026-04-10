@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 struct HandGestureView: View {
     let hand: HandState

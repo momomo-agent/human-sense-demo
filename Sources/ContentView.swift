@@ -1,5 +1,6 @@
 import SwiftUI
 import ARKit
+import HumanSenseKit
 
 struct ContentView: View {
     var engine: HumanStateEngine

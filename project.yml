@@ -4,12 +4,17 @@ options:
   deploymentTarget:
     iOS: "17.0"
   developmentLanguage: en
+packages:
+  HumanSenseKit:
+    path: ../HumanSenseKit
 targets:
   HumanSenseDemo:
     type: application
     platform: iOS
     sources:
       - Sources
+    dependencies:
+      - package: HumanSenseKit
     info:
       path: Info.plist
       properties:

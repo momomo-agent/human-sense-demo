@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 @main
 struct HumanSenseDemoApp: App {

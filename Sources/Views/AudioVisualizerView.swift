@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 struct AudioVisualizerView: View {
     let audio: AudioState

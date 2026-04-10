@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 struct StateCard: View {
     let state: HumanState

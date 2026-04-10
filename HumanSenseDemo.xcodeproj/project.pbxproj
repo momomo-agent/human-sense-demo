@@ -8,113 +8,62 @@
 
 /* Begin PBXBuildFile section */
 		04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */; };
+		06FFAB846ED49D94A68182C0 /* DebugSignalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */; };
 		0EB64528D86897A70019C2FE /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */; };
-		19CDA3864BED20FE244F2BCE /* AudioDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA09524045502A2FECE4AF5D /* AudioDetectionManager.swift */; };
 		1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */; };
-		1F232B868C761674782BF189 /* EmotionDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFEB4CBAA3E88C3EA55FD77E /* EmotionDetector.swift */; };
 		2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF934864FE15383E562580E /* GazeTrailView.swift */; };
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
+		61CB9895677F080306EC5EB1 /* HumanSenseKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */; };
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
-		62AD1DBFA305A83766D5A504 /* FingerState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FD5CD493F50D8821058526 /* FingerState.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
-		709D80E0A91136F9603A31E9 /* STTManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CFD931BD6B3C66165DD7A01 /* STTManager.swift */; };
-		76DD57A7E20E1048CB848DAC /* FaceTrackingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */; };
 		773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229316286F5816B7C9E4CCE7 /* StateCard.swift */; };
-		D4E5F60718293A4B5CA1B2C3 /* DebugSignalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* DebugSignalsView.swift */; };
-		7B21A3F40E2326524DA7D176 /* DeviceMotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56959F682BA09CD4B8524D0E /* DeviceMotionManager.swift */; };
 		83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */; };
 		902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */; };
 		960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */; };
-		9C41445A3E62A539CA216614 /* HeadGestureDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33B35AF4B42C4D80C8F95FB2 /* HeadGestureDetector.swift */; };
-		9F15F5E39AEED4B4F59A8B2C /* HumanState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 704BCA8FF77A5E3ABD01C277 /* HumanState.swift */; };
-		A06B8E17E0499E8DB9679E02 /* Emotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43637E98DD394F0EBDE12B91 /* Emotion.swift */; };
-		A59CE330AB1B1EB65B8A5B16 /* HandGestureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875186549B9D6863D51C1DBC /* HandGestureManager.swift */; };
-		B00661B9CAE0F29E77D69262 /* DeviceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E97A04943DCE08E5B7613F9 /* DeviceState.swift */; };
-		B9523301BD68241A18511FC6 /* AudioState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2D97773BB0FCD6267340382 /* AudioState.swift */; };
 		C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA655F26BAF42FB09BA0B876 /* ContentView.swift */; };
 		CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A06993683BD21C2D6A38B /* GazeOverlay.swift */; };
-		CF1CAF5E66624C4286A3F4A7 /* FaceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFC13D4B67894F553B3E450C /* FaceState.swift */; };
-		D5607D295EF4E9B0197E8F94 /* HandState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A0E7E236543F198157F61B /* HandState.swift */; };
-		D60E4B4D6805703D5E8F3D44 /* SpeechState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7489EFB730377FB00CAA65D /* SpeechState.swift */; };
-		E30689109F7D7CD3DE601CF5 /* HumanStateEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0172B83F79DBD9E9C24DFC59 /* HumanStateEngine.swift */; };
-		F8FCDC4BBC4A0F4334FD26ED /* LowPassFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7176F414066A6EE4CBEBDA /* LowPassFilter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0172B83F79DBD9E9C24DFC59 /* HumanStateEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanStateEngine.swift; sourceTree = "<group>"; };
-		01FD5CD493F50D8821058526 /* FingerState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FingerState.swift; sourceTree = "<group>"; };
+		0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSignalsView.swift; sourceTree = "<group>"; };
 		0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
 		0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlendShapePanel.swift; sourceTree = "<group>"; };
-		1E97A04943DCE08E5B7613F9 /* DeviceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceState.swift; sourceTree = "<group>"; };
 		229316286F5816B7C9E4CCE7 /* StateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateCard.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5C /* DebugSignalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSignalsView.swift; sourceTree = "<group>"; };
-		26A0E7E236543F198157F61B /* HandState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandState.swift; sourceTree = "<group>"; };
-		33B35AF4B42C4D80C8F95FB2 /* HeadGestureDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadGestureDetector.swift; sourceTree = "<group>"; };
 		3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeVisualizerView.swift; sourceTree = "<group>"; };
 		424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceIndicatorView.swift; sourceTree = "<group>"; };
-		43637E98DD394F0EBDE12B91 /* Emotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Emotion.swift; sourceTree = "<group>"; };
-		4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceTrackingManager.swift; sourceTree = "<group>"; };
-		56959F682BA09CD4B8524D0E /* DeviceMotionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceMotionManager.swift; sourceTree = "<group>"; };
 		57D2E68CB3026920745495F2 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
-		5CFD931BD6B3C66165DD7A01 /* STTManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTManager.swift; sourceTree = "<group>"; };
 		6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadOrientationView.swift; sourceTree = "<group>"; };
-		704BCA8FF77A5E3ABD01C277 /* HumanState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanState.swift; sourceTree = "<group>"; };
-		875186549B9D6863D51C1DBC /* HandGestureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureManager.swift; sourceTree = "<group>"; };
-		8E7176F414066A6EE4CBEBDA /* LowPassFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LowPassFilter.swift; sourceTree = "<group>"; };
 		8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTimelineView.swift; sourceTree = "<group>"; };
 		AA655F26BAF42FB09BA0B876 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HumanSenseDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshView.swift; sourceTree = "<group>"; };
+		C5EA92DE11BDA7FD2138D63B /* HumanSenseKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = HumanSenseKit; path = ../HumanSenseKit; sourceTree = SOURCE_ROOT; };
 		C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthVisualizerView.swift; sourceTree = "<group>"; };
-		C7489EFB730377FB00CAA65D /* SpeechState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechState.swift; sourceTree = "<group>"; };
-		CFC13D4B67894F553B3E450C /* FaceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceState.swift; sourceTree = "<group>"; };
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
-		DA09524045502A2FECE4AF5D /* AudioDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDetectionManager.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
-		EFEB4CBAA3E88C3EA55FD77E /* EmotionDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmotionDetector.swift; sourceTree = "<group>"; };
-		F2D97773BB0FCD6267340382 /* AudioState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioState.swift; sourceTree = "<group>"; };
 		FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXGroup section */
-		2F393066CACE54F5851A7D4C /* Tracking */ = {
-			isa = PBXGroup;
-			children = (
-				DA09524045502A2FECE4AF5D /* AudioDetectionManager.swift */,
-				56959F682BA09CD4B8524D0E /* DeviceMotionManager.swift */,
-				EFEB4CBAA3E88C3EA55FD77E /* EmotionDetector.swift */,
-				4B0911BBA10EBF3E9379DCB3 /* FaceTrackingManager.swift */,
-				875186549B9D6863D51C1DBC /* HandGestureManager.swift */,
-				33B35AF4B42C4D80C8F95FB2 /* HeadGestureDetector.swift */,
-				0172B83F79DBD9E9C24DFC59 /* HumanStateEngine.swift */,
-				8E7176F414066A6EE4CBEBDA /* LowPassFilter.swift */,
-				5CFD931BD6B3C66165DD7A01 /* STTManager.swift */,
+/* Begin PBXFrameworksBuildPhase section */
+		6F116129D65ED361438D8296 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				61CB9895677F080306EC5EB1 /* HumanSenseKit in Frameworks */,
 			);
-			path = Tracking;
-			sourceTree = "<group>";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
 		33A52A1A1AF4690B4DD5EF00 = {
 			isa = PBXGroup;
 			children = (
+				94AC70348E45168619EED78D /* Packages */,
 				D39979A04A25538C87CCA414 /* Sources */,
 				FFEFC38670EB3317052C5787 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		655350FD42931BFE4A20F662 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				F2D97773BB0FCD6267340382 /* AudioState.swift */,
-				1E97A04943DCE08E5B7613F9 /* DeviceState.swift */,
-				43637E98DD394F0EBDE12B91 /* Emotion.swift */,
-				CFC13D4B67894F553B3E450C /* FaceState.swift */,
-				01FD5CD493F50D8821058526 /* FingerState.swift */,
-				26A0E7E236543F198157F61B /* HandState.swift */,
-				704BCA8FF77A5E3ABD01C277 /* HumanState.swift */,
-				C7489EFB730377FB00CAA65D /* SpeechState.swift */,
-			);
-			path = Models;
 			sourceTree = "<group>";
 		};
 		7DD034261D0491E4AB101A63 /* Views */ = {
@@ -122,6 +71,7 @@
 			children = (
 				0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */,
 				0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */,
+				0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */,
 				424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */,
 				3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */,
 				BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */,
@@ -131,10 +81,17 @@
 				6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */,
 				C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */,
 				229316286F5816B7C9E4CCE7 /* StateCard.swift */,
-				A1B2C3D4E5F60718293A4B5C /* DebugSignalsView.swift */,
 				8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		94AC70348E45168619EED78D /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				C5EA92DE11BDA7FD2138D63B /* HumanSenseKit */,
+			);
+			name = Packages;
 			sourceTree = "<group>";
 		};
 		D39979A04A25538C87CCA414 /* Sources */ = {
@@ -142,8 +99,6 @@
 			children = (
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
-				655350FD42931BFE4A20F662 /* Models */,
-				2F393066CACE54F5851A7D4C /* Tracking */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -165,6 +120,7 @@
 			buildConfigurationList = EB5489668B828D555B1D1292 /* Build configuration list for PBXNativeTarget "HumanSenseDemo" */;
 			buildPhases = (
 				7C8C6FA70E4D4ACD0C54F3F6 /* Sources */,
+				6F116129D65ED361438D8296 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -172,6 +128,7 @@
 			);
 			name = HumanSenseDemo;
 			packageProductDependencies = (
+				6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */,
 			);
 			productName = HumanSenseDemo;
 			productReference = AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */;
@@ -201,6 +158,9 @@
 			);
 			mainGroup = 33A52A1A1AF4690B4DD5EF00;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1D23B7AD03480A4AA4375281 /* XCLocalSwiftPackageReference "../HumanSenseKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FFEFC38670EB3317052C5787 /* Products */;
 			projectDirPath = "";
@@ -217,36 +177,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				6BF783B67DF90DB28A67C069 /* App.swift in Sources */,
-				19CDA3864BED20FE244F2BCE /* AudioDetectionManager.swift in Sources */,
-				B9523301BD68241A18511FC6 /* AudioState.swift in Sources */,
 				0EB64528D86897A70019C2FE /* AudioVisualizerView.swift in Sources */,
 				1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */,
 				C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */,
-				7B21A3F40E2326524DA7D176 /* DeviceMotionManager.swift in Sources */,
-				B00661B9CAE0F29E77D69262 /* DeviceState.swift in Sources */,
+				06FFAB846ED49D94A68182C0 /* DebugSignalsView.swift in Sources */,
 				04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */,
-				A06B8E17E0499E8DB9679E02 /* Emotion.swift in Sources */,
-				1F232B868C761674782BF189 /* EmotionDetector.swift in Sources */,
 				902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */,
 				960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */,
-				CF1CAF5E66624C4286A3F4A7 /* FaceState.swift in Sources */,
-				76DD57A7E20E1048CB848DAC /* FaceTrackingManager.swift in Sources */,
-				62AD1DBFA305A83766D5A504 /* FingerState.swift in Sources */,
 				CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */,
 				2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */,
-				A59CE330AB1B1EB65B8A5B16 /* HandGestureManager.swift in Sources */,
 				3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */,
-				D5607D295EF4E9B0197E8F94 /* HandState.swift in Sources */,
-				9C41445A3E62A539CA216614 /* HeadGestureDetector.swift in Sources */,
 				61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */,
-				9F15F5E39AEED4B4F59A8B2C /* HumanState.swift in Sources */,
-				E30689109F7D7CD3DE601CF5 /* HumanStateEngine.swift in Sources */,
-				F8FCDC4BBC4A0F4334FD26ED /* LowPassFilter.swift in Sources */,
 				401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */,
-				709D80E0A91136F9603A31E9 /* STTManager.swift in Sources */,
-				D60E4B4D6805703D5E8F3D44 /* SpeechState.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
-				D4E5F60718293A4B5CA1B2C3 /* DebugSignalsView.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -433,6 +376,20 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		1D23B7AD03480A4AA4375281 /* XCLocalSwiftPackageReference "../HumanSenseKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../HumanSenseKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HumanSenseKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F6EE69D0838BCB2B5559DA8D /* Project object */;
 }

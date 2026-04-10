@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 struct StateTimelineView: View {
     let history: [(date: Date, activity: HumanActivity)]

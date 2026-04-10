@@ -1,4 +1,5 @@
 import SwiftUI
+import HumanSenseKit
 
 /// Shows all raw signals that feed into activity/STT decisions.
 struct DebugSignalsView: View {
