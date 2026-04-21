@@ -7,10 +7,15 @@ struct HumanSenseDemoApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(engine: engine)
-                .onAppear {
-                    engine.start()
-                }
+            TabView {
+                ContentView(engine: engine)
+                    .tabItem { Label("Sense", systemImage: "eye") }
+                STTTestView(sttManager: engine.sttManager)
+                    .tabItem { Label("STT Test", systemImage: "waveform") }
+            }
+            .onAppear {
+                engine.start()
+            }
         }
     }
 }
