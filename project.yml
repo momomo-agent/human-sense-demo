@@ -6,7 +6,8 @@ options:
   developmentLanguage: en
 packages:
   HumanSenseKit:
-    path: ../HumanSenseKit
+    url: https://github.com/momomo-agent/HumanSenseKit.git
+    from: "3.0.0"
 targets:
   HumanSenseDemo:
     type: application
