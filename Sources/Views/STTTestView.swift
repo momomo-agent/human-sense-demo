@@ -146,25 +146,48 @@ private struct SegmentRow: View {
     }
 
     private var tags: some View {
-        HStack(spacing: 8) {
-            if segment.isFinal {
-                Text("FINAL")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.green)
-            } else {
-                Text("VOLATILE")
-                    .font(.caption2)
-                    .foregroundStyle(.purple)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                if segment.isFinal {
+                    Text("FINAL")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.green)
+                } else {
+                    Text("VOLATILE")
+                        .font(.caption2)
+                        .foregroundStyle(.purple)
+                }
+                if segment.isFromUser {
+                    Text("user")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                }
+                if segment.sentenceStartedLookingAtScreen {
+                    Text("👀 screen")
+                        .font(.caption2)
+                }
             }
-            if segment.isFromUser {
-                Text("user")
-                    .font(.caption2)
-                    .foregroundStyle(.blue)
+            // Signal snapshot at time of this segment
+            HStack(spacing: 6) {
+                sigDot("👄", segment.signals.mouthMoving)
+                sigDot("🔊", segment.signals.audioActive)
+                sigDot("👁", segment.signals.gazeOnScreen)
+                sigDot("🧭", segment.signals.headForward)
+                sigDot("🔗", segment.signals.lipCorrelated)
+                Text(String(format: "r=%.2f", segment.signals.lipCorrelation))
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Text(segment.signals.activity)
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundStyle(.secondary)
             }
-            if segment.sentenceStartedLookingAtScreen {
-                Text("👀 screen")
-                    .font(.caption2)
-            }
+        }
+    }
+
+    private func sigDot(_ emoji: String, _ on: Bool) -> some View {
+        HStack(spacing: 1) {
+            Text(emoji).font(.system(size: 8))
+            Circle().fill(on ? Color.green : Color.red.opacity(0.4)).frame(width: 5, height: 5)
         }
     }
 
