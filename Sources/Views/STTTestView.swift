@@ -30,7 +30,7 @@ struct STTTestView: View {
                 Text("Lip vs Audio")
                     .font(.caption2.bold())
                 Spacer()
-                Text(String(format: "r=%.2f", engine.lipAudioCorrelator.correlation))
+                Text(String(format: "%.0f%%", engine.lipAudioCorrelator.correlation * 100))
                     .font(.caption2.monospaced())
                     .foregroundStyle(engine.lipAudioCorrelator.isCorrelated ? .green : .red)
             }
@@ -108,11 +108,24 @@ struct STTTestView: View {
             HStack(spacing: 12) {
                 signalPill("👄 Mouth", engine.humanState.face.jawOpen > 0.15 || engine.lipAudioCorrelator.lipActivity > 0.5,
                            detail: String(format: "lip:%.1f", engine.lipAudioCorrelator.lipActivity))
-                signalPill("🔗 Corr", engine.lipAudioCorrelator.isCorrelated,
-                           detail: String(format: "%.2f", engine.lipAudioCorrelator.correlation))
+                signalPill("🔗 CoOcc", engine.lipAudioCorrelator.isCorrelated,
+                           detail: String(format: "%.0f%%", engine.lipAudioCorrelator.correlation * 100))
                 signalPill("👁 Gaze", engine.humanState.face.isLookingAtScreen)
                 signalPill("🧭 Head", engine.humanState.face.headOrientation.isFacingForward)
                 signalPill("🔊 Audio", engine.humanState.audio.isSpeaking)
+            }
+
+            // Co-occurrence frame counts
+            HStack(spacing: 8) {
+                Text("✅both:\(engine.lipAudioCorrelator.bothCount)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.green)
+                Text("👄lip:\(engine.lipAudioCorrelator.lipOnlyCount)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.orange)
+                Text("🔊audio:\(engine.lipAudioCorrelator.audioOnlyCount)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.cyan)
             }
 
             HStack(spacing: 12) {
@@ -240,14 +253,9 @@ private struct SegmentRow: View {
                 sigDot("👁", segment.signals.gazeOnScreen)
                 sigDot("🧭", segment.signals.headForward)
                 sigDot("🔗", segment.signals.lipCorrelated)
-                Text(String(format: "r=%.2f", segment.signals.lipCorrelation))
+                Text(String(format: "%.0f%%", segment.signals.lipCorrelation * 100))
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundStyle(.secondary)
-                if segment.signals.bestOffset != 0 {
-                    Text(String(format: "Δ%d", segment.signals.bestOffset))
-                        .font(.system(size: 8, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
                 Text(segment.signals.activity)
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundStyle(.secondary)
