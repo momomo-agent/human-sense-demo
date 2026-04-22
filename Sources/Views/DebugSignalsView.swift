@@ -7,6 +7,7 @@ struct DebugSignalsView: View {
     let sttIsSpeaking: Bool
     let sttIsListening: Bool
     let lipAudioCorrelation: Float
+    let lipAudioCorrelated: Bool
     
     private var face: FaceState { state.face }
     private var audio: AudioState { state.audio }
@@ -22,6 +23,7 @@ struct DebugSignalsView: View {
                 signal("🧭 Head", face.headOrientation.isFacingForward)
                 signal("👄 Mouth", mouthMoving)
                 signal("🔊 Audio", audio.isSpeaking)
+                signal("🔗 Corr", lipAudioCorrelated)
             }
             
             HStack(spacing: 12) {

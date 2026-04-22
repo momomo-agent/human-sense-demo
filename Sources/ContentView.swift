@@ -25,7 +25,8 @@ struct ContentView: View {
                         state: state,
                         sttIsSpeaking: sttManager.isSpeaking,
                         sttIsListening: sttManager.isListening,
-                        lipAudioCorrelation: engine.lipAudioCorrelator.correlation
+                        lipAudioCorrelation: engine.lipAudioCorrelator.correlation,
+                        lipAudioCorrelated: engine.lipAudioCorrelator.isCorrelated
                     )
                     .padding(.horizontal)
                 }
