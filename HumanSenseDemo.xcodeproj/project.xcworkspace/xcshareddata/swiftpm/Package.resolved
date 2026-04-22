@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/momomo-agent/HumanSenseKit.git",
       "state" : {
-        "revision" : "81950abb67fa22d4270b4655d904c861cea905e3",
-        "version" : "4.3.0"
+        "revision" : "933c8c06c58393236efc4ccabae9db1b1d6b74ad",
+        "version" : "4.3.1"
       }
     }
   ],
