@@ -1,0 +1,15 @@
+{
+  "originHash" : "269bd9d21cb60e595bcbd75e6cfdf769df4824729d98c6a5d7dc9fcfa4cfe8f0",
+  "pins" : [
+    {
+      "identity" : "humansensekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/momomo-agent/HumanSenseKit.git",
+      "state" : {
+        "revision" : "f652f122b1b22434acd5c25b80d39901f6222c75",
+        "version" : "4.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}
