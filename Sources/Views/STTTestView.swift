@@ -88,8 +88,14 @@ struct STTTestView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(sttManager.segments) { segment in
-                        SegmentRow(segment: segment)
-                            .id(segment.id)
+                        if segment.text.trimmingCharacters(in: .whitespaces).isEmpty {
+                            // Sentence separator
+                            Divider()
+                                .padding(.vertical, 4)
+                        } else {
+                            SegmentRow(segment: segment)
+                                .id(segment.id)
+                        }
                     }
                 }
                 .padding(.horizontal, 4)
