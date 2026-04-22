@@ -10,6 +10,7 @@ struct STTTestView: View {
         VStack(alignment: .leading, spacing: 16) {
             header
             legend
+            correlationWaveform
             segmentsList
             if let error = sttManager.lastError {
                 errorView(error)
@@ -18,6 +19,66 @@ struct STTTestView: View {
         }
         .padding()
         .background(Color.black)
+    }
+
+    // MARK: - Correlation Waveform
+
+    private var correlationWaveform: some View {
+        let points = engine.lipAudioCorrelator.samplePoints
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Lip vs Audio")
+                    .font(.caption2.bold())
+                Spacer()
+                Text(String(format: "r=%.2f", engine.lipAudioCorrelator.correlation))
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(engine.lipAudioCorrelator.isCorrelated ? .green : .red)
+            }
+            .foregroundStyle(.secondary)
+
+            // Waveform chart
+            Canvas { context, size in
+                guard points.count > 1 else { return }
+                let w = size.width
+                let h = size.height
+
+                // Draw lip activity (orange)
+                var lipPath = Path()
+                for (i, p) in points.enumerated() {
+                    let x = w * CGFloat(p.timeOffset) / 1.0  // 1s window
+                    let y = h * (1 - CGFloat(p.lipActivity))
+                    if i == 0 { lipPath.move(to: CGPoint(x: x, y: y)) }
+                    else { lipPath.addLine(to: CGPoint(x: x, y: y)) }
+                }
+                context.stroke(lipPath, with: .color(.orange), lineWidth: 1.5)
+
+                // Draw audio RMS (cyan)
+                var audioPath = Path()
+                for (i, p) in points.enumerated() {
+                    let x = w * CGFloat(p.timeOffset) / 1.0
+                    let y = h * (1 - CGFloat(p.audioRMS))
+                    if i == 0 { audioPath.move(to: CGPoint(x: x, y: y)) }
+                    else { audioPath.addLine(to: CGPoint(x: x, y: y)) }
+                }
+                context.stroke(audioPath, with: .color(.cyan), lineWidth: 1.5)
+            }
+            .frame(height: 60)
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            // Legend
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.orange).frame(width: 6, height: 6)
+                    Text("Lip").font(.system(size: 9))
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(Color.cyan).frame(width: 6, height: 6)
+                    Text("Audio").font(.system(size: 9))
+                }
+            }
+            .foregroundStyle(.secondary)
+        }
     }
 
     private var header: some View {
