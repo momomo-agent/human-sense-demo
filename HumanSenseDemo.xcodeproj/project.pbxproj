@@ -377,7 +377,7 @@
 			repositoryURL = "https://github.com/momomo-agent/HumanSenseKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.3.7;
+				minimumVersion = 4.3.8;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
