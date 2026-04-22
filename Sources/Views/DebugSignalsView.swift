@@ -6,6 +6,7 @@ struct DebugSignalsView: View {
     let state: HumanState
     let sttIsSpeaking: Bool
     let sttIsListening: Bool
+    let lipAudioCorrelation: Float
     
     private var face: FaceState { state.face }
     private var audio: AudioState { state.audio }
@@ -33,6 +34,7 @@ struct DebugSignalsView: View {
                 rawValue("jaw", String(format: "%.3f", face.jawOpen))
                 rawValue("vol", String(format: "%.3f", audio.volume))
                 rawValue("yaw", String(format: "%.2f", face.headYaw))
+                rawValue("corr", String(format: "%.2f", lipAudioCorrelation))
             }
             
             // Activity result

@@ -24,7 +24,8 @@ struct ContentView: View {
                     DebugSignalsView(
                         state: state,
                         sttIsSpeaking: sttManager.isSpeaking,
-                        sttIsListening: sttManager.isListening
+                        sttIsListening: sttManager.isListening,
+                        lipAudioCorrelation: engine.lipAudioCorrelator.correlation
                     )
                     .padding(.horizontal)
                 }

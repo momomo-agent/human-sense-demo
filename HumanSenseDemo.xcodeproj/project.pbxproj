@@ -40,6 +40,7 @@
 		AA655F26BAF42FB09BA0B876 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HumanSenseDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshView.swift; sourceTree = "<group>"; };
+		C5EA92DE11BDA7FD2138D63B /* HumanSenseKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = HumanSenseKit; path = ../HumanSenseKit; sourceTree = SOURCE_ROOT; };
 		C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthVisualizerView.swift; sourceTree = "<group>"; };
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
@@ -61,6 +62,7 @@
 		33A52A1A1AF4690B4DD5EF00 = {
 			isa = PBXGroup;
 			children = (
+				94AC70348E45168619EED78D /* Packages */,
 				D39979A04A25538C87CCA414 /* Sources */,
 				FFEFC38670EB3317052C5787 /* Products */,
 			);
@@ -85,6 +87,14 @@
 				12183B432CEA695CD6258780 /* STTTestView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		94AC70348E45168619EED78D /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				C5EA92DE11BDA7FD2138D63B /* HumanSenseKit */,
+			);
+			name = Packages;
 			sourceTree = "<group>";
 		};
 		D39979A04A25538C87CCA414 /* Sources */ = {
@@ -152,7 +162,7 @@
 			mainGroup = 33A52A1A1AF4690B4DD5EF00;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */,
+				1D23B7AD03480A4AA4375281 /* XCLocalSwiftPackageReference "../HumanSenseKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FFEFC38670EB3317052C5787 /* Products */;
@@ -371,21 +381,16 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/momomo-agent/HumanSenseKit.git";
-			requirement = {
-				kind = exactVersion;
-				version = 3.0.25;
-			};
+/* Begin XCLocalSwiftPackageReference section */
+		1D23B7AD03480A4AA4375281 /* XCLocalSwiftPackageReference "../HumanSenseKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../HumanSenseKit;
 		};
-/* End XCRemoteSwiftPackageReference section */
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */;
 			productName = HumanSenseKit;
 		};
 /* End XCSwiftPackageProductDependency section */
