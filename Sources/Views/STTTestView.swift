@@ -45,7 +45,8 @@ struct STTTestView: View {
 
             // Real-time signals
             HStack(spacing: 12) {
-                signalPill("👄 Mouth", engine.humanState.face.jawOpen > 0.2 || abs(engine.humanState.face.jawOpen - previousJaw) > 0.04)
+                signalPill("👄 Mouth", engine.humanState.face.jawOpen > 0.15 || engine.lipAudioCorrelator.lipActivity > 0.5,
+                           detail: String(format: "lip:%.1f", engine.lipAudioCorrelator.lipActivity))
                 signalPill("🔗 Corr", engine.lipAudioCorrelator.isCorrelated,
                            detail: String(format: "%.2f", engine.lipAudioCorrelator.correlation))
                 signalPill("👁 Gaze", engine.humanState.face.isLookingAtScreen)
@@ -63,8 +64,6 @@ struct STTTestView: View {
             }
         }
     }
-
-    private var previousJaw: Float { 0 } // approximation for display
 
     private func signalPill(_ label: String, _ on: Bool, detail: String? = nil) -> some View {
         HStack(spacing: 3) {
