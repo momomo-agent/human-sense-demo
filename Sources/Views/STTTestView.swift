@@ -243,9 +243,19 @@ private struct SegmentRow: View {
                 Text(String(format: "r=%.2f", segment.signals.lipCorrelation))
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundStyle(.secondary)
+                if segment.signals.bestOffset != 0 {
+                    Text(String(format: "Δ%d", segment.signals.bestOffset))
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
                 Text(segment.signals.activity)
                     .font(.system(size: 8, design: .monospaced))
                     .foregroundStyle(.secondary)
+            }
+
+            // Mini waveform snapshot
+            if !segment.signals.waveform.isEmpty {
+                miniWaveform
             }
         }
     }
@@ -261,6 +271,35 @@ private struct SegmentRow: View {
         if !segment.isFromUser { return .gray }
         if segment.isFinal { return .white }
         return .purple.opacity(0.8)
+    }
+
+    private var miniWaveform: some View {
+        Canvas { context, size in
+            let points = segment.signals.waveform
+            guard points.count > 1 else { return }
+            let w = size.width
+            let h = size.height
+
+            var lipPath = Path()
+            var audioPath = Path()
+            for (i, p) in points.enumerated() {
+                let x = w * CGFloat(p.timeOffset) / 1.0
+                let lipY = h * (1 - CGFloat(p.lipActivity))
+                let audioY = h * (1 - CGFloat(p.audioRMS))
+                if i == 0 {
+                    lipPath.move(to: CGPoint(x: x, y: lipY))
+                    audioPath.move(to: CGPoint(x: x, y: audioY))
+                } else {
+                    lipPath.addLine(to: CGPoint(x: x, y: lipY))
+                    audioPath.addLine(to: CGPoint(x: x, y: audioY))
+                }
+            }
+            context.stroke(lipPath, with: .color(.orange), lineWidth: 1)
+            context.stroke(audioPath, with: .color(.cyan), lineWidth: 1)
+        }
+        .frame(height: 30)
+        .background(Color.white.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 
     private var statusEmoji: String {
