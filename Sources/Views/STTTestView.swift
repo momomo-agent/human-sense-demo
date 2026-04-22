@@ -4,6 +4,7 @@ import HumanSenseKit
 /// Dedicated STT test view showing volatile vs final results clearly.
 struct STTTestView: View {
     @ObservedObject var sttManager: STTManager
+    var engine: HumanStateEngine
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -34,12 +35,46 @@ struct STTTestView: View {
     }
 
     private var legend: some View {
-        HStack(spacing: 16) {
-            legendItem(color: .white, label: "Final")
-            legendItem(color: .purple.opacity(0.6), label: "Volatile")
-            legendItem(color: .gray, label: "Ambient")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 16) {
+                legendItem(color: .white, label: "Final")
+                legendItem(color: .purple.opacity(0.6), label: "Volatile")
+                legendItem(color: .gray, label: "Ambient")
+            }
+            .foregroundStyle(.secondary)
+
+            // Real-time signals
+            HStack(spacing: 12) {
+                signalPill("👄 Mouth", engine.humanState.face.jawOpen > 0.2 || abs(engine.humanState.face.jawOpen - previousJaw) > 0.04)
+                signalPill("🔗 Corr", engine.lipAudioCorrelator.isCorrelated,
+                           detail: String(format: "%.2f", engine.lipAudioCorrelator.correlation))
+                signalPill("👁 Gaze", engine.humanState.face.isLookingAtScreen)
+                signalPill("🧭 Head", engine.humanState.face.headOrientation.isFacingForward)
+                signalPill("🔊 Audio", engine.humanState.audio.isSpeaking)
+            }
+
+            HStack(spacing: 12) {
+                Text("isSpeaking: \(sttManager.isSpeaking ? "✅" : "❌")")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(sttManager.isSpeaking ? .green : .red)
+                Text("activity: \(engine.humanState.activity.rawValue)")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+            }
         }
-        .foregroundStyle(.secondary)
+    }
+
+    private var previousJaw: Float { 0 } // approximation for display
+
+    private func signalPill(_ label: String, _ on: Bool, detail: String? = nil) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(on ? Color.green : Color.red.opacity(0.5)).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9))
+            if let detail {
+                Text(detail).font(.system(size: 9, design: .monospaced)).foregroundStyle(.secondary)
+            }
+        }
+        .foregroundStyle(on ? .white : .gray)
     }
 
     private func legendItem(color: Color, label: String) -> some View {

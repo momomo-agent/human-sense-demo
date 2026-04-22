@@ -10,7 +10,7 @@ struct HumanSenseDemoApp: App {
             TabView {
                 ContentView(engine: engine)
                     .tabItem { Label("Sense", systemImage: "eye") }
-                STTTestView(sttManager: engine.sttManager)
+                STTTestView(sttManager: engine.sttManager, engine: engine)
                     .tabItem { Label("STT Test", systemImage: "waveform") }
             }
             .onAppear {
