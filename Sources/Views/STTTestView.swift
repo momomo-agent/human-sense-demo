@@ -98,8 +98,9 @@ struct STTTestView: View {
     private var legend: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 16) {
-                legendItem(color: .white, label: "Final")
-                legendItem(color: .purple.opacity(0.6), label: "Volatile")
+                legendItem(color: .yellow, label: "To Screen")
+                legendItem(color: .orange, label: "To Other")
+                legendItem(color: .blue, label: "No Gaze")
                 legendItem(color: .gray, label: "Ambient")
             }
             .foregroundStyle(.secondary)
@@ -113,6 +114,7 @@ struct STTTestView: View {
                 signalPill("👁 Gaze", engine.humanState.face.isLookingAtScreen)
                 signalPill("🧭 Head", engine.humanState.face.headOrientation.isFacingForward)
                 signalPill("🔊 Audio", engine.humanState.audio.isSpeaking)
+                signalPill("🎙 VAD", engine.sttManager.speechDetected)
             }
 
             // Co-occurrence frame counts
@@ -220,7 +222,7 @@ private struct SegmentRow: View {
             }
         }
         .padding(8)
-        .background(segment.isFinal ? Color.white.opacity(0.05) : Color.purple.opacity(0.05))
+        .background(segment.isFromUser ? Color.white.opacity(0.05) : Color.gray.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
@@ -234,7 +236,7 @@ private struct SegmentRow: View {
                 } else {
                     Text("VOLATILE")
                         .font(.caption2)
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(.orange)
                 }
                 if segment.isFromUser {
                     Text("user")
@@ -276,9 +278,10 @@ private struct SegmentRow: View {
     }
 
     private var textColor: Color {
+        // Aligned with Sense tab (ContentView) color scheme
         if !segment.isFromUser { return .gray }
-        if segment.isFinal { return .white }
-        return .purple.opacity(0.8)
+        if !segment.sentenceStartedLookingAtScreen { return .blue }
+        return segment.isToScreen ? .yellow : .orange
     }
 
     private var miniWaveform: some View {
