@@ -2,59 +2,144 @@ import SwiftUI
 import AVFoundation
 import FluidAudio
 
-private final class DiarizerBox: @unchecked Sendable {
-    let value: DiarizerManager
-    init(_ value: DiarizerManager) { self.value = value }
+@MainActor
+private final class DiarizationModel: ObservableObject {
+    @Published var status = "Tap to download models"
+    @Published var segments: [(speaker: String, start: Double, end: Double)] = []
+    @Published var isRecording = false
+    @Published var isEnrolling = false
+    @Published var enrolledName: String? = nil
+
+    var isReady: Bool { diarizer != nil }
+    private var diarizer: DiarizerManager?
+    private let audioEngine = AVAudioEngine()
+    private var audioBuffer: [Float] = []
+    private var actualSampleRate: Int = 44100
+
+    func downloadModels() async {
+        guard diarizer == nil else { return }
+        status = "Downloading models..."
+        do {
+            let models = try await DiarizerModels.download { p in
+                Task { @MainActor in self.status = "Downloading \(Int(p.fractionCompleted * 100))%" }
+            }
+            let d = DiarizerManager()
+            d.initialize(models: models)
+            diarizer = d
+            status = "Ready — enroll your voice or start recording"
+        } catch { status = "Download failed: \(error.localizedDescription)" }
+    }
+
+    func startEnroll() {
+        audioBuffer = []
+        isEnrolling = true
+        status = "Recording your voice (5s)..."
+        startCapture()
+        Task {
+            try? await Task.sleep(for: .seconds(5))
+            if isEnrolling { await stopEnroll() }
+        }
+    }
+
+    func stopEnroll() async {
+        stopCapture()
+        isEnrolling = false
+        status = "Processing enrollment..."
+        guard let d = diarizer, !audioBuffer.isEmpty else { return }
+        let buf = audioBuffer
+        do {
+            let embedding = try d.extractSpeakerEmbedding(from: buf)
+            let speaker = Speaker(id: "kenefe", name: "kenefe", currentEmbedding: embedding, isPermanent: true)
+            await d.initializeKnownSpeakers([speaker])
+            enrolledName = "kenefe"
+            status = "Enrolled! Start recording to test diarization"
+        } catch { status = "Enrollment failed: \(error.localizedDescription)" }
+    }
+
+    func startRecording() {
+        audioBuffer = []
+        isRecording = true
+        status = "Recording..."
+        startCapture()
+    }
+
+    func stopRecording() async {
+        stopCapture()
+        isRecording = false
+        status = "Processing..."
+        guard let d = diarizer, !audioBuffer.isEmpty else { return }
+        let buf = audioBuffer
+        let sr = actualSampleRate
+        nonisolated(unsafe) let d2 = d
+        do {
+            let result = try await Task.detached(priority: .userInitiated) {
+                try await d2.performCompleteDiarization(buf, sampleRate: sr)
+            }.value
+            segments = result.segments.map { ($0.speakerId, Double($0.startTimeSeconds), Double($0.endTimeSeconds)) }
+            let n = Set(result.segments.map(\.speakerId)).count
+            status = "Done — \(result.segments.count) segments, \(n) speakers"
+        } catch { status = "Error: \(error.localizedDescription)" }
+    }
+
+    private func startCapture() {
+        let input = audioEngine.inputNode
+        let fmt = input.inputFormat(forBus: 0)
+        actualSampleRate = Int(fmt.sampleRate)
+        input.installTap(onBus: 0, bufferSize: 4096, format: fmt) { [weak self] buf, _ in
+            guard let data = buf.floatChannelData?[0] else { return }
+            let s = Array(UnsafeBufferPointer(start: data, count: Int(buf.frameLength)))
+            DispatchQueue.main.async { self?.audioBuffer.append(contentsOf: s) }
+        }
+        try? audioEngine.start()
+    }
+
+    private func stopCapture() {
+        audioEngine.inputNode.removeTap(onBus: 0)
+        audioEngine.stop()
+    }
 }
 
 @MainActor
 struct DiarizationTestView: View {
-    @State private var status = "Tap to download models"
-    @State private var segments: [(speaker: String, start: Double, end: Double)] = []
-    @State private var isRecording = false
-    @State private var isEnrolling = false
-    @State private var diarizerBox: DiarizerBox?
-    @State private var audioEngine = AVAudioEngine()
-    @State private var audioBuffer: [Float] = []
-    @State private var enrolledName: String? = nil
-    @State private var actualSampleRate: Int = 44100
+    @StateObject private var model = DiarizationModel()
 
     var body: some View {
         VStack(spacing: 16) {
             Text("Speaker Diarization Test").font(.headline)
-            Text(status).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            Text(model.status).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
 
-            if let name = enrolledName {
+            if let name = model.enrolledName {
                 Label("Enrolled: \(name)", systemImage: "person.fill.checkmark")
                     .font(.caption).foregroundStyle(.green)
             }
 
             HStack(spacing: 12) {
-                if diarizerBox == nil {
-                    Button("Download Models") { Task { await downloadModels() } }
+                if !model.isReady {
+                    Button("Download Models") { Task { await model.downloadModels() } }
                         .buttonStyle(.borderedProminent)
                 } else {
-                    Button(isEnrolling ? "Stop Enroll" : "Enroll Voice") {
-                        if isEnrolling { stopEnroll() } else { startEnroll() }
+                    Button(model.isEnrolling ? "Stop Enroll" : "Enroll Voice") {
+                        if model.isEnrolling { Task { await model.stopEnroll() } }
+                        else { model.startEnroll() }
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.orange)
+                    .buttonStyle(.bordered).tint(.orange)
 
-                    Button(isRecording ? "Stop" : "Start") {
-                        if isRecording { stopRecording() } else { startRecording() }
+                    Button(model.isRecording ? "Stop" : "Start") {
+                        if model.isRecording { Task { await model.stopRecording() } }
+                        else { model.startRecording() }
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(isEnrolling)
+                    .disabled(model.isEnrolling)
                 }
             }
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 6) {
-                    ForEach(segments.indices, id: \.self) { i in
-                        let seg = segments[i]
+                    ForEach(model.segments.indices, id: \.self) { i in
+                        let seg = model.segments[i]
                         HStack {
                             Text(seg.speaker).font(.caption.bold())
-                                .foregroundStyle(speakerColor(seg.speaker)).frame(width: 80)
+                                .foregroundStyle(color(seg.speaker)).frame(width: 80)
                             Text(String(format: "%.1f–%.1fs", seg.start, seg.end))
                                 .font(.caption2).foregroundStyle(.secondary)
                         }.padding(.horizontal)
@@ -64,110 +149,9 @@ struct DiarizationTestView: View {
         }.padding()
     }
 
-    // MARK: - Model Download
-
-    private func downloadModels() async {
-        guard diarizerBox == nil else { return }
-        status = "Downloading models..."
-        do {
-            let models = try await DiarizerModels.download { p in
-                Task { @MainActor in status = "Downloading \(Int(p.fractionCompleted * 100))%" }
-            }
-            let d = DiarizerManager()
-            d.initialize(models: models)
-            diarizerBox = DiarizerBox(d)
-            status = "Ready — enroll your voice or start recording"
-        } catch { status = "Download failed: \(error.localizedDescription)" }
-    }
-
-    // MARK: - Voice Enrollment
-
-    private func startEnroll() {
-        audioBuffer = []
-        isEnrolling = true
-        status = "Recording your voice for enrollment (5s)..."
-        startAudioCapture()
-        // Auto-stop after 5 seconds
-        Task {
-            try? await Task.sleep(for: .seconds(5))
-            if isEnrolling { stopEnroll() }
-        }
-    }
-
-    private func stopEnroll() {
-        stopAudioCapture()
-        isEnrolling = false
-        status = "Processing enrollment..."
-        Task { await runEnrollment() }
-    }
-
-    private func runEnrollment() async {
-        guard let box = diarizerBox, !audioBuffer.isEmpty else { return }
-        let buf = audioBuffer
-        do {
-            let embedding = try box.value.extractSpeakerEmbedding(from: buf)
-            let speaker = Speaker(id: "kenefe", name: "kenefe", currentEmbedding: embedding, isPermanent: true)
-            await box.value.initializeKnownSpeakers([speaker])
-            enrolledName = "kenefe"
-            status = "Enrolled! Now start recording to test diarization"
-        } catch { status = "Enrollment failed: \(error.localizedDescription)" }
-    }
-
-    // MARK: - Diarization Recording
-
-    private func startRecording() {
-        audioBuffer = []
-        isRecording = true
-        status = "Recording..."
-        startAudioCapture()
-    }
-
-    private func stopRecording() {
-        stopAudioCapture()
-        isRecording = false
-        status = "Processing..."
-        Task { await runDiarization() }
-    }
-
-    private func runDiarization() async {
-        guard let box = diarizerBox, !audioBuffer.isEmpty else { return }
-        let buf = audioBuffer
-        let sr = actualSampleRate
-        do {
-            let result = try await Task.detached(priority: .userInitiated) {
-                try await box.value.performCompleteDiarization(buf, sampleRate: sr)
-            }.value
-            segments = result.segments.map { ($0.speakerId, Double($0.startTimeSeconds), Double($0.endTimeSeconds)) }
-            let speakerCount = Set(result.segments.map(\.speakerId)).count
-            status = "Done — \(result.segments.count) segments, \(speakerCount) speakers"
-        } catch { status = "Error: \(error.localizedDescription)" }
-    }
-
-    // MARK: - Audio Capture
-
-    private func startAudioCapture() {
-        let input = audioEngine.inputNode
-        let hwFormat = input.inputFormat(forBus: 0)
-        input.installTap(onBus: 0, bufferSize: 4096, format: hwFormat) { buf, _ in
-            guard let data = buf.floatChannelData?[0] else { return }
-            let s = Array(UnsafeBufferPointer(start: data, count: Int(buf.frameLength)))
-            DispatchQueue.main.async { self.audioBuffer.append(contentsOf: s) }
-        }
-        try? audioEngine.start()
-        // Store actual sample rate for diarization
-        actualSampleRate = Int(hwFormat.sampleRate)
-    }
-
-    private func stopAudioCapture() {
-        audioEngine.inputNode.removeTap(onBus: 0)
-        audioEngine.stop()
-    }
-
-    // MARK: - Helpers
-
-    private func speakerColor(_ s: String) -> Color {
+    private func color(_ s: String) -> Color {
         if s == "kenefe" { return .blue }
-        let colors: [Color] = [.green, .orange, .purple, .red]
-        return colors[(s.unicodeScalars.reduce(0) { $0 + Int($1.value) }) % colors.count]
+        let c: [Color] = [.green, .orange, .purple, .red]
+        return c[(s.unicodeScalars.reduce(0) { $0 + Int($1.value) }) % c.count]
     }
 }
