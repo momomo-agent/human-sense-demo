@@ -67,9 +67,6 @@ struct DiarizationTestView: View {
 
     private func downloadModels() async {
         status = "Downloading models..."
-        // Route through local proxy for GFW regions
-        setenv("https_proxy", "http://127.0.0.1:7890", 1)
-        setenv("http_proxy", "http://127.0.0.1:7890", 1)
         do {
             let models = try await DiarizerModels.download { p in
                 Task { @MainActor in status = "Downloading \(Int(p.fractionCompleted * 100))%" }
