@@ -147,7 +147,7 @@ struct DiarizationTestView: View {
         input.installTap(onBus: 0, bufferSize: 4096, format: hwFormat) { buf, _ in
             guard let data = buf.floatChannelData?[0] else { return }
             let s = Array(UnsafeBufferPointer(start: data, count: Int(buf.frameLength)))
-            Task { @MainActor in self.audioBuffer.append(contentsOf: s) }
+            DispatchQueue.main.async { self.audioBuffer.append(contentsOf: s) }
         }
         try? audioEngine.start()
         // Store actual sample rate for diarization
