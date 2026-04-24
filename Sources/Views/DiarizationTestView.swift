@@ -17,6 +17,7 @@ struct DiarizationTestView: View {
     @State private var audioEngine = AVAudioEngine()
     @State private var audioBuffer: [Float] = []
     @State private var enrolledName: String? = nil
+    @State private var actualSampleRate: Int = 44100
 
     var body: some View {
         VStack(spacing: 16) {
@@ -131,7 +132,7 @@ struct DiarizationTestView: View {
         guard let box = diarizerBox, !audioBuffer.isEmpty else { return }
         let buf = audioBuffer
         do {
-            let result = try await box.value.performCompleteDiarization(buf, sampleRate: 16000)
+            let result = try await box.value.performCompleteDiarization(buf, sampleRate: actualSampleRate)
             segments = result.segments.map { ($0.speakerId, Double($0.startTimeSeconds), Double($0.endTimeSeconds)) }
             let speakerCount = Set(result.segments.map(\.speakerId)).count
             status = "Done — \(result.segments.count) segments, \(speakerCount) speakers"
@@ -142,13 +143,15 @@ struct DiarizationTestView: View {
 
     private func startAudioCapture() {
         let input = audioEngine.inputNode
-        let fmt = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)!
-        input.installTap(onBus: 0, bufferSize: 4096, format: fmt) { buf, _ in
+        let hwFormat = input.inputFormat(forBus: 0)
+        input.installTap(onBus: 0, bufferSize: 4096, format: hwFormat) { buf, _ in
             guard let data = buf.floatChannelData?[0] else { return }
             let s = Array(UnsafeBufferPointer(start: data, count: Int(buf.frameLength)))
             Task { @MainActor in self.audioBuffer.append(contentsOf: s) }
         }
         try? audioEngine.start()
+        // Store actual sample rate for diarization
+        actualSampleRate = Int(hwFormat.sampleRate)
     }
 
     private func stopAudioCapture() {
