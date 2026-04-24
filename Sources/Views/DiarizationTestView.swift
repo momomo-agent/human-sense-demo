@@ -67,6 +67,7 @@ struct DiarizationTestView: View {
     // MARK: - Model Download
 
     private func downloadModels() async {
+        guard diarizerBox == nil else { return }
         status = "Downloading models..."
         do {
             let models = try await DiarizerModels.download { p in
@@ -131,8 +132,11 @@ struct DiarizationTestView: View {
     private func runDiarization() async {
         guard let box = diarizerBox, !audioBuffer.isEmpty else { return }
         let buf = audioBuffer
+        let sr = actualSampleRate
         do {
-            let result = try await box.value.performCompleteDiarization(buf, sampleRate: actualSampleRate)
+            let result = try await Task.detached(priority: .userInitiated) {
+                try await box.value.performCompleteDiarization(buf, sampleRate: sr)
+            }.value
             segments = result.segments.map { ($0.speakerId, Double($0.startTimeSeconds), Double($0.endTimeSeconds)) }
             let speakerCount = Set(result.segments.map(\.speakerId)).count
             status = "Done — \(result.segments.count) segments, \(speakerCount) speakers"
