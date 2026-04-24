@@ -12,6 +12,8 @@ struct HumanSenseDemoApp: App {
                     .tabItem { Label("Sense", systemImage: "eye") }
                 STTTestView(sttManager: engine.sttManager, engine: engine)
                     .tabItem { Label("STT Test", systemImage: "waveform") }
+                DiarizationTestView()
+                    .tabItem { Label("Diarization", systemImage: "person.2") }
             }
             .onAppear {
                 engine.start()

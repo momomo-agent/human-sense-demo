@@ -12,6 +12,7 @@
 		0EB64528D86897A70019C2FE /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */; };
 		1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */; };
 		1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12183B432CEA695CD6258780 /* STTTestView.swift */; };
+		CC1111111111111111111111 /* DiarizationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2222222222222222222222 /* DiarizationTestView.swift */; };
 		2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF934864FE15383E562580E /* GazeTrailView.swift */; };
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
@@ -31,6 +32,7 @@
 		0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
 		0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlendShapePanel.swift; sourceTree = "<group>"; };
 		12183B432CEA695CD6258780 /* STTTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTTestView.swift; sourceTree = "<group>"; };
+		CC2222222222222222222222 /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		229316286F5816B7C9E4CCE7 /* StateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateCard.swift; sourceTree = "<group>"; };
 		3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeVisualizerView.swift; sourceTree = "<group>"; };
 		424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceIndicatorView.swift; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 				229316286F5816B7C9E4CCE7 /* StateCard.swift */,
 				8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */,
 				12183B432CEA695CD6258780 /* STTTestView.swift */,
+				CC2222222222222222222222 /* DiarizationTestView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -122,6 +125,7 @@
 			name = HumanSenseDemo;
 			packageProductDependencies = (
 				6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */,
+				BB9876543210FEDCBA987654 /* FluidAudio */,
 			);
 			productName = HumanSenseDemo;
 			productReference = AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */;
@@ -153,6 +157,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */,
+				AA1234567890ABCDEF123456 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FFEFC38670EB3317052C5787 /* Products */;
@@ -183,6 +188,7 @@
 				61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */,
 				401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */,
 				1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */,
+				CC1111111111111111111111 /* DiarizationTestView.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
 			);
@@ -380,6 +386,10 @@
 				minimumVersion = 4.7.0;
 			};
 		};
+		AA1234567890ABCDEF123456 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../FluidAudio";
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -387,6 +397,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */;
 			productName = HumanSenseKit;
+		};
+		BB9876543210FEDCBA987654 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA1234567890ABCDEF123456 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
