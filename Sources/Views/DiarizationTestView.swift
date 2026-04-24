@@ -16,14 +16,14 @@ private final class DiarizationModel: ObservableObject {
 
     func downloadModels() async {
         guard diarizer == nil else { return }
-        status = "Downloading models..."
+        status = "Loading models..."
         do {
             let models = try await DiarizerModels.downloadIfNeeded()
             let d = DiarizerManager()
             d.initialize(models: models)
             diarizer = d
             status = "Ready"
-        } catch { status = "Download failed: \(error.localizedDescription)" }
+        } catch { status = "Failed: \(error.localizedDescription)" }
     }
 
     func startRecording() {
@@ -107,6 +107,7 @@ struct DiarizationTestView: View {
                 }
             }
         }.padding()
+        .task { await model.downloadModels() }
     }
 
     private func color(_ s: String) -> Color {
