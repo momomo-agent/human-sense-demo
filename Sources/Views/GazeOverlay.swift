@@ -1,30 +1,33 @@
 import SwiftUI
 
+/// Full-screen overlay showing gaze point and valid gaze region.
+/// Uses raw screen coordinates — matches FaceTrackingManager's isLookingAtScreen logic exactly.
 struct GazeOverlay: View {
-    let gazePoint: CGPoint
+    let gazePoint: CGPoint   // screen coordinates
     let isLooking: Bool
     
     var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            let marginX = w * 0.1
-            
-            // Valid gaze region (matches FaceTrackingManager logic)
+        let screen = UIScreen.main.bounds.size
+        let marginX = screen.width * 0.1
+        
+        ZStack {
+            // Valid gaze region (exactly matches FaceTrackingManager logic)
             Rectangle()
-                .strokeBorder(isLooking ? Color.green.opacity(0.3) : Color.red.opacity(0.3), lineWidth: 2)
+                .strokeBorder(isLooking ? Color.green.opacity(0.4) : Color.red.opacity(0.4), lineWidth: 2)
                 .background(
                     Rectangle()
                         .fill(isLooking ? Color.green.opacity(0.05) : Color.red.opacity(0.05))
                 )
-                .frame(width: w - marginX * 2, height: h)
-                .position(x: w / 2, y: h / 2)
+                .frame(width: screen.width - marginX * 2, height: screen.height)
+                .position(x: screen.width / 2, y: screen.height / 2)
             
             // Gaze point
             Circle()
-                .fill(isLooking ? Color.blue.opacity(0.7) : Color.red.opacity(0.5))
-                .frame(width: 20, height: 20)
+                .fill(isLooking ? Color.blue.opacity(0.8) : Color.red.opacity(0.6))
+                .frame(width: 16, height: 16)
+                .shadow(color: isLooking ? .blue : .red, radius: 4)
                 .position(gazePoint)
         }
+        .frame(width: screen.width, height: screen.height)
     }
 }

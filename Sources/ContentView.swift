@@ -84,7 +84,6 @@ struct ContentView: View {
                         FaceMeshView(faceAnchor: engine.currentFaceAnchor)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         GazeTrailView(trail: mappedTrail)
-                        GazeOverlay(gazePoint: mappedGaze(state.face.gazePoint), isLooking: state.face.isLookingAtScreen)
                     } else {
                         Text("未检测到人脸").foregroundStyle(.secondary)
                     }
@@ -116,6 +115,12 @@ struct ContentView: View {
                     .padding(.horizontal)
             }
             .padding(.vertical)
+        }
+        .overlay {
+            if state.face.faceDetected {
+                GazeOverlay(gazePoint: state.face.gazePoint, isLooking: state.face.isLookingAtScreen)
+                    .allowsHitTesting(false)
+            }
         }
         .background(Color.black)
         .preferredColorScheme(.dark)
