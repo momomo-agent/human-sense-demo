@@ -26,7 +26,8 @@ struct ContentView: View {
                         sttIsSpeaking: sttManager.isSpeaking,
                         sttIsListening: sttManager.isListening,
                         lipAudioCorrelation: engine.lipAudioCorrelator.correlation,
-                        lipAudioCorrelated: engine.lipAudioCorrelator.isCorrelated
+                        lipAudioCorrelated: engine.lipAudioCorrelator.isCorrelated,
+                        faceAnchor: engine.currentFaceAnchor
                     )
                     .padding(.horizontal)
                 }
@@ -118,7 +119,7 @@ struct ContentView: View {
         }
         .overlay {
             if state.face.faceDetected {
-                GazeOverlay(gazePoint: state.face.gazePoint, isLooking: state.face.isLookingAtScreen)
+                GazeOverlay(gazePoint: state.face.gazePoint, gazePointEye: state.face.gazePointEye, isLooking: state.face.isLookingAtScreen, distance: state.face.distanceFromCamera, pitch: state.face.headPitch, yaw: state.face.headYaw)
                     .allowsHitTesting(false)
             }
         }

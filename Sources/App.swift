@@ -18,10 +18,6 @@ struct HumanSenseDemoApp: App {
             .onAppear {
                 engine.start()
             }
-            .onChange(of: engine.humanState.face.headYaw) { _, yaw in
-                // Mute STT when user is not facing the screen (yaw > 45°)
-                engine.sttManager.isMuted = abs(yaw) > 0.785
-            }
         }
     }
 }
