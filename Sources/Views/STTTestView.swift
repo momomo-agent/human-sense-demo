@@ -138,6 +138,16 @@ struct STTTestView: View {
                     .font(.caption2.monospaced())
                     .foregroundStyle(.secondary)
             }
+
+            // Onset tracker — updates at audio-frame rate during voice activity.
+            // If these numbers don't visibly change during a short utterance,
+            // the onset tracker isn't sampling on the audio-frame timeline.
+            HStack(spacing: 12) {
+                Text(String(format: "onsetGaze: %.2f", sttManager.onsetGazeScore))
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(sttManager.onsetGazeScore > 0.5 ? .yellow : .orange)
+                    .animation(nil, value: sttManager.onsetGazeScore)
+            }
         }
     }
 
