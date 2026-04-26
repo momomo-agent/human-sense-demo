@@ -1,24 +1,24 @@
 {
-  "originHash" : "79b10d032cc583ad4186bde165e0f57122eb5b4641dfedc161cfe2252e1b9b9b",
-  "pins" : [
+  "originHash": "79b10d032cc583ad4186bde165e0f57122eb5b4641dfedc161cfe2252e1b9b9b",
+  "pins": [
     {
-      "identity" : "fluidaudio",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/FluidInference/FluidAudio.git",
-      "state" : {
-        "revision" : "b10bdcb51dcfeedb8001353b4ba363da1a616d6d",
-        "version" : "0.14.0"
+      "identity": "fluidaudio",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/FluidInference/FluidAudio.git",
+      "state": {
+        "revision": "b10bdcb51dcfeedb8001353b4ba363da1a616d6d",
+        "version": "0.14.0"
       }
     },
     {
-      "identity" : "humansensekit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/momomo-agent/HumanSenseKit.git",
-      "state" : {
-        "revision" : "5344b37e0effba7ea362a0d5038628a4d25e27ba",
-        "version" : "4.9.19"
+      "identity": "humansensekit",
+      "kind": "remoteSourceControl",
+      "location": "https://github.com/momomo-agent/HumanSenseKit.git",
+      "state": {
+        "revision": "992ae0a18e22884860b60639e567f5866ea0cbf9",
+        "version": "4.9.21"
       }
     }
   ],
-  "version" : 3
+  "version": 3
 }
