@@ -12,6 +12,8 @@
 		0EB64528D86897A70019C2FE /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */; };
 		1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */; };
 		1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12183B432CEA695CD6258780 /* STTTestView.swift */; };
+		AA11111111111111AAAAAAAA /* TokenSampleRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22222222222222AAAAAAAA /* TokenSampleRecorder.swift */; };
+		BB11111111111111BBBBBBBB /* TokenTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22222222222222BBBBBBBB /* TokenTableView.swift */; };
 		CC1111111111111111111111 /* DiarizationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2222222222222222222222 /* DiarizationTestView.swift */; };
 		2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF934864FE15383E562580E /* GazeTrailView.swift */; };
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
@@ -46,6 +48,8 @@
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
 		FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureView.swift; sourceTree = "<group>"; };
+		AA22222222222222AAAAAAAA /* TokenSampleRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenSampleRecorder.swift; sourceTree = "<group>"; };
+		BB22222222222222BBBBBBBB /* TokenTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenTableView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +89,7 @@
 				229316286F5816B7C9E4CCE7 /* StateCard.swift */,
 				8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */,
 				12183B432CEA695CD6258780 /* STTTestView.swift */,
+				BB22222222222222BBBBBBBB /* TokenTableView.swift */,
 				CC2222222222222222222222 /* DiarizationTestView.swift */,
 			);
 			path = Views;
@@ -95,6 +100,7 @@
 			children = (
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
+				AA22222222222222AAAAAAAA /* TokenSampleRecorder.swift */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -191,6 +197,8 @@
 				CC1111111111111111111111 /* DiarizationTestView.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
+				AA11111111111111AAAAAAAA /* TokenSampleRecorder.swift in Sources */,
+				BB11111111111111BBBBBBBB /* TokenTableView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

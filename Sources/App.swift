@@ -4,7 +4,8 @@ import HumanSenseKit
 @main
 struct HumanSenseDemoApp: App {
     @State private var engine = HumanStateEngine()
-    
+    @StateObject private var tokenRecorder = TokenSampleRecorder()
+
     var body: some Scene {
         WindowGroup {
             TabView {
@@ -12,32 +13,27 @@ struct HumanSenseDemoApp: App {
                     .tabItem { Label("Sense", systemImage: "eye") }
                 STTTestView(sttManager: engine.sttManager, engine: engine)
                     .tabItem { Label("STT Test", systemImage: "waveform") }
+                TokenTableView(recorder: tokenRecorder, engine: engine)
+                    .tabItem { Label("Tokens", systemImage: "tablecells") }
                 DiarizationTestView()
                     .tabItem { Label("Diarization", systemImage: "person.2") }
             }
             .onAppear {
                 engine.start()
                 engine.sttManager.onTokens = { tokens, isFinal in
-                    let base = engine.sttManager.audioStreamStartTime?.timeIntervalSince1970 ?? 0
-                    let parts = tokens.map {
-                        String(format: "%@@%.3f-%.3f", $0.text, base + $0.startTime, base + $0.endTime)
-                    }.joined(separator: " ")
-                    print("[HSK-TOK] isFinal=\(isFinal ? 1 : 0) \(parts)")
+                    tokenRecorder.audioStreamStartTime = engine.sttManager.audioStreamStartTime
+                    tokenRecorder.recordTokens(tokens, isFinal: isFinal)
                 }
             }
-            .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
+            .onReceive(Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()) { _ in
                 let ts = Date().timeIntervalSince1970
                 let jaw = engine.humanState.face.jawOpen
                 let vol = engine.humanState.audio.volume
-                let speaking = engine.sttManager.isSpeaking
-                if let seg = engine.sttManager.segments.last(where: { !$0.isFinal }) {
-                    let base = engine.sttManager.audioStreamStartTime?.timeIntervalSince1970 ?? ts
-                    let start = seg.audioStartTime.map { String(format: "%.3f", base + $0) } ?? "?"
-                    let end = seg.audioEndTime.map { String(format: "%.3f", base + $0) } ?? "?"
-                    print(String(format: "[HSK] %.3f jaw:%.3f vol:%.3f speaking:\(speaking ? 1 : 0) audio:[\(start)-\(end)] text:\"\(seg.text)\"", ts, jaw, vol))
-                } else {
-                    print(String(format: "[HSK] %.3f jaw:%.3f vol:%.3f speaking:\(speaking ? 1 : 0)", ts, jaw, vol))
-                }
+                tokenRecorder.recordSample(
+                    ts: ts, jaw: jaw, vol: vol,
+                    gaze: engine.humanState.face.isLookingAtScreen,
+                    headFwd: engine.humanState.face.headOrientation.isFacingForward
+                )
             }
         }
     }
