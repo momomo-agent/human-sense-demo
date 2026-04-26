@@ -171,7 +171,12 @@ final class TokenSampleRecorder: ObservableObject {
             headFwdRatio: n > 0 ? Float(headCount) / Float(n) : 0,
             sampleCount: n,
             effectiveWindow: (wallEnd - wallStart) + 2 * expand,
-            isUser: decideIsUser(maxJaw: jaws.max() ?? 0, jawStd: jawStd, volStd: volStd, volAvg: volAvg, pearson: pearson),
+            isUser: decideIsUser(
+                maxJaw: jaws.max() ?? 0, jawStd: jawStd, volStd: volStd,
+                volAvg: volAvg, pearson: pearson,
+                gazeRatio: n > 0 ? Float(gazeCount) / Float(n) : 0,
+                headFwdRatio: n > 0 ? Float(headCount) / Float(n) : 0
+            ),
             filledBySentence: false,
             isFinal: isFinal
         )
@@ -210,9 +215,14 @@ final class TokenSampleRecorder: ObservableObject {
         return max(-1, min(1, score))
     }
 
-    /// Direct per-token verdict — jaw-activity first, like the old version that worked.
-    private func decideIsUser(maxJaw: Float, jawStd: Float, volStd: Float, volAvg: Float, pearson: Float) -> Bool {
-        // HARD NO: silent mouth + audio present (someone else speaking)
+    /// Direct per-token verdict — MUST be looking at screen + head forward,
+    /// AND have jaw activity or voice-synced mouth movement.
+    private func decideIsUser(maxJaw: Float, jawStd: Float, volStd: Float, volAvg: Float, pearson: Float, gazeRatio: Float, headFwdRatio: Float) -> Bool {
+        // GATE: must be looking at the screen AND facing forward for most of the token
+        let lookingAtScreen = gazeRatio > 0.5 && headFwdRatio > 0.5
+        if !lookingAtScreen { return false }
+
+        // HARD NO: silent mouth + audio present (someone else speaking nearby)
         if jawStd < 0.004 && volAvg > 0.02 && pearson < 0.1 { return false }
         // STRONG YES: clear jaw activity
         if maxJaw >= jawActivityThreshold { return true }
@@ -252,6 +262,10 @@ final class TokenSampleRecorder: ObservableObject {
         // Upgrade all non-user rows unless they have very strong evidence against
         return rows.map { row in
             if row.isUser { return row }
+            // Sentence vote can only fill in tokens where user was also looking at screen.
+            // If they looked away, that's the sentence boundary — don't steal across.
+            let lookingAtScreen = row.gazeRatio > 0.5 && row.headFwdRatio > 0.5
+            if !lookingAtScreen { return row }
             // Keep as non-user if it's clearly not: completely silent mouth AND loud audio
             let clearlyNot = row.jawStd < 0.003 && row.avgVol > 0.03
             if clearlyNot { return row }
