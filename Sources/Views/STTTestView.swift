@@ -140,13 +140,14 @@ struct STTTestView: View {
             }
 
             // Onset tracker — updates at audio-frame rate during voice activity.
-            // If these numbers don't visibly change during a short utterance,
-            // the onset tracker isn't sampling on the audio-frame timeline.
             HStack(spacing: 12) {
                 Text(String(format: "onsetGaze: %.2f", sttManager.onsetGazeScore))
                     .font(.caption2.monospaced())
                     .foregroundStyle(sttManager.onsetGazeScore > 0.5 ? .yellow : .orange)
                     .animation(nil, value: sttManager.onsetGazeScore)
+                Text("frames:\(engine.onsetFrameCount) look:\(engine.onsetLookAtCount) corr:\(engine.onsetCorrCount)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -291,14 +292,8 @@ private struct SegmentRow: View {
     }
 
     private var textColor: Color {
-        // Aligned with Sense tab (ContentView) color scheme.
-        // Continuous score drives the tint; per-char isToScreen still flips
-        // yellow↔orange inside a high-score sentence to show tail-gaze drift.
-        if !segment.isFromUser { return .gray }
-        let score = segment.speakingToAIScore
-        if score < 0.35 { return .blue }
-        if score < 0.70 { return segment.isToScreen ? .orange : .blue }
-        return segment.isToScreen ? .yellow : .orange
+        if !segment.isFromUser { return .blue }
+        return segment.speakingToAIScore >= 0.5 ? .yellow : .orange
     }
 
     private func scoreColor(_ score: Float) -> Color {

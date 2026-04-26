@@ -130,17 +130,8 @@ struct ContentView: View {
     // MARK: - Helpers
 
     private func segmentColor(_ segment: SpeechSegment) -> Color {
-        // Ambient sound / other people speaking — gray
-        if !segment.isFromUser {
-            return .gray
-        }
-        // Continuous speakingToAIScore drives the tint (exponential decay, early
-        // chars dominate). Per-char isToScreen still flips yellow↔orange inside
-        // a high-score sentence so you can see where gaze drifted in the tail.
-        let score = segment.speakingToAIScore
-        if score < 0.35 { return .blue }
-        if score < 0.70 { return segment.isToScreen ? .orange : .blue }
-        return segment.isToScreen ? .yellow : .orange
+        if !segment.isFromUser { return .blue }
+        return segment.speakingToAIScore >= 0.5 ? .yellow : .orange
     }
     
     private func mappedGaze(_ point: CGPoint) -> CGPoint {
