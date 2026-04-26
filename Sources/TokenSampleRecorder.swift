@@ -215,22 +215,36 @@ final class TokenSampleRecorder: ObservableObject {
         return max(-1, min(1, score))
     }
 
-    /// Direct per-token verdict — MUST be looking at screen + head forward,
-    /// AND have jaw activity or voice-synced mouth movement.
+    /// Layered verdict:
+    ///   L1 Gate:    must be looking at screen & head forward.
+    ///   L2 Main:    jaw activity (maxJaw / jawStd) is the primary signal.
+    ///   L3 Pearson: filter false positives (mouth moved but not voice-synced)
+    ///               and rescue false negatives (quiet speech, mouth tracked voice).
     private func decideIsUser(maxJaw: Float, jawStd: Float, volStd: Float, volAvg: Float, pearson: Float, gazeRatio: Float, headFwdRatio: Float) -> Bool {
-        // GATE: must be looking at the screen AND facing forward for most of the token
+        // ── L1 GATE ──────────────────────────────────────────────────────
         let lookingAtScreen = gazeRatio > 0.5 && headFwdRatio > 0.5
         if !lookingAtScreen { return false }
 
-        // HARD NO: silent mouth + audio present (someone else speaking nearby)
+        // Hard NO: silent mouth but audio active → someone else speaking
         if jawStd < 0.004 && volAvg > 0.02 && pearson < 0.1 { return false }
-        // STRONG YES: clear jaw activity
-        if maxJaw >= jawActivityThreshold { return true }
-        // MEDIUM YES: jaw moving + voice active together
-        if jawStd >= jawStdThreshold && volStd > volActiveThreshold { return true }
-        // TIE-BREAKER: Pearson actually agrees
-        if pearson >= 0.25 && volStd > 0.003 { return true }
-        return false
+
+        // ── L2 MAIN: jaw-activity is primary ─────────────────────────────
+        let strongJaw = maxJaw >= jawActivityThreshold
+        let mediumJaw = jawStd >= jawStdThreshold && volStd > volActiveThreshold
+        var verdict = strongJaw || mediumJaw
+
+        // ── L3 PEARSON: filter / rescue ──────────────────────────────────
+        // Filter: jaw moved but Pearson clearly negative AND pearson sample is meaningful
+        //   → likely chew / smile / twitch not synced to voice. Drop it.
+        if verdict && pearson < -0.2 && volStd > 0.003 {
+            verdict = false
+        }
+        // Rescue: main said no, but jaw visibly tracks voice (Pearson strong+)
+        //   → quiet speech where maxJaw was under threshold. Bring it back.
+        if !verdict && pearson >= 0.35 && volStd > 0.003 && jawStd > 0.003 {
+            verdict = true
+        }
+        return verdict
     }
 
     // MARK: - Sentence-level vote
