@@ -130,9 +130,9 @@ struct ContentView: View {
     // MARK: - Helpers
 
     private func segmentColor(_ segment: SpeechSegment) -> Color {
-        if !segment.isFromUser { return .blue }
-        let gazeOn = segment.isFinal ? (segment.speakingToAIScore >= 0.5) : engine.humanState.face.isLookingAtScreen
-        return gazeOn ? .yellow : .orange
+        if !segment.isFromUser { return .gray }
+        if segment.speakingToAIScore < 0.5 { return .blue }
+        return segment.isToScreen ? .yellow : .orange
     }
     
     private func mappedGaze(_ point: CGPoint) -> CGPoint {

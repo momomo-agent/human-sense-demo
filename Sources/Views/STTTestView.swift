@@ -296,11 +296,9 @@ private struct SegmentRow: View {
     }
 
     private var textColor: Color {
-        if !segment.isFromUser { return .blue }
-        // For volatile (in-progress) segments, use live gaze for real-time yellow↔orange.
-        // For final segments, use the onset gaze score snapshot.
-        let gazeOn = segment.isFinal ? (segment.speakingToAIScore >= 0.5) : liveGaze
-        return gazeOn ? .yellow : .orange
+        if !segment.isFromUser { return .gray }
+        if segment.speakingToAIScore < 0.5 { return .blue }
+        return segment.isToScreen ? .yellow : .orange
     }
 
     private func scoreColor(_ score: Float) -> Color {
