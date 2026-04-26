@@ -139,12 +139,14 @@ struct STTTestView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Onset tracker — updates at audio-frame rate during voice activity.
+            // Speech session tracker — updates at audio-frame rate during voice activity.
             HStack(spacing: 12) {
-                Text(String(format: "onsetGaze: %.2f", sttManager.onsetGazeScore))
+                let gazeRatio = sttManager.onsetFrameCount > 0
+                    ? Float(sttManager.onsetLookAtCount) / Float(sttManager.onsetFrameCount)
+                    : 0
+                Text(String(format: "sessGaze: %.2f", gazeRatio))
                     .font(.caption2.monospaced())
-                    .foregroundStyle(sttManager.onsetGazeScore > 0.5 ? .yellow : .orange)
-                    .animation(nil, value: sttManager.onsetGazeScore)
+                    .foregroundStyle(gazeRatio > 0.5 ? .yellow : .orange)
                 Text("frames:\(sttManager.onsetFrameCount) look:\(sttManager.onsetLookAtCount) corr:\(sttManager.onsetCorrCount)")
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(.secondary)
