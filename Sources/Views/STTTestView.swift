@@ -145,7 +145,7 @@ struct STTTestView: View {
                     .font(.caption2.monospaced())
                     .foregroundStyle(sttManager.onsetGazeScore > 0.5 ? .yellow : .orange)
                     .animation(nil, value: sttManager.onsetGazeScore)
-                Text("frames:\(engine.onsetFrameCount) look:\(engine.onsetLookAtCount) corr:\(engine.onsetCorrCount)")
+                Text("frames:\(sttManager.onsetFrameCount) look:\(sttManager.onsetLookAtCount) corr:\(sttManager.onsetCorrCount)")
                     .font(.system(size: 9, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
@@ -180,8 +180,11 @@ struct STTTestView: View {
                             Divider()
                                 .padding(.vertical, 4)
                         } else {
-                            SegmentRow(segment: segment)
-                                .id(segment.id)
+                            SegmentRow(
+                                segment: segment,
+                                liveGaze: !segment.isFinal ? engine.humanState.face.isLookingAtScreen : false
+                            )
+                            .id(segment.id)
                         }
                     }
                 }
@@ -218,6 +221,7 @@ struct STTTestView: View {
 
 private struct SegmentRow: View {
     let segment: SpeechSegment
+    var liveGaze: Bool = false  // real-time isLookingAtScreen, used for volatile rows
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -293,7 +297,10 @@ private struct SegmentRow: View {
 
     private var textColor: Color {
         if !segment.isFromUser { return .blue }
-        return segment.speakingToAIScore >= 0.5 ? .yellow : .orange
+        // For volatile (in-progress) segments, use live gaze for real-time yellow↔orange.
+        // For final segments, use the onset gaze score snapshot.
+        let gazeOn = segment.isFinal ? (segment.speakingToAIScore >= 0.5) : liveGaze
+        return gazeOn ? .yellow : .orange
     }
 
     private func scoreColor(_ score: Float) -> Color {
