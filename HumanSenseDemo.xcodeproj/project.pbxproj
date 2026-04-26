@@ -9,12 +9,10 @@
 /* Begin PBXBuildFile section */
 		04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */; };
 		06FFAB846ED49D94A68182C0 /* DebugSignalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */; };
+		0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */; };
 		0EB64528D86897A70019C2FE /* AudioVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */; };
 		1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */; };
 		1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12183B432CEA695CD6258780 /* STTTestView.swift */; };
-		AA11111111111111AAAAAAAA /* TokenSampleRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA22222222222222AAAAAAAA /* TokenSampleRecorder.swift */; };
-		BB11111111111111BBBBBBBB /* TokenTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB22222222222222BBBBBBBB /* TokenTableView.swift */; };
-		CC1111111111111111111111 /* DiarizationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2222222222222222222222 /* DiarizationTestView.swift */; };
 		2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF934864FE15383E562580E /* GazeTrailView.swift */; };
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
@@ -27,6 +25,7 @@
 		960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */; };
 		C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA655F26BAF42FB09BA0B876 /* ContentView.swift */; };
 		CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A06993683BD21C2D6A38B /* GazeOverlay.swift */; };
+		F93FB19FC04485BD2A588D49 /* DiarizationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,11 +33,11 @@
 		0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
 		0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlendShapePanel.swift; sourceTree = "<group>"; };
 		12183B432CEA695CD6258780 /* STTTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTTestView.swift; sourceTree = "<group>"; };
-		CC2222222222222222222222 /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		229316286F5816B7C9E4CCE7 /* StateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateCard.swift; sourceTree = "<group>"; };
 		3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeVisualizerView.swift; sourceTree = "<group>"; };
 		424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceIndicatorView.swift; sourceTree = "<group>"; };
 		57D2E68CB3026920745495F2 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenTableView.swift; sourceTree = "<group>"; };
 		6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadOrientationView.swift; sourceTree = "<group>"; };
 		8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTimelineView.swift; sourceTree = "<group>"; };
 		AA655F26BAF42FB09BA0B876 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -46,10 +45,9 @@
 		BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshView.swift; sourceTree = "<group>"; };
 		C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthVisualizerView.swift; sourceTree = "<group>"; };
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
+		DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
 		FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureView.swift; sourceTree = "<group>"; };
-		AA22222222222222AAAAAAAA /* TokenSampleRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenSampleRecorder.swift; sourceTree = "<group>"; };
-		BB22222222222222BBBBBBBB /* TokenTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenTableView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +76,7 @@
 				0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */,
 				0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */,
 				0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */,
+				DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */,
 				424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */,
 				3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */,
 				BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */,
@@ -89,8 +88,7 @@
 				229316286F5816B7C9E4CCE7 /* StateCard.swift */,
 				8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */,
 				12183B432CEA695CD6258780 /* STTTestView.swift */,
-				BB22222222222222BBBBBBBB /* TokenTableView.swift */,
-				CC2222222222222222222222 /* DiarizationTestView.swift */,
+				681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -100,7 +98,6 @@
 			children = (
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
-				AA22222222222222AAAAAAAA /* TokenSampleRecorder.swift */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -131,7 +128,6 @@
 			name = HumanSenseDemo;
 			packageProductDependencies = (
 				6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */,
-				BB9876543210FEDCBA987654 /* FluidAudio */,
 			);
 			productName = HumanSenseDemo;
 			productReference = AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */;
@@ -163,7 +159,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */,
-				AA1234567890ABCDEF123456 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FFEFC38670EB3317052C5787 /* Products */;
@@ -185,6 +180,7 @@
 				1A7ECAADAC0D85C7BAA026D4 /* BlendShapePanel.swift in Sources */,
 				C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */,
 				06FFAB846ED49D94A68182C0 /* DebugSignalsView.swift in Sources */,
+				F93FB19FC04485BD2A588D49 /* DiarizationTestView.swift in Sources */,
 				04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */,
 				902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */,
 				960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */,
@@ -194,11 +190,9 @@
 				61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */,
 				401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */,
 				1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */,
-				CC1111111111111111111111 /* DiarizationTestView.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
-				AA11111111111111AAAAAAAA /* TokenSampleRecorder.swift in Sources */,
-				BB11111111111111BBBBBBBB /* TokenTableView.swift in Sources */,
+				0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -391,15 +385,7 @@
 			repositoryURL = "https://github.com/momomo-agent/HumanSenseKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.7.0;
-			};
-		};
-		AA1234567890ABCDEF123456 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.14.0;
+				minimumVersion = 4.9.31;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -409,11 +395,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */;
 			productName = HumanSenseKit;
-		};
-		BB9876543210FEDCBA987654 /* FluidAudio */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA1234567890ABCDEF123456 /* XCRemoteSwiftPackageReference "FluidAudio" */;
-			productName = FluidAudio;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

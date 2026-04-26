@@ -1,22 +1,13 @@
 {
-  "originHash" : "79b10d032cc583ad4186bde165e0f57122eb5b4641dfedc161cfe2252e1b9b9b",
+  "originHash" : "269bd9d21cb60e595bcbd75e6cfdf769df4824729d98c6a5d7dc9fcfa4cfe8f0",
   "pins" : [
-    {
-      "identity" : "fluidaudio",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/FluidInference/FluidAudio.git",
-      "state" : {
-        "revision" : "b10bdcb51dcfeedb8001353b4ba363da1a616d6d",
-        "version" : "0.14.0"
-      }
-    },
     {
       "identity" : "humansensekit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/momomo-agent/HumanSenseKit.git",
       "state" : {
-        "revision" : "c8aecbce3e928a15d2876dad3d3f6389aeec0d1b",
-        "version" : "4.9.29"
+        "revision" : "959dec01dbe87c2b36a28444dc67d017890cc9fb",
+        "version" : "4.9.31"
       }
     }
   ],
