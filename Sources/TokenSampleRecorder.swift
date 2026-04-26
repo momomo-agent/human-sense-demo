@@ -63,7 +63,11 @@ final class TokenSampleRecorder: ObservableObject {
     var audioStreamStartTime: Date?
 
     // MARK: - Thresholds
-    let userThreshold: Float = 0.30             // fused score ≥ this → isUser
+    // Primary decision is JAW ACTIVITY (you told me that was more accurate).
+    // Pearson is just a tie-breaker / negative signal.
+    let jawActivityThreshold: Float = 0.12      // maxJaw in window ≥ this → probably speaking
+    let jawStdThreshold: Float = 0.008          // jaw std ≥ this → mouth moving
+    let volActiveThreshold: Float = 0.008       // vol present
     let minSampleCount = 3                      // below this we expand the window
     let windowExpandMs: Double = 0.08           // ±80 ms expansion per try
     let maxWindowMs: Double = 0.30              // cap expansion
@@ -167,7 +171,7 @@ final class TokenSampleRecorder: ObservableObject {
             headFwdRatio: n > 0 ? Float(headCount) / Float(n) : 0,
             sampleCount: n,
             effectiveWindow: (wallEnd - wallStart) + 2 * expand,
-            isUser: fused >= userThreshold,
+            isUser: decideIsUser(maxJaw: jaws.max() ?? 0, jawStd: jawStd, volStd: volStd, volAvg: volAvg, pearson: pearson),
             filledBySentence: false,
             isFinal: isFinal
         )
@@ -194,22 +198,29 @@ final class TokenSampleRecorder: ObservableObject {
         return max(-1, min(1, r))
     }
 
+    /// Fused score mostly for debug display. Primary decision uses direct rules below.
     private func fuse(pearson: Float, jawStd: Float, volStd: Float, volAvg: Float) -> Float {
-        var score = pearson
-
-        // Jaw barely moving + audio active → probably someone else talking
-        if jawStd < 0.004 && volAvg > 0.02 {
-            score -= 0.4
-        }
-        // Strong local jaw activity → positive signal even if Pearson is noisy on short windows
-        if jawStd > 0.02 && volStd > 0.005 {
-            score += 0.1
-        }
-        // Both moving together → extra confidence
-        if jawStd > 0.015 && volStd > 0.01 && pearson > 0.2 {
-            score += 0.1
-        }
+        var score: Float = 0
+        if jawStd >= jawStdThreshold { score += 0.4 }
+        if volStd > 0.005 { score += 0.2 }
+        if pearson > 0.1 { score += 0.2 }
+        if pearson > 0.3 { score += 0.2 }
+        // Penalty: silent mouth but loud audio → probably someone else
+        if jawStd < 0.004 && volAvg > 0.02 { score -= 0.5 }
         return max(-1, min(1, score))
+    }
+
+    /// Direct per-token verdict — jaw-activity first, like the old version that worked.
+    private func decideIsUser(maxJaw: Float, jawStd: Float, volStd: Float, volAvg: Float, pearson: Float) -> Bool {
+        // HARD NO: silent mouth + audio present (someone else speaking)
+        if jawStd < 0.004 && volAvg > 0.02 && pearson < 0.1 { return false }
+        // STRONG YES: clear jaw activity
+        if maxJaw >= jawActivityThreshold { return true }
+        // MEDIUM YES: jaw moving + voice active together
+        if jawStd >= jawStdThreshold && volStd > volActiveThreshold { return true }
+        // TIE-BREAKER: Pearson actually agrees
+        if pearson >= 0.25 && volStd > 0.003 { return true }
+        return false
     }
 
     // MARK: - Sentence-level vote
@@ -230,7 +241,8 @@ final class TokenSampleRecorder: ObservableObject {
         }
         let spanRatio = Float(longest) / Float(rows.count)
 
-        let hits = [ratio >= 0.5, peak >= 0.45, spanRatio >= 0.35].filter { $0 }.count
+        // Thresholds tuned to relax: any of these — ratio ≥ 40%, peak ≥ 0.4, span ≥ 30%
+        let hits = [ratio >= 0.40, peak >= 0.40, spanRatio >= 0.30].filter { $0 }.count
         let dominant = hits >= 2
 
         lastVerdict = Verdict(userRatio: ratio, peakScore: peak, longestSpanRatio: spanRatio, isUserDominant: dominant)
@@ -240,8 +252,8 @@ final class TokenSampleRecorder: ObservableObject {
         // Upgrade all non-user rows unless they have very strong evidence against
         return rows.map { row in
             if row.isUser { return row }
-            // Keep as non-user if it's clearly not: low jaw activity AND negative Pearson
-            let clearlyNot = row.jawStd < 0.003 && row.localPearson < -0.1
+            // Keep as non-user if it's clearly not: completely silent mouth AND loud audio
+            let clearlyNot = row.jawStd < 0.003 && row.avgVol > 0.03
             if clearlyNot { return row }
             return TokenRow(
                 text: row.text, startTime: row.startTime, endTime: row.endTime,

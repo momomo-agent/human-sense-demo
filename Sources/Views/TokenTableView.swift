@@ -105,17 +105,16 @@ struct TokenTableView: View {
 
     private var header: some View {
         HStack(spacing: 4) {
-            Text("字").frame(width: 26, alignment: .leading)
-            Text("jStd").frame(width: 38, alignment: .trailing)
-            Text("mxJ").frame(width: 36, alignment: .trailing)
-            Text("vol").frame(width: 40, alignment: .trailing)
-            Text("r").frame(width: 38, alignment: .trailing)       // local Pearson
-            Text("fus").frame(width: 40, alignment: .trailing)
-            Text("👁").frame(width: 22, alignment: .center)
-            Text("🧭").frame(width: 22, alignment: .center)
+            Text("字").frame(width: 22, alignment: .leading)
+            Text("avgJ").frame(width: 34, alignment: .trailing)
+            Text("mxJ").frame(width: 32, alignment: .trailing)
+            Text("vol").frame(width: 38, alignment: .trailing)
+            Text("r").frame(width: 36, alignment: .trailing)       // local Pearson (debug)
+            Text("👄").frame(width: 22, alignment: .center)  // mouth moving
+            Text("👁").frame(width: 22, alignment: .center)  // gaze
+            Text("🧭").frame(width: 22, alignment: .center)  // head forward
             Text("n").frame(width: 22, alignment: .trailing)
-            Text("w").frame(width: 30, alignment: .trailing)       // effective window ms
-            Text("user").frame(width: 34, alignment: .center)
+            Text("user").frame(width: 30, alignment: .center)
             Spacer()
         }
         .font(.caption2.monospaced())
@@ -140,35 +139,33 @@ private struct TokenRowView: View {
         HStack(spacing: 4) {
             Text(row.text)
                 .font(.body.monospaced())
-                .frame(width: 26, alignment: .leading)
+                .frame(width: 22, alignment: .leading)
                 .foregroundStyle(textColor)
                 .bold(row.isUser)
 
-            Text(String(format: "%.3f", row.jawStd))
+            Text(String(format: "%.2f", row.avgJaw))
                 .font(.caption.monospaced())
-                .frame(width: 38, alignment: .trailing)
-                .foregroundStyle(jawStdColor)
+                .frame(width: 34, alignment: .trailing)
+                .foregroundStyle(row.avgJaw > 0.12 ? .green : Color.secondary)
 
             Text(String(format: "%.2f", row.maxJaw))
                 .font(.caption.monospaced())
-                .frame(width: 36, alignment: .trailing)
+                .frame(width: 32, alignment: .trailing)
                 .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
 
             Text(String(format: "%.3f", row.maxVol))
                 .font(.caption.monospaced())
-                .frame(width: 40, alignment: .trailing)
+                .frame(width: 38, alignment: .trailing)
                 .foregroundStyle(row.maxVol > 0.01 ? .green : Color.secondary)
 
             Text(String(format: "%+.2f", row.localPearson))
                 .font(.caption.monospaced())
-                .frame(width: 38, alignment: .trailing)
+                .frame(width: 36, alignment: .trailing)
                 .foregroundStyle(scoreColor(row.localPearson))
 
-            Text(String(format: "%+.2f", row.fusedScore))
-                .font(.caption.monospaced().bold())
-                .frame(width: 40, alignment: .trailing)
-                .foregroundStyle(scoreColor(row.fusedScore))
-
+            Text(row.maxJaw > 0.15 ? "✓" : "·")
+                .frame(width: 22, alignment: .center)
+                .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
             Text(row.gazeRatio > 0.5 ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
                 .foregroundStyle(row.gazeRatio > 0.5 ? .green : Color.secondary)
@@ -179,13 +176,9 @@ private struct TokenRowView: View {
                 .font(.system(size: 9, design: .monospaced))
                 .frame(width: 22, alignment: .trailing)
                 .foregroundStyle(row.sampleCount < 3 ? Color.orange : Color.secondary)
-            Text(String(format: "%.0f", row.effectiveWindow * 1000))
-                .font(.system(size: 9, design: .monospaced))
-                .frame(width: 30, alignment: .trailing)
-                .foregroundStyle(.secondary)
 
             Text(userGlyph)
-                .frame(width: 34, alignment: .center)
+                .frame(width: 30, alignment: .center)
                 .foregroundStyle(userColor)
                 .bold()
             Spacer()
