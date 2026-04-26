@@ -17,6 +17,13 @@ struct HumanSenseDemoApp: App {
             }
             .onAppear {
                 engine.start()
+                engine.sttManager.onTokens = { tokens, isFinal in
+                    let base = engine.sttManager.audioStreamStartTime?.timeIntervalSince1970 ?? 0
+                    let parts = tokens.map {
+                        String(format: "%@@%.3f-%.3f", $0.text, base + $0.startTime, base + $0.endTime)
+                    }.joined(separator: " ")
+                    print("[HSK-TOK] isFinal=\(isFinal ? 1 : 0) \(parts)")
+                }
             }
             .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
                 let ts = Date().timeIntervalSince1970
