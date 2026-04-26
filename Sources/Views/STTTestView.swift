@@ -247,6 +247,9 @@ private struct SegmentRow: View {
                     Text("👀 screen")
                         .font(.caption2)
                 }
+                Text(String(format: "⊚ %.2f", segment.speakingToAIScore))
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(scoreColor(segment.speakingToAIScore))
             }
             // Signal snapshot at time of this segment
             HStack(spacing: 6) {
@@ -278,10 +281,20 @@ private struct SegmentRow: View {
     }
 
     private var textColor: Color {
-        // Aligned with Sense tab (ContentView) color scheme
+        // Aligned with Sense tab (ContentView) color scheme.
+        // Continuous score drives the tint; per-char isToScreen still flips
+        // yellow↔orange inside a high-score sentence to show tail-gaze drift.
         if !segment.isFromUser { return .gray }
-        if !segment.sentenceStartedLookingAtScreen { return .blue }
+        let score = segment.speakingToAIScore
+        if score < 0.35 { return .blue }
+        if score < 0.70 { return segment.isToScreen ? .orange : .blue }
         return segment.isToScreen ? .yellow : .orange
+    }
+
+    private func scoreColor(_ score: Float) -> Color {
+        if score < 0.35 { return .blue }
+        if score < 0.70 { return .orange }
+        return .yellow
     }
 
     private var miniWaveform: some View {
