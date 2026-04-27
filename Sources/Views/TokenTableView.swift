@@ -117,6 +117,7 @@ struct TokenTableView: View {
             Text("👁").frame(width: 18, alignment: .center)
             Text("🧭").frame(width: 18, alignment: .center)
             Text("u").frame(width: 16, alignment: .center)
+            Text("u+").frame(width: 20, alignment: .center).bold()
             Spacer(minLength: 0)
         }
         .font(.system(size: 9, design: .monospaced))
@@ -194,6 +195,14 @@ private struct TokenRowView: View {
                 .font(.system(size: 11).bold())
                 .frame(width: 16, alignment: .center)
                 .foregroundStyle(userColor)
+            // Span-aware verdict: '✓' when this token sits inside a user
+            // span identified by the Schmitt-trigger on smoothed conf.
+            // Compare against the plain 'u' column to see span extraction
+            // rescuing mid-utterance dips or rejecting foreign-speech blips.
+            Text(row.isUserWithConfidence ? "✓" : "·")
+                .font(.system(size: 12).bold())
+                .frame(width: 20, alignment: .center)
+                .foregroundStyle(row.isUserWithConfidence ? Color.blue : Color.secondary)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 6)
