@@ -282,6 +282,12 @@ final class TokenSampleRecorder: ObservableObject {
             // If they looked away, that's the sentence boundary — don't steal across.
             let lookingAtScreen = row.gazeRatio >= Self.gazeRatioThreshold && row.headFwdRatio >= Self.headFwdRatioThreshold
             if !lookingAtScreen { return row }
+            // REQUIRED: jaw must have moved. Gaze + head-forward alone mean
+            // "you're watching", not "you're speaking" — without this gate,
+            // someone else's speech gets attributed to the user as long as
+            // the user is looking at the screen.
+            let mouthMoved = row.maxJaw >= jawActivityThreshold || row.jawStd >= jawStdThreshold
+            if !mouthMoved { return row }
             // Keep as non-user if it's clearly not: completely silent mouth AND loud audio
             let clearlyNot = row.jawStd < 0.003 && row.avgVol > 0.03
             if clearlyNot { return row }
@@ -300,15 +306,24 @@ final class TokenSampleRecorder: ObservableObject {
     // MARK: - Sentence reconstruction
 
     /// Count how many of the 3 presence signals a row passes:
-    /// mouth-moving (maxJaw ≥ jawActivityThreshold), looking-at-screen
-    /// (gazeRatio ≥ threshold), head-forward (headFwdRatio ≥ threshold).
+    /// mouth-moving (maxJaw ≥ jawActivityThreshold OR jawStd ≥ jawStdThreshold),
+    /// looking-at-screen (gazeRatio ≥ threshold),
+    /// head-forward (headFwdRatio ≥ threshold).
     /// Used to score non-user rows for gap rescue during sentence reconstruction.
     private func presenceHits(_ row: TokenRow) -> Int {
         var hits = 0
-        if row.maxJaw >= jawActivityThreshold { hits += 1 }
+        if row.maxJaw >= jawActivityThreshold || row.jawStd >= jawStdThreshold { hits += 1 }
         if row.gazeRatio >= Self.gazeRatioThreshold { hits += 1 }
         if row.headFwdRatio >= Self.headFwdRatioThreshold { hits += 1 }
         return hits
+    }
+
+    /// Did the mouth actually move during this row's window? This is a
+    /// REQUIRED signal for any rescue — without it, someone else's speech
+    /// while the user is just watching would leak into the reconstructed
+    /// sentence.
+    private func mouthMoved(_ row: TokenRow) -> Bool {
+        row.maxJaw >= jawActivityThreshold || row.jawStd >= jawStdThreshold
     }
 
     /// Budget for absorbing non-user gaps during reconstruction. Start with 2.
@@ -338,6 +353,11 @@ final class TokenSampleRecorder: ObservableObject {
                 // Haven't found the sentence tail yet — skip trailing non-user rows.
                 continue
             }
+            // REQUIRED: mouth must have moved. Gaze + head-forward alone mean
+            // the user is watching, not speaking. Without this gate, the
+            // reconstructor would absorb someone else's speech whenever the
+            // user happened to be looking at the screen.
+            guard mouthMoved(row) else { break }
             let cost = 3 - presenceHits(row)
             if cost <= budget {
                 tail.insert(row, at: 0)
