@@ -29,11 +29,19 @@ class GazeSpeakerEngine {
     private var calibrationAudioBuffers: [[Float]] = []
     private let calibrationDuration: TimeInterval = 5.0
     private var calibrationStartTime: Date?
+    private var embeddingExtractor: SimpleSpeakerEmbeddingExtractor?
     
     private let engine: HumanStateEngine
     
     init(engine: HumanStateEngine) {
         self.engine = engine
+        
+        // 初始化 embedding extractor
+        do {
+            self.embeddingExtractor = try SimpleSpeakerEmbeddingExtractor()
+        } catch {
+            print("⚠️ Failed to load embedding extractor: \(error)")
+        }
     }
     
     // MARK: - Calibration
@@ -68,13 +76,21 @@ class GazeSpeakerEngine {
         // 合并所有音频
         let allSamples = calibrationAudioBuffers.flatMap { $0 }
         
-        // TODO: 提取 embedding（需要 FluidAudio API）
-        // 暂时用随机向量模拟
-        userEmbedding = (0..<192).map { _ in Float.random(in: -1...1) }
+        // 提取 embedding
+        guard let extractor = embeddingExtractor else {
+            debugInfo.userEmbeddingStatus = "❌ 提取器未加载"
+            return
+        }
         
-        debugInfo.userEmbeddingStatus = "已标定 (\(allSamples.count / 16000) 秒)"
-        phase = .live
-        calibrationProgress = 1.0
+        do {
+            userEmbedding = try extractor.extract(from: allSamples)
+            debugInfo.userEmbeddingStatus = "✅ 已标定 (\(allSamples.count / 16000) 秒)"
+            phase = .live
+            calibrationProgress = 1.0
+        } catch {
+            debugInfo.userEmbeddingStatus = "❌ 提取失败: \(error)"
+            print("Embedding extraction failed: \(error)")
+        }
     }
     
     // MARK: - Live Recognition
@@ -82,6 +98,7 @@ class GazeSpeakerEngine {
     func processLiveAudio(_ samples: [Float]) {
         guard phase == .live else { return }
         guard let userEmb = userEmbedding else { return }
+        guard let extractor = embeddingExtractor else { return }
         
         // 1. 检查 gaze
         let lookingAtScreen = engine.humanState.lookingAtScreen
@@ -89,8 +106,15 @@ class GazeSpeakerEngine {
         guard lookingAtScreen else { return }
         
         // 2. 提取当前 embedding
-        // TODO: 实际提取（需要 FluidAudio API）
-        let currentEmbedding = (0..<192).map { _ in Float.random(in: -1...1) }
+        guard samples.count >= 16000 else { return } // 至少 1 秒
+        
+        let currentEmbedding: [Float]
+        do {
+            currentEmbedding = try extractor.extract(from: samples)
+        } catch {
+            print("Failed to extract embedding: \(error)")
+            return
+        }
         
         // 3. 计算相似度
         let distance = cosineSimilarity(userEmb, currentEmbedding)
@@ -102,10 +126,8 @@ class GazeSpeakerEngine {
         // 4. 转录（使用 HumanSenseKit 的 STT）
         // TODO: 实际转录
         // 暂时模拟
-        if samples.count > 16000 { // 至少 1 秒
-            let mockText = "测试转录 \(Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 100))"
-            transcript.append(mockText)
-        }
+        let mockText = "测试转录 \(Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 100))"
+        transcript.append(mockText)
     }
     
     func updateAudioLevel(_ level: Float) {

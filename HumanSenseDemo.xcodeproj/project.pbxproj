@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		025692AF507A8292A1F6F472 /* SimpleSpeakerEmbeddingExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B382995D2F5C122C4CCC39 /* SimpleSpeakerEmbeddingExtractor.swift */; };
 		04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */; };
 		06FFAB846ED49D94A68182C0 /* DebugSignalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */; };
 		0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */; };
@@ -22,6 +23,7 @@
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
 		773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229316286F5816B7C9E4CCE7 /* StateCard.swift */; };
+		7C591F4A845EBE73EB4CE03C /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = D19AB4E87005CEA023998C37 /* Resources */; };
 		83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */; };
 		902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */; };
 		960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */; };
@@ -42,11 +44,13 @@
 		681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenTableView.swift; sourceTree = "<group>"; };
 		6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadOrientationView.swift; sourceTree = "<group>"; };
 		8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTimelineView.swift; sourceTree = "<group>"; };
+		A3B382995D2F5C122C4CCC39 /* SimpleSpeakerEmbeddingExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleSpeakerEmbeddingExtractor.swift; sourceTree = "<group>"; };
 		AA655F26BAF42FB09BA0B876 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HumanSenseDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshView.swift; sourceTree = "<group>"; };
 		C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthVisualizerView.swift; sourceTree = "<group>"; };
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
+		D19AB4E87005CEA023998C37 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = SOURCE_ROOT; };
 		DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
 		F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeSpeakerEngine.swift; sourceTree = "<group>"; };
@@ -69,6 +73,7 @@
 		33A52A1A1AF4690B4DD5EF00 = {
 			isa = PBXGroup;
 			children = (
+				D19AB4E87005CEA023998C37 /* Resources */,
 				D39979A04A25538C87CCA414 /* Sources */,
 				FFEFC38670EB3317052C5787 /* Products */,
 			);
@@ -103,6 +108,7 @@
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
 				F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */,
+				A3B382995D2F5C122C4CCC39 /* SimpleSpeakerEmbeddingExtractor.swift */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -124,6 +130,7 @@
 			buildConfigurationList = EB5489668B828D555B1D1292 /* Build configuration list for PBXNativeTarget "HumanSenseDemo" */;
 			buildPhases = (
 				7C8C6FA70E4D4ACD0C54F3F6 /* Sources */,
+				E99E3166B38683DA4EA97A40 /* Resources */,
 				6F116129D65ED361438D8296 /* Frameworks */,
 			);
 			buildRules = (
@@ -177,6 +184,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		E99E3166B38683DA4EA97A40 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7C591F4A845EBE73EB4CE03C /* Resources in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		7C8C6FA70E4D4ACD0C54F3F6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -198,6 +216,7 @@
 				61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */,
 				401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */,
 				1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */,
+				025692AF507A8292A1F6F472 /* SimpleSpeakerEmbeddingExtractor.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
 				0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */,
