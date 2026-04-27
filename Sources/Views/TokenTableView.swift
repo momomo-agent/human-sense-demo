@@ -141,9 +141,15 @@ private struct TokenRowView: View {
         HStack(spacing: 2) {
             Text(row.text)
                 .font(.system(size: 13, design: .monospaced))
-                .frame(minWidth: 44, alignment: .leading)
+                .frame(width: 44, alignment: .leading)
                 .foregroundStyle(textColor)
                 .bold(row.isUser)
+                // Force CJK-friendly wrapping inside the 44pt cell so a
+                // 4-char word breaks to two lines instead of pushing the
+                // numeric columns off screen. fixedSize lets the row grow
+                // vertically to accommodate.
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
 
             // Composed confidence — main "is this really you" answer.
             Text(String(format: "%.2f", row.userConfidence))
