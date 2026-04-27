@@ -75,21 +75,72 @@ struct TokenTableView: View {
     }
 
     // MARK: - Verdict bar
+    //
+    // Now driven by u+ (isUserWithConfidence), not the legacy per-token
+    // isUser. This bypasses applySentenceVote entirely, so the 'sentence
+    // is yours' verdict can't be inflated by a few falsely-isUser tokens
+    // the way ratio/peak/span on isUser were.
+    //
+    // Three signals, same shape as the old bar:
+    //   - ratio    : fraction of tokens with u+ = true
+    //   - peakConf : max userConfidence over all tokens
+    //   - span     : longest continuous run of u+ true, as fraction of total
+    // 3 pills / 2 must hit → dominant.
 
     private var verdictBar: some View {
-        let v = recorder.lastVerdict
+        let rows = recorder.tokens
+        let stats = confidenceVerdictStats(rows)
         return HStack(spacing: 10) {
-            verdictPill("ratio", String(format: "%.0f%%", v.userRatio * 100), hit: v.userRatio >= 0.5)
-            verdictPill("peak",  String(format: "%.2f", v.peakScore),     hit: v.peakScore >= 0.45)
-            verdictPill("span",  String(format: "%.0f%%", v.longestSpanRatio * 100), hit: v.longestSpanRatio >= 0.35)
+            verdictPill("ratio", String(format: "%.0f%%", stats.userRatio * 100), hit: stats.userRatio >= 0.40)
+            verdictPill("peak",  String(format: "%.2f", stats.peakConf),          hit: stats.peakConf >= 0.50)
+            verdictPill("span",  String(format: "%.0f%%", stats.longestSpanRatio * 100), hit: stats.longestSpanRatio >= 0.30)
             Spacer()
-            Text(v.isUserDominant ? "✓ 整句算你的" : "· 分字判断")
+            Text(stats.isDominant ? "✓ 整句算你的" : "· 分字判断")
                 .font(.caption.bold())
-                .foregroundStyle(v.isUserDominant ? .green : .orange)
+                .foregroundStyle(stats.isDominant ? .green : .orange)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .background(Color.white.opacity(0.02))
+    }
+
+    /// Compute u+ based sentence-level stats. Kept purely derived from
+    /// TokenRow state so nothing new has to be stored on the recorder.
+    private struct ConfVerdictStats {
+        let userRatio: Float          // u+ true count / total
+        let peakConf: Float           // max userConfidence
+        let longestSpanRatio: Float   // longest u+ run / total
+        let isDominant: Bool          // 2 of 3 hits
+    }
+
+    private func confidenceVerdictStats(_ rows: [UserSentenceReconstructor.TokenRow]) -> ConfVerdictStats {
+        guard !rows.isEmpty else {
+            return ConfVerdictStats(userRatio: 0, peakConf: 0, longestSpanRatio: 0, isDominant: false)
+        }
+        let total = rows.count
+        var userCount = 0
+        var peak: Float = 0
+        var longest = 0
+        var cur = 0
+        for r in rows {
+            if r.isUserWithConfidence {
+                userCount += 1
+                cur += 1
+                if cur > longest { longest = cur }
+            } else {
+                cur = 0
+            }
+            if r.userConfidence > peak { peak = r.userConfidence }
+        }
+        let ratio = Float(userCount) / Float(total)
+        let spanRatio = Float(longest) / Float(total)
+        let hits = [ratio >= 0.40, peak >= 0.50, spanRatio >= 0.30].filter { $0 }.count
+        return ConfVerdictStats(
+            userRatio: ratio,
+            peakConf: peak,
+            longestSpanRatio: spanRatio,
+            isDominant: hits >= 2
+        )
     }
 
     private func verdictPill(_ label: String, _ value: String, hit: Bool) -> some View {
