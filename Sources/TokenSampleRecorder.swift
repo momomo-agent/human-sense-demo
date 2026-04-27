@@ -54,6 +54,9 @@ final class TokenSampleRecorder: ObservableObject {
 
     private var finalizedTokens: [TokenRow] = []
     private var volatileTokens: [TokenRow] = []
+    /// Just the rows from the MOST RECENT final callback. Used to reconstruct
+    /// userSentence without accumulating across prior sentences.
+    private var lastFinalBatch: [TokenRow] = []
 
     @Published var tokens: [TokenRow] = []
     @Published var lastVerdict = Verdict(userRatio: 0, peakScore: 0, longestSpanRatio: 0, isUserDominant: false)
@@ -88,6 +91,7 @@ final class TokenSampleRecorder: ObservableObject {
 
         if isFinal {
             finalizedTokens.append(contentsOf: votedRows)
+            lastFinalBatch = votedRows
             volatileTokens.removeAll()
             if finalizedTokens.count > 500 {
                 finalizedTokens.removeFirst(finalizedTokens.count - 500)
@@ -97,13 +101,18 @@ final class TokenSampleRecorder: ObservableObject {
         }
         tokens = finalizedTokens + volatileTokens
 
-        // Reconstruct user sentence from volatile + last utterance-worth of finalized
-        userSentence = reconstructSentence(volatile: volatileTokens, finalized: finalizedTokens)
+        // Reconstruct user sentence from ONLY the current utterance:
+        // • volatile (live) when streaming
+        // • the most recent final batch when idle
+        // Historic finalized rows are kept in `tokens` for the debug table,
+        // but do NOT leak into userSentence.
+        userSentence = reconstructSentence(volatile: volatileTokens, finalBatch: lastFinalBatch)
     }
 
     func clear() {
         finalizedTokens.removeAll()
         volatileTokens.removeAll()
+        lastFinalBatch.removeAll()
         tokens.removeAll()
         samples.removeAll()
         userSentence = ""
@@ -338,13 +347,15 @@ final class TokenSampleRecorder: ObservableObject {
     /// enough presence signals still fire (2/3 or 3/3 signals). Each gap costs
     /// `3 - hits` from a per-sentence budget. 3/3 rows absorb for free; 2/3 rows
     /// cost 1 each; anything weaker ends the sentence.
-    private func reconstructSentence(volatile: [TokenRow], finalized: [TokenRow]) -> String {
+    private func reconstructSentence(volatile: [TokenRow], finalBatch: [TokenRow]) -> String {
+        // Live streaming: show only the current volatile hypothesis.
         if !volatile.isEmpty {
             return volatile.filter { $0.isUser }.map(\.text).joined()
         }
+        // Idle / just-finalized: show only the most recent utterance, never accumulate.
         var tail: [TokenRow] = []
         var budget = gapBudgetPerSentence
-        for row in finalized.reversed() {
+        for row in finalBatch.reversed() {
             if row.isUser {
                 tail.insert(row, at: 0)
                 continue
