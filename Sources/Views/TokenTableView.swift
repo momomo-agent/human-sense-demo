@@ -104,22 +104,21 @@ struct TokenTableView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 4) {
-            Text("词").frame(minWidth: 56, alignment: .leading)
-            Text("conf").frame(width: 44, alignment: .trailing).bold()  // composed confidence
-            Text("G").frame(width: 24, alignment: .trailing)    // gateScore
-            Text("M").frame(width: 24, alignment: .trailing)    // mouthScore
-            Text("S").frame(width: 24, alignment: .trailing)    // syncScore
-            Text("mxJ").frame(width: 32, alignment: .trailing)
-            Text("vol").frame(width: 38, alignment: .trailing)
-            Text("r").frame(width: 36, alignment: .trailing)       // local Pearson (debug)
-            Text("👄").frame(width: 22, alignment: .center)  // mouth moving
-            Text("👁").frame(width: 22, alignment: .center)  // gaze
-            Text("🧭").frame(width: 22, alignment: .center)  // head forward
-            Text("user").frame(width: 30, alignment: .center)
-            Spacer()
+        HStack(spacing: 2) {
+            Text("词").frame(minWidth: 44, alignment: .leading)
+            Text("conf").frame(width: 34, alignment: .trailing).bold()
+            Text("G").frame(width: 20, alignment: .trailing)
+            Text("M").frame(width: 20, alignment: .trailing)
+            Text("S").frame(width: 20, alignment: .trailing)
+            Text("jaw").frame(width: 28, alignment: .trailing)
+            Text("vol").frame(width: 28, alignment: .trailing)
+            Text("r").frame(width: 28, alignment: .trailing)
+            Text("👁").frame(width: 18, alignment: .center)
+            Text("🧭").frame(width: 18, alignment: .center)
+            Text("u").frame(width: 16, alignment: .center)
+            Spacer(minLength: 0)
         }
-        .font(.caption2.monospaced())
+        .font(.system(size: 9, design: .monospaced))
         .foregroundStyle(.secondary)
     }
 
@@ -138,65 +137,66 @@ private struct TokenRowView: View {
     let row: UserSentenceReconstructor.TokenRow
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             Text(row.text)
-                .font(.body.monospaced())
-                .frame(minWidth: 56, alignment: .leading)
+                .font(.system(size: 13, design: .monospaced))
+                .frame(minWidth: 44, alignment: .leading)
                 .foregroundStyle(textColor)
                 .bold(row.isUser)
 
-            // Composed confidence — the main answer to "is this really you?"
+            // Composed confidence — main "is this really you" answer.
             Text(String(format: "%.2f", row.userConfidence))
-                .font(.caption.monospaced().bold())
-                .frame(width: 44, alignment: .trailing)
+                .font(.system(size: 11, design: .monospaced).bold())
+                .frame(width: 34, alignment: .trailing)
                 .foregroundStyle(confColor(row.userConfidence))
 
-            // Sub-score breakdown — lets you see WHY conf is high/low at a glance.
+            // Sub-scores as two-digit ints (0-100) to save width.
             subScore(row.gateScore)
             subScore(row.mouthScore)
             subScore(row.syncScore)
 
             Text(String(format: "%.2f", row.maxJaw))
-                .font(.caption.monospaced())
-                .frame(width: 32, alignment: .trailing)
+                .font(.system(size: 9, design: .monospaced))
+                .frame(width: 28, alignment: .trailing)
                 .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
 
-            Text(String(format: "%.3f", row.maxVol))
-                .font(.caption.monospaced())
-                .frame(width: 38, alignment: .trailing)
+            Text(String(format: "%.2f", row.maxVol))
+                .font(.system(size: 9, design: .monospaced))
+                .frame(width: 28, alignment: .trailing)
                 .foregroundStyle(row.maxVol > 0.01 ? .green : Color.secondary)
 
-            Text(String(format: "%+.2f", row.localPearson))
-                .font(.caption.monospaced())
-                .frame(width: 36, alignment: .trailing)
+            Text(String(format: "%+.1f", row.localPearson))
+                .font(.system(size: 9, design: .monospaced))
+                .frame(width: 28, alignment: .trailing)
                 .foregroundStyle(scoreColor(row.localPearson))
 
-            Text(row.maxJaw > 0.15 ? "✓" : "·")
-                .frame(width: 22, alignment: .center)
-                .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
             Text(row.gazeRatio >= UserSentenceReconstructor.gazeRatioThreshold ? "✓" : "·")
-                .frame(width: 22, alignment: .center)
+                .font(.system(size: 11))
+                .frame(width: 18, alignment: .center)
                 .foregroundStyle(row.gazeRatio >= UserSentenceReconstructor.gazeRatioThreshold ? .green : Color.secondary)
             Text(row.headFwdRatio >= UserSentenceReconstructor.headFwdRatioThreshold ? "✓" : "·")
-                .frame(width: 22, alignment: .center)
+                .font(.system(size: 11))
+                .frame(width: 18, alignment: .center)
                 .foregroundStyle(row.headFwdRatio >= UserSentenceReconstructor.headFwdRatioThreshold ? .green : Color.secondary)
 
             Text(userGlyph)
-                .frame(width: 30, alignment: .center)
+                .font(.system(size: 11).bold())
+                .frame(width: 16, alignment: .center)
                 .foregroundStyle(userColor)
-                .bold()
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(row.filledBySentence ? Color.yellow.opacity(0.08) : Color.clear)
     }
 
-    /// Small numeric cell for a 0-1 sub-score. Colored by value.
+    /// Two-digit integer cell for a 0-1 sub-score (e.g. 0.87 → "87",
+    /// 1.0 → "100"). Saves a lot of width vs "0.87".
     private func subScore(_ v: Float) -> some View {
-        Text(String(format: "%.2f", v))
+        let pct = Int((v * 100).rounded())
+        return Text("\(pct)")
             .font(.system(size: 10, design: .monospaced))
-            .frame(width: 24, alignment: .trailing)
+            .frame(width: 20, alignment: .trailing)
             .foregroundStyle(subColor(v))
     }
 
