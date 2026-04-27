@@ -17,8 +17,8 @@ struct HumanSenseDemoApp: App {
                     engine: engine
                 )
                 .tabItem { Label("Tokens", systemImage: "tablecells") }
-                DiarizationTestView()
-                    .tabItem { Label("Diarization", systemImage: "person.2") }
+                DiarizationTestView(humanEngine: engine)
+                    .tabItem { Label("Gaze+Speaker", systemImage: "person.2") }
             }
             .onAppear {
                 engine.start()

@@ -16,6 +16,8 @@
 		2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF934864FE15383E562580E /* GazeTrailView.swift */; };
 		3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */; };
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
+		43CE18D14C50484C34F5E25E /* GazeSpeakerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */; };
+		4B9B56BB1BD6C72FCE4C1582 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 11A9EACB85681071ED8E2882 /* FluidAudio */; };
 		61CB9895677F080306EC5EB1 /* HumanSenseKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */; };
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
@@ -47,6 +49,7 @@
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
 		DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
+		F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeSpeakerEngine.swift; sourceTree = "<group>"; };
 		FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -56,6 +59,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				61CB9895677F080306EC5EB1 /* HumanSenseKit in Frameworks */,
+				4B9B56BB1BD6C72FCE4C1582 /* FluidAudio in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,6 +102,7 @@
 			children = (
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
+				F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -128,6 +133,7 @@
 			name = HumanSenseDemo;
 			packageProductDependencies = (
 				6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */,
+				11A9EACB85681071ED8E2882 /* FluidAudio */,
 			);
 			productName = HumanSenseDemo;
 			productReference = AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */;
@@ -158,6 +164,7 @@
 			mainGroup = 33A52A1A1AF4690B4DD5EF00;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				2D745B1DFB7B8FCA0956B895 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 				527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -185,6 +192,7 @@
 				902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */,
 				960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */,
 				CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */,
+				43CE18D14C50484C34F5E25E /* GazeSpeakerEngine.swift in Sources */,
 				2EAFB1310722533694534698 /* GazeTrailView.swift in Sources */,
 				3B0C33B4A55D6936809B5372 /* HandGestureView.swift in Sources */,
 				61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */,
@@ -380,6 +388,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		2D745B1DFB7B8FCA0956B895 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.7.8;
+			};
+		};
 		527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/momomo-agent/HumanSenseKit.git";
@@ -391,6 +407,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		11A9EACB85681071ED8E2882 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2D745B1DFB7B8FCA0956B895 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
+		};
 		6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */;
