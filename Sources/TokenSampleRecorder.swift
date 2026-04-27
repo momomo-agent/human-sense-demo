@@ -299,42 +299,49 @@ final class TokenSampleRecorder: ObservableObject {
 
     // MARK: - Sentence reconstruction
 
-    /// A row "looks like user" if it passes at least 2 of the 3 presence signals:
-    /// mouth-moving (jaw), looking-at-screen (gaze), head-forward. Used to rescue
-    /// single-token gaps inside an otherwise-user run (e.g. one low-confidence char
-    /// misclassified because Pearson went negative).
-    private func looksLikeUser(_ row: TokenRow) -> Bool {
+    /// Count how many of the 3 presence signals a row passes:
+    /// mouth-moving (maxJaw ≥ jawActivityThreshold), looking-at-screen
+    /// (gazeRatio ≥ threshold), head-forward (headFwdRatio ≥ threshold).
+    /// Used to score non-user rows for gap rescue during sentence reconstruction.
+    private func presenceHits(_ row: TokenRow) -> Int {
         var hits = 0
         if row.maxJaw >= jawActivityThreshold { hits += 1 }
         if row.gazeRatio >= Self.gazeRatioThreshold { hits += 1 }
         if row.headFwdRatio >= Self.headFwdRatioThreshold { hits += 1 }
-        return hits >= 2
+        return hits
     }
+
+    /// Budget for absorbing non-user gaps during reconstruction. Start with 2.
+    /// Cost per gap = 3 - hits (so 3/3 is free, 2/3 costs 1, 1/3 costs 2, 0/3 costs 3).
+    /// Budget does NOT refill when we hit user rows — it's a sentence-level budget.
+    private let gapBudgetPerSentence: Int = 2
 
     /// Reconstruct the user's live/current sentence: take volatile rows if present,
     /// otherwise take the tail of finalized rows until we hit a non-user gap or sentence boundary.
     ///
-    /// Gap-tolerance: while scanning backwards, if the current row isn't isUser but
-    /// we've already started collecting AND the row looks like user (≥2 of 3 signals),
-    /// treat it as a single-char slip and keep going. Only one consecutive gap is
-    /// allowed — two in a row ends the sentence.
+    /// Gap-tolerance: while scanning backwards, non-user rows can be absorbed if
+    /// enough presence signals still fire (2/3 or 3/3 signals). Each gap costs
+    /// `3 - hits` from a per-sentence budget. 3/3 rows absorb for free; 2/3 rows
+    /// cost 1 each; anything weaker ends the sentence.
     private func reconstructSentence(volatile: [TokenRow], finalized: [TokenRow]) -> String {
         if !volatile.isEmpty {
             return volatile.filter { $0.isUser }.map(\.text).joined()
         }
         var tail: [TokenRow] = []
-        var gapUsed = false  // we've already absorbed one non-user gap
+        var budget = gapBudgetPerSentence
         for row in finalized.reversed() {
             if row.isUser {
                 tail.insert(row, at: 0)
-                gapUsed = false  // reset: user chars before/after reset the gap budget
-            } else if tail.isEmpty {
-                // haven't started yet — skip trailing non-user tokens
                 continue
-            } else if !gapUsed && looksLikeUser(row) {
-                // Single-char rescue: this gap looks like user (2/3 signals), absorb it.
+            }
+            if tail.isEmpty {
+                // Haven't found the sentence tail yet — skip trailing non-user rows.
+                continue
+            }
+            let cost = 3 - presenceHits(row)
+            if cost <= budget {
                 tail.insert(row, at: 0)
-                gapUsed = true
+                budget -= cost
             } else {
                 break
             }
