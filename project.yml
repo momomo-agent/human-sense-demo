@@ -7,7 +7,7 @@ options:
 packages:
   HumanSenseKit:
     url: https://github.com/momomo-agent/HumanSenseKit.git
-    from: "4.9.43"
+    from: "4.9.44"
 targets:
   HumanSenseDemo:
     type: application
