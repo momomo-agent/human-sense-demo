@@ -299,19 +299,43 @@ final class TokenSampleRecorder: ObservableObject {
 
     // MARK: - Sentence reconstruction
 
+    /// A row "looks like user" if it passes at least 2 of the 3 presence signals:
+    /// mouth-moving (jaw), looking-at-screen (gaze), head-forward. Used to rescue
+    /// single-token gaps inside an otherwise-user run (e.g. one low-confidence char
+    /// misclassified because Pearson went negative).
+    private func looksLikeUser(_ row: TokenRow) -> Bool {
+        var hits = 0
+        if row.maxJaw >= jawActivityThreshold { hits += 1 }
+        if row.gazeRatio >= Self.gazeRatioThreshold { hits += 1 }
+        if row.headFwdRatio >= Self.headFwdRatioThreshold { hits += 1 }
+        return hits >= 2
+    }
+
     /// Reconstruct the user's live/current sentence: take volatile rows if present,
     /// otherwise take the tail of finalized rows until we hit a non-user gap or sentence boundary.
+    ///
+    /// Gap-tolerance: while scanning backwards, if the current row isn't isUser but
+    /// we've already started collecting AND the row looks like user (≥2 of 3 signals),
+    /// treat it as a single-char slip and keep going. Only one consecutive gap is
+    /// allowed — two in a row ends the sentence.
     private func reconstructSentence(volatile: [TokenRow], finalized: [TokenRow]) -> String {
         if !volatile.isEmpty {
             return volatile.filter { $0.isUser }.map(\.text).joined()
         }
-        // No volatile — show the last finalized run of user tokens
-        // (most recent contiguous isUser stretch)
         var tail: [TokenRow] = []
+        var gapUsed = false  // we've already absorbed one non-user gap
         for row in finalized.reversed() {
             if row.isUser {
                 tail.insert(row, at: 0)
-            } else if !tail.isEmpty {
+                gapUsed = false  // reset: user chars before/after reset the gap budget
+            } else if tail.isEmpty {
+                // haven't started yet — skip trailing non-user tokens
+                continue
+            } else if !gapUsed && looksLikeUser(row) {
+                // Single-char rescue: this gap looks like user (2/3 signals), absorb it.
+                tail.insert(row, at: 0)
+                gapUsed = true
+            } else {
                 break
             }
         }
