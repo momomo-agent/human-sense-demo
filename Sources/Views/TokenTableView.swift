@@ -118,6 +118,7 @@ struct TokenTableView: View {
             Text("🧭").frame(width: 18, alignment: .center)
             Text("u").frame(width: 16, alignment: .center)
             Text("u+").frame(width: 20, alignment: .center).bold()
+            Text("why").frame(width: 22, alignment: .center)
             Spacer(minLength: 0)
         }
         .font(.system(size: 9, design: .monospaced))
@@ -203,11 +204,46 @@ private struct TokenRowView: View {
                 .font(.system(size: 12).bold())
                 .frame(width: 20, alignment: .center)
                 .foregroundStyle(row.isUserWithConfidence ? Color.blue : Color.secondary)
+            // Reason tag — single letter + color so you can see WHY the
+            // span extractor decided the way it did, not just its verdict.
+            Text(reasonGlyph(row.spanReason))
+                .font(.system(size: 10, design: .monospaced).bold())
+                .frame(width: 22, alignment: .center)
+                .foregroundStyle(reasonColor(row.spanReason))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(row.filledBySentence ? Color.yellow.opacity(0.08) : Color.clear)
+    }
+
+    /// One-letter glyph per SpanReason — compact enough to fit in the
+    /// 22pt column but distinguishable:
+    ///   I (blue)   inSpan       — normal user token
+    ///   R (teal)   rescued      — in span, own conf < exit (carried
+    ///                             by smoothing / gap tolerance)
+    ///   S (orange) droppedShort — hit enter but span < min duration
+    ///   X (red)    gapExit      — tail token that closed a span by
+    ///                             exceeding gap tolerance
+    ///   - (gray)   belowEnter   — never crossed enter threshold
+    private func reasonGlyph(_ r: UserSentenceReconstructor.SpanReason) -> String {
+        switch r {
+        case .inSpan:       return "I"
+        case .rescued:      return "R"
+        case .droppedShort: return "S"
+        case .gapExit:      return "X"
+        case .belowEnter:   return "-"
+        }
+    }
+
+    private func reasonColor(_ r: UserSentenceReconstructor.SpanReason) -> Color {
+        switch r {
+        case .inSpan:       return .blue
+        case .rescued:      return .teal
+        case .droppedShort: return .orange
+        case .gapExit:      return .red
+        case .belowEnter:   return .secondary
+        }
     }
 
     /// Two-digit integer cell for a 0-1 sub-score (e.g. 0.87 → "87",
