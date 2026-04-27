@@ -2,7 +2,7 @@ import SwiftUI
 import HumanSenseKit
 
 struct TokenTableView: View {
-    @ObservedObject var recorder: TokenSampleRecorder
+    @ObservedObject var recorder: UserSentenceReconstructor
     var engine: HumanStateEngine?
 
     var body: some View {
@@ -133,7 +133,7 @@ struct TokenTableView: View {
 }
 
 private struct TokenRowView: View {
-    let row: TokenSampleRecorder.TokenRow
+    let row: UserSentenceReconstructor.TokenRow
 
     var body: some View {
         HStack(spacing: 4) {
@@ -166,12 +166,12 @@ private struct TokenRowView: View {
             Text(row.maxJaw > 0.15 ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
                 .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
-            Text(row.gazeRatio >= TokenSampleRecorder.gazeRatioThreshold ? "✓" : "·")
+            Text(row.gazeRatio >= UserSentenceReconstructor.gazeRatioThreshold ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
-                .foregroundStyle(row.gazeRatio >= TokenSampleRecorder.gazeRatioThreshold ? .green : Color.secondary)
-            Text(row.headFwdRatio >= TokenSampleRecorder.headFwdRatioThreshold ? "✓" : "·")
+                .foregroundStyle(row.gazeRatio >= UserSentenceReconstructor.gazeRatioThreshold ? .green : Color.secondary)
+            Text(row.headFwdRatio >= UserSentenceReconstructor.headFwdRatioThreshold ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
-                .foregroundStyle(row.headFwdRatio >= TokenSampleRecorder.headFwdRatioThreshold ? .green : Color.secondary)
+                .foregroundStyle(row.headFwdRatio >= UserSentenceReconstructor.headFwdRatioThreshold ? .green : Color.secondary)
             Text("\(row.sampleCount)")
                 .font(.system(size: 9, design: .monospaced))
                 .frame(width: 22, alignment: .trailing)
@@ -201,7 +201,7 @@ private struct TokenRowView: View {
     private var textColor: Color {
         if !row.isUser { return .gray }
         if row.filledBySentence { return .yellow }
-        if row.gazeRatio >= TokenSampleRecorder.gazeRatioThreshold { return .green }
+        if row.gazeRatio >= UserSentenceReconstructor.gazeRatioThreshold { return .green }
         return .cyan   // user speaking but not looking at screen
     }
 

@@ -25,7 +25,6 @@
 		960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */; };
 		C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA655F26BAF42FB09BA0B876 /* ContentView.swift */; };
 		CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A06993683BD21C2D6A38B /* GazeOverlay.swift */; };
-		CD4B6F7C20309E340B26E7ED /* TokenSampleRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DE4D473A3962B1E8A664DD /* TokenSampleRecorder.swift */; };
 		F93FB19FC04485BD2A588D49 /* DiarizationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */; };
 /* End PBXBuildFile section */
 
@@ -34,7 +33,6 @@
 		0E5F95930987B29E143B3BED /* AudioVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVisualizerView.swift; sourceTree = "<group>"; };
 		0F3E8ECD792D9C2707676777 /* BlendShapePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlendShapePanel.swift; sourceTree = "<group>"; };
 		12183B432CEA695CD6258780 /* STTTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTTestView.swift; sourceTree = "<group>"; };
-		17DE4D473A3962B1E8A664DD /* TokenSampleRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenSampleRecorder.swift; sourceTree = "<group>"; };
 		229316286F5816B7C9E4CCE7 /* StateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateCard.swift; sourceTree = "<group>"; };
 		3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeVisualizerView.swift; sourceTree = "<group>"; };
 		424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceIndicatorView.swift; sourceTree = "<group>"; };
@@ -100,7 +98,6 @@
 			children = (
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
-				17DE4D473A3962B1E8A664DD /* TokenSampleRecorder.swift */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -195,7 +192,6 @@
 				1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
-				CD4B6F7C20309E340B26E7ED /* TokenSampleRecorder.swift in Sources */,
 				0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -389,7 +385,7 @@
 			repositoryURL = "https://github.com/momomo-agent/HumanSenseKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.9.31;
+				minimumVersion = 4.9.33;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
