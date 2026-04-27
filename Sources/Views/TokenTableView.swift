@@ -106,14 +106,16 @@ struct TokenTableView: View {
     private var header: some View {
         HStack(spacing: 4) {
             Text("词").frame(minWidth: 56, alignment: .leading)
-            Text("avgJ").frame(width: 34, alignment: .trailing)
+            Text("conf").frame(width: 44, alignment: .trailing).bold()  // composed confidence
+            Text("G").frame(width: 24, alignment: .trailing)    // gateScore
+            Text("M").frame(width: 24, alignment: .trailing)    // mouthScore
+            Text("S").frame(width: 24, alignment: .trailing)    // syncScore
             Text("mxJ").frame(width: 32, alignment: .trailing)
             Text("vol").frame(width: 38, alignment: .trailing)
             Text("r").frame(width: 36, alignment: .trailing)       // local Pearson (debug)
             Text("👄").frame(width: 22, alignment: .center)  // mouth moving
             Text("👁").frame(width: 22, alignment: .center)  // gaze
             Text("🧭").frame(width: 22, alignment: .center)  // head forward
-            Text("n").frame(width: 22, alignment: .trailing)
             Text("user").frame(width: 30, alignment: .center)
             Spacer()
         }
@@ -143,10 +145,16 @@ private struct TokenRowView: View {
                 .foregroundStyle(textColor)
                 .bold(row.isUser)
 
-            Text(String(format: "%.2f", row.avgJaw))
-                .font(.caption.monospaced())
-                .frame(width: 34, alignment: .trailing)
-                .foregroundStyle(row.avgJaw > 0.12 ? .green : Color.secondary)
+            // Composed confidence — the main answer to "is this really you?"
+            Text(String(format: "%.2f", row.userConfidence))
+                .font(.caption.monospaced().bold())
+                .frame(width: 44, alignment: .trailing)
+                .foregroundStyle(confColor(row.userConfidence))
+
+            // Sub-score breakdown — lets you see WHY conf is high/low at a glance.
+            subScore(row.gateScore)
+            subScore(row.mouthScore)
+            subScore(row.syncScore)
 
             Text(String(format: "%.2f", row.maxJaw))
                 .font(.caption.monospaced())
@@ -172,10 +180,6 @@ private struct TokenRowView: View {
             Text(row.headFwdRatio >= UserSentenceReconstructor.headFwdRatioThreshold ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
                 .foregroundStyle(row.headFwdRatio >= UserSentenceReconstructor.headFwdRatioThreshold ? .green : Color.secondary)
-            Text("\(row.sampleCount)")
-                .font(.system(size: 9, design: .monospaced))
-                .frame(width: 22, alignment: .trailing)
-                .foregroundStyle(row.sampleCount < 3 ? Color.orange : Color.secondary)
 
             Text(userGlyph)
                 .frame(width: 30, alignment: .center)
@@ -186,6 +190,29 @@ private struct TokenRowView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 2)
         .background(row.filledBySentence ? Color.yellow.opacity(0.08) : Color.clear)
+    }
+
+    /// Small numeric cell for a 0-1 sub-score. Colored by value.
+    private func subScore(_ v: Float) -> some View {
+        Text(String(format: "%.2f", v))
+            .font(.system(size: 10, design: .monospaced))
+            .frame(width: 24, alignment: .trailing)
+            .foregroundStyle(subColor(v))
+    }
+
+    private func subColor(_ v: Float) -> Color {
+        if v >= 0.7 { return .green }
+        if v >= 0.4 { return .yellow }
+        if v >= 0.2 { return .orange }
+        return Color.secondary
+    }
+
+    /// Composed confidence color — stricter bands than sub-scores.
+    private func confColor(_ v: Float) -> Color {
+        if v >= 0.6 { return .green }
+        if v >= 0.35 { return .yellow }
+        if v >= 0.15 { return .orange }
+        return .red
     }
 
     private var userGlyph: String {
