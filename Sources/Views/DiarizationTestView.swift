@@ -1,11 +1,14 @@
 import SwiftUI
 import HumanSenseKit
+import AVFoundation
 
 struct DiarizationTestView: View {
     @State private var engine: GazeSpeakerEngine
     @State private var showDebug = false
+    private let humanEngine: HumanStateEngine
     
     init(humanEngine: HumanStateEngine) {
+        self.humanEngine = humanEngine
         _engine = State(initialValue: GazeSpeakerEngine(engine: humanEngine))
     }
     
@@ -54,6 +57,31 @@ struct DiarizationTestView: View {
                 .padding(.bottom, 8)
             }
             .padding()
+        }
+        .onAppear {
+            setupAudioStream()
+        }
+    }
+    
+    // MARK: - Audio Stream Setup
+    
+    private func setupAudioStream() {
+        // 从 AudioEngineManager 获取音频 buffer
+        let audioEngine = humanEngine.sttManager.audioEngine
+        let inputNode = audioEngine.inputNode
+        let format = inputNode.outputFormat(forBus: 0)
+        
+        // 安装 tap（如果还没安装）
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
+            // 转换为 Float 数组
+            guard let channelData = buffer.floatChannelData else { return }
+            let frameLength = Int(buffer.frameLength)
+            let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
+            
+            // 处理音频
+            Task { @MainActor in
+                engine.processAudioBuffer(samples)
+            }
         }
     }
     
