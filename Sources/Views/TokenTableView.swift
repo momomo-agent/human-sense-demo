@@ -105,7 +105,7 @@ struct TokenTableView: View {
 
     private var header: some View {
         HStack(spacing: 4) {
-            Text("字").frame(width: 22, alignment: .leading)
+            Text("词").frame(minWidth: 56, alignment: .leading)
             Text("avgJ").frame(width: 34, alignment: .trailing)
             Text("mxJ").frame(width: 32, alignment: .trailing)
             Text("vol").frame(width: 38, alignment: .trailing)
@@ -139,7 +139,7 @@ private struct TokenRowView: View {
         HStack(spacing: 4) {
             Text(row.text)
                 .font(.body.monospaced())
-                .frame(width: 22, alignment: .leading)
+                .frame(minWidth: 56, alignment: .leading)
                 .foregroundStyle(textColor)
                 .bold(row.isUser)
 
@@ -166,12 +166,12 @@ private struct TokenRowView: View {
             Text(row.maxJaw > 0.15 ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
                 .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
-            Text(row.gazeRatio > 0.5 ? "✓" : "·")
+            Text(row.gazeRatio >= TokenSampleRecorder.gazeRatioThreshold ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
-                .foregroundStyle(row.gazeRatio > 0.5 ? .green : Color.secondary)
-            Text(row.headFwdRatio > 0.5 ? "✓" : "·")
+                .foregroundStyle(row.gazeRatio >= TokenSampleRecorder.gazeRatioThreshold ? .green : Color.secondary)
+            Text(row.headFwdRatio >= TokenSampleRecorder.headFwdRatioThreshold ? "✓" : "·")
                 .frame(width: 22, alignment: .center)
-                .foregroundStyle(row.headFwdRatio > 0.5 ? .green : Color.secondary)
+                .foregroundStyle(row.headFwdRatio >= TokenSampleRecorder.headFwdRatioThreshold ? .green : Color.secondary)
             Text("\(row.sampleCount)")
                 .font(.system(size: 9, design: .monospaced))
                 .frame(width: 22, alignment: .trailing)
@@ -201,7 +201,7 @@ private struct TokenRowView: View {
     private var textColor: Color {
         if !row.isUser { return .gray }
         if row.filledBySentence { return .yellow }
-        if row.gazeRatio > 0.5 { return .green }
+        if row.gazeRatio >= TokenSampleRecorder.gazeRatioThreshold { return .green }
         return .cyan   // user speaking but not looking at screen
     }
 

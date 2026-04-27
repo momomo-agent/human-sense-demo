@@ -71,6 +71,8 @@ final class TokenSampleRecorder: ObservableObject {
     let minSampleCount = 3                      // below this we expand the window
     let windowExpandMs: Double = 0.08           // ±80 ms expansion per try
     let maxWindowMs: Double = 0.30              // cap expansion
+    static let gazeRatioThreshold: Float = 0.2  // ≥20% of window frames looking at screen ⇒ 看
+    static let headFwdRatioThreshold: Float = 0.2
 
     func recordSample(ts: Double, jaw: Float, vol: Float, gaze: Bool, headFwd: Bool) {
         samples.append(Sample(ts: ts, jaw: jaw, vol: vol, gaze: gaze, headFwd: headFwd))
@@ -109,19 +111,19 @@ final class TokenSampleRecorder: ObservableObject {
 
     // MARK: - Split to char rows
 
+    /// One SpeechToken = one row. Each token from SpeechTranscriber carries a
+    /// precise `audioTimeRange` per run; splitting that range across characters
+    /// by equal division destroys the alignment (we tried it — front chars ended
+    /// up with n=0 samples). So we keep tokens whole: each row's text may be a
+    /// single character, a word, or a short phrase depending on how the recognizer
+    /// chunked the audio.
     private func splitToCharRows(_ tokens: [SpeechToken], base: Double, isFinal: Bool) -> [TokenRow] {
         var rows: [TokenRow] = []
         for t in tokens {
             let wallStart = base + t.startTime
             let wallEnd = base + t.endTime
-            let chars = Array(t.text)
-            guard !chars.isEmpty else { continue }
-            let charDur = (wallEnd - wallStart) / Double(chars.count)
-            for (i, ch) in chars.enumerated() {
-                let cs = wallStart + Double(i) * charDur
-                let ce = cs + charDur
-                rows.append(buildRow(text: String(ch), wallStart: cs, wallEnd: ce, isFinal: isFinal))
-            }
+            guard !t.text.isEmpty else { continue }
+            rows.append(buildRow(text: t.text, wallStart: wallStart, wallEnd: wallEnd, isFinal: isFinal))
         }
         return rows
     }
@@ -222,7 +224,7 @@ final class TokenSampleRecorder: ObservableObject {
     ///               and rescue false negatives (quiet speech, mouth tracked voice).
     private func decideIsUser(maxJaw: Float, jawStd: Float, volStd: Float, volAvg: Float, pearson: Float, gazeRatio: Float, headFwdRatio: Float) -> Bool {
         // ── L1 GATE ──────────────────────────────────────────────────────
-        let lookingAtScreen = gazeRatio > 0.5 && headFwdRatio > 0.5
+        let lookingAtScreen = gazeRatio >= Self.gazeRatioThreshold && headFwdRatio >= Self.headFwdRatioThreshold
         if !lookingAtScreen { return false }
 
         // Hard NO: silent mouth but audio active → someone else speaking
@@ -278,7 +280,7 @@ final class TokenSampleRecorder: ObservableObject {
             if row.isUser { return row }
             // Sentence vote can only fill in tokens where user was also looking at screen.
             // If they looked away, that's the sentence boundary — don't steal across.
-            let lookingAtScreen = row.gazeRatio > 0.5 && row.headFwdRatio > 0.5
+            let lookingAtScreen = row.gazeRatio >= Self.gazeRatioThreshold && row.headFwdRatio >= Self.headFwdRatioThreshold
             if !lookingAtScreen { return row }
             // Keep as non-user if it's clearly not: completely silent mouth AND loud audio
             let clearlyNot = row.jawStd < 0.003 && row.avgVol > 0.03
