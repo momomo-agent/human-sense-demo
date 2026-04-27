@@ -113,6 +113,7 @@ struct TokenTableView: View {
             Text("jaw").frame(width: 28, alignment: .trailing)
             Text("vol").frame(width: 28, alignment: .trailing)
             Text("r").frame(width: 28, alignment: .trailing)
+            Text("👄").frame(width: 18, alignment: .center)
             Text("👁").frame(width: 18, alignment: .center)
             Text("🧭").frame(width: 18, alignment: .center)
             Text("u").frame(width: 16, alignment: .center)
@@ -170,6 +171,10 @@ private struct TokenRowView: View {
                 .frame(width: 28, alignment: .trailing)
                 .foregroundStyle(scoreColor(row.localPearson))
 
+            Text(row.maxJaw > 0.15 ? "✓" : "·")
+                .font(.system(size: 11))
+                .frame(width: 18, alignment: .center)
+                .foregroundStyle(row.maxJaw > 0.15 ? .green : Color.secondary)
             Text(row.gazeRatio >= UserSentenceReconstructor.gazeRatioThreshold ? "✓" : "·")
                 .font(.system(size: 11))
                 .frame(width: 18, alignment: .center)
