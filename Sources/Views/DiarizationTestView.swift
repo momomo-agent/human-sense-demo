@@ -187,57 +187,59 @@ struct DiarizationTestView: View {
                     .background(Color.white.opacity(0.3))
 
                 // 中部：详细日志（撑满剩余空间）
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            // 表头
-                            HStack(spacing: 8) {
-                                Text("时间")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 40, alignment: .trailing)
+                VStack(spacing: 0) {
+                    // 表头（固定）
+                    HStack(spacing: 8) {
+                        Text("时间")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 40, alignment: .trailing)
 
-                                Text("文字")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                        Text("文字")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                                Text("Δ")
-                                    .font(.caption2)
-                                    .foregroundStyle(.orange)
-                                    .frame(width: 35, alignment: .trailing)
+                        Text("Δ")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .frame(width: 35, alignment: .trailing)
 
-                                Text("V")
-                                    .font(.caption2)
-                                    .foregroundStyle(.yellow)
-                                    .frame(width: 35, alignment: .trailing)
+                        Text("V")
+                            .font(.caption2)
+                            .foregroundStyle(.yellow)
+                            .frame(width: 35, alignment: .trailing)
 
-                                Text("分数")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 35, alignment: .trailing)
+                        Text("分数")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 35, alignment: .trailing)
 
-                                Text("终分")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 35, alignment: .trailing)
+                        Text("终分")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 35, alignment: .trailing)
 
-                                Text("✓")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 20, alignment: .center)
+                        Text("✓")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 20, alignment: .center)
 
-                                Text("状态")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .frame(width: 30, alignment: .center)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.white.opacity(0.05))
+                        Text("状态")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 30, alignment: .center)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.05))
 
-                            // 历史记录（按句子分组）
-                            ForEach(groupedSegments(), id: \.id) { group in
+                    // 滚动内容
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 12) {
+                                // 历史记录（按句子分组）
+                                ForEach(groupedSegments(), id: \.id) { group in
                                 VStack(alignment: .leading, spacing: 2) {
                                     // 句子标题
                                     HStack {
@@ -325,6 +327,7 @@ struct DiarizationTestView: View {
                             }
                         }
                     }
+                }
                 }
 
                 // 底部：按钮栏
