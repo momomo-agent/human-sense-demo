@@ -88,10 +88,10 @@ class GazeSpeakerEngine {
     private var jawHistory: [(timestamp: Double, jawOpen: Float)] = []  // 记录 jaw 开合历史
     private var audioStreamStartTime: Date?  // 音频流开始时间
 
-    private var userEmbeddings: [[Float]] = [] {
+    private var userEmbedding: [Float]? {
         didSet {
-            if !userEmbeddings.isEmpty {
-                saveEmbeddings(userEmbeddings)
+            if let embedding = userEmbedding {
+                saveEmbedding(embedding)
             }
         }
     }
@@ -514,17 +514,30 @@ class GazeSpeakerEngine {
     private func finishCalibration() {
         isCalibrating = false
 
-        // 直接使用多个 embedding（不取平均）
+        // 计算平均 embedding
         guard !calibrationEmbeddings.isEmpty else {
             debugInfo.userEmbeddingStatus = "❌ 无有效数据"
             return
         }
 
-        userEmbeddings = calibrationEmbeddings
-        initialEmbedding = calibrationEmbeddings.first  // 保存第一个作为初始 embedding
+        let embeddingSize = calibrationEmbeddings[0].count
+        var avgEmbedding = [Float](repeating: 0, count: embeddingSize)
+
+        for embedding in calibrationEmbeddings {
+            for i in 0..<embeddingSize {
+                avgEmbedding[i] += embedding[i]
+            }
+        }
+
+        for i in 0..<embeddingSize {
+            avgEmbedding[i] /= Float(calibrationEmbeddings.count)
+        }
+
+        userEmbedding = avgEmbedding
+        initialEmbedding = avgEmbedding  // 保存初始 embedding
         learningCount = 0  // 重置学习次数
         lastLearningTime = nil
-        debugInfo.userEmbeddingStatus = "✅ 已标定 (\(calibrationEmbeddings.count) 个样本)"
+        debugInfo.userEmbeddingStatus = "✅ 已标定 (\(calibrationEmbeddings.count) 句)"
         phase = .live
         calibrationProgress = 1.0
     }
@@ -533,7 +546,7 @@ class GazeSpeakerEngine {
     
     private func processLiveAudio(_ samples: [Float]) {
         guard phase == .live else { return }
-        guard !userEmbeddings.isEmpty else { return }
+        guard let userEmb = userEmbedding else { return }
         guard let extractor = embeddingExtractor else { return }
 
         // 1. 更新 gaze 和 head 状态
@@ -556,9 +569,8 @@ class GazeSpeakerEngine {
             return
         }
 
-        // 3. 计算与所有模板的相似度，取最佳匹配
-        let distances = userEmbeddings.map { cosineSimilarity($0, currentEmbedding) }
-        let distance = distances.min() ?? 1.0
+        // 3. 计算相似度
+        let distance = cosineSimilarity(userEmb, currentEmbedding)
         debugInfo.speakerDistance = distance
         debugInfo.speakerMatch = distance < speakerThreshold
 
@@ -575,7 +587,7 @@ class GazeSpeakerEngine {
 
     // 增量学习（从 Final tokens 中学习）
     private func tryIncrementalLearningFromTokens(_ tokens: [TokenSegment]) {
-        guard !userEmbeddings.isEmpty else { return }
+        guard let userEmb = userEmbedding else { return }
         guard let extractor = embeddingExtractor else { return }
 
         // 筛选出用户说的 tokens，且 finalScore 足够低（高置信度）
@@ -608,8 +620,16 @@ class GazeSpeakerEngine {
             return
         }
 
-        // 执行增量学习：添加新模板（而不是加权平均）
-        userEmbeddings.append(currentEmbedding)
+        // 执行增量学习：加权平均
+        let oldWeight = 1.0 - learningRate
+        let newWeight = learningRate
+
+        var updatedEmbedding = [Float](repeating: 0, count: userEmb.count)
+        for i in 0..<userEmb.count {
+            updatedEmbedding[i] = oldWeight * userEmb[i] + newWeight * currentEmbedding[i]
+        }
+
+        userEmbedding = updatedEmbedding
         learningCount += 1
         lastLearningTime = Date()
 
@@ -633,7 +653,7 @@ class GazeSpeakerEngine {
         speakerHistory = []
         jawHistory = []
         audioStreamStartTime = nil
-        userEmbeddings = []
+        userEmbedding = nil
         initialEmbedding = nil
         calibrationProgress = 0.0
         isCalibrating = false
@@ -671,13 +691,13 @@ class GazeSpeakerEngine {
 
     // MARK: - Persistence
 
-    private func saveEmbeddings(_ embeddings: [[Float]]) {
+    private func saveEmbedding(_ embedding: [Float]) {
         do {
-            let data = try JSONEncoder().encode(embeddings)
+            let data = try JSONEncoder().encode(embedding)
             try data.write(to: embeddingFileURL)
-            print("✅ Saved \(embeddings.count) user embeddings to \(embeddingFileURL.path)")
+            print("✅ Saved user embedding to \(embeddingFileURL.path)")
         } catch {
-            print("⚠️ Failed to save embeddings: \(error)")
+            print("⚠️ Failed to save embedding: \(error)")
         }
     }
 
@@ -689,14 +709,13 @@ class GazeSpeakerEngine {
 
         do {
             let data = try Data(contentsOf: embeddingFileURL)
-            let embeddings = try JSONDecoder().decode([[Float]].self, from: data)
-            userEmbeddings = embeddings
-            initialEmbedding = embeddings.first
+            let embedding = try JSONDecoder().decode([Float].self, from: data)
+            userEmbedding = embedding
             phase = .live
-            debugInfo.userEmbeddingStatus = "✅ 已加载 (\(embeddings.count) 个样本)"
-            print("✅ Loaded \(embeddings.count) user embeddings from \(embeddingFileURL.path)")
+            debugInfo.userEmbeddingStatus = "✅ 已加载"
+            print("✅ Loaded user embedding from \(embeddingFileURL.path)")
         } catch {
-            print("⚠️ Failed to load embeddings: \(error)")
+            print("⚠️ Failed to load embedding: \(error)")
             debugInfo.userEmbeddingStatus = "未标定"
         }
     }
