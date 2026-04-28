@@ -667,6 +667,19 @@ class GazeSpeakerEngine {
         let face = engine.humanState.face
         debugInfo.isLookingAtScreen = face.isLookingAtScreen
         debugInfo.isHeadForward = face.headOrientation.isFacingForward
+        
+        // 1.5. 检查 face tracking 状态：如果最近 1 秒嘴巴完全没动，认为 tracking 丢失
+        if let startTime = engine.sttManager.audioStreamStartTime {
+            let elapsed = Date().timeIntervalSince(startTime)
+            let recentStart = max(0, elapsed - 1.0)
+            let recentJawDelta = calculateJawDelta(startTime: recentStart, endTime: elapsed)
+            
+            // 如果最近 1 秒 jaw 完全没动（< 0.005），认为看不到人
+            if recentJawDelta < 0.005 {
+                debugInfo.speakerMatch = false
+                return
+            }
+        }
 
         // 2. 提取当前 embedding（需要至少 1 秒音频）
         guard samples.count >= 16000 else {
