@@ -190,6 +190,52 @@ struct DiarizationTestView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
+                            // 表头
+                            HStack(spacing: 8) {
+                                Text("时间")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 40, alignment: .trailing)
+
+                                Text("文字")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                Text("Δ")
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                                    .frame(width: 35, alignment: .trailing)
+
+                                Text("V")
+                                    .font(.caption2)
+                                    .foregroundStyle(.yellow)
+                                    .frame(width: 35, alignment: .trailing)
+
+                                Text("分数")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 35, alignment: .trailing)
+
+                                Text("终分")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 35, alignment: .trailing)
+
+                                Text("✓")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 20, alignment: .center)
+
+                                Text("状态")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 30, alignment: .center)
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.05))
+
                             // 历史记录（按句子分组）
                             ForEach(groupedSegments(), id: \.id) { group in
                                 VStack(alignment: .leading, spacing: 2) {

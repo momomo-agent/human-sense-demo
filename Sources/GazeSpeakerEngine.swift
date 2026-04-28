@@ -136,6 +136,7 @@ class GazeSpeakerEngine {
         engine.sttManager.onTokens = { [weak self] tokens, isFinal in
             guard let self = self else { return }
             guard self.phase == .live else { return }
+            guard !self.isCalibrating else { return }  // 标定期间不处理 STT
             guard !tokens.isEmpty else { return }
 
             Task { @MainActor in
@@ -457,6 +458,12 @@ class GazeSpeakerEngine {
         let db = 20 * log10(max(rms, 1e-10))
         debugInfo.audioLevel = db
 
+        // 标定期间不记录 jaw 历史，不进行 speaker 检测
+        if isCalibrating {
+            processCalibrationAudio(samples)
+            return
+        }
+
         // 记录 jaw 数据到历史（每次音频回调都记录，实现高频采样）
         if phase == .live, let startTime = engine.sttManager.audioStreamStartTime {
             let elapsed = Date().timeIntervalSince(startTime)
@@ -477,9 +484,8 @@ class GazeSpeakerEngine {
         // 根据阶段处理
         switch phase {
         case .calibration:
-            if isCalibrating {
-                processCalibrationAudio(samples)
-            }
+            // 已在上面处理
+            break
         case .live:
             // 合并最近的 buffer 用于 embedding 提取
             let recentSamples = audioBufferQueue.flatMap { $0 }
