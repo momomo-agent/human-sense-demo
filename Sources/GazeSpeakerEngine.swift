@@ -111,6 +111,11 @@ class GazeSpeakerEngine {
         return documentsPath.appendingPathComponent("user_speaker_embedding.json")
     }()
 
+    private let logFileURL: URL = {
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return documentsPath.appendingPathComponent("speaker_recognition_log.jsonl")
+    }()
+
     private let engine: HumanStateEngine
     private var audioBufferQueue: [[Float]] = []  // 缓存音频用于 embedding 提取
     private let bufferWindowSize: Int = 10  // 保留最近 10 个 buffer（约 1-2 秒）
@@ -160,6 +165,9 @@ class GazeSpeakerEngine {
                     var currentIsUser: Bool? = nil
 
                     for token in newTokens {
+                        // 记录每个 token 到日志
+                        self.logTokenRecognition(token: token, isFinal: true)
+
                         if currentIsUser == nil {
                             // 第一个 token
                             currentIsUser = token.isUserSpeaker
@@ -761,6 +769,15 @@ class GazeSpeakerEngine {
         debugInfo = DebugInfo()
     }
 
+    func getLogFileURL() -> URL {
+        return logFileURL
+    }
+
+    func clearLog() {
+        try? FileManager.default.removeItem(at: logFileURL)
+        print("🗑️ Cleared recognition log")
+    }
+
     func clearTranscript() {
         transcriptSegments = []
         currentTokens = []
@@ -781,6 +798,45 @@ class GazeSpeakerEngine {
 
         // 返回距离（1 - similarity）
         return 1.0 - (dotProduct / (normA * normB))
+    }
+
+    // MARK: - Logging
+
+    private func logTokenRecognition(token: TokenSegment, isFinal: Bool) {
+        let timestamp = Date().timeIntervalSince1970
+
+        let logEntry: [String: Any] = [
+            "timestamp": timestamp,
+            "text": token.text,
+            "audioTime": token.audioTime,
+            "score": token.score,
+            "jawDelta": token.jawDelta,
+            "jawVelocity": token.jawVelocity,
+            "isUserSpeaker": token.isUserSpeaker,
+            "isFinal": isFinal,
+            "speakerThreshold": speakerThreshold,
+            "jawWeight": jawWeight,
+            "jawVelocityWeight": jawVelocityWeight,
+            "noJawPenalty": noJawPenalty,
+            "jawMargin": jawMargin,
+            // 计算 finalScore
+            "finalScore": calculateFinalScore(score: token.score, jawDelta: token.jawDelta, jawVelocity: token.jawVelocity)
+        ]
+
+        if let jsonData = try? JSONSerialization.data(withJSONObject: logEntry),
+           let jsonString = String(data: jsonData, encoding: .utf8) {
+            // 追加到 JSONL 文件
+            if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
+                fileHandle.seekToEndOfFile()
+                if let data = (jsonString + "\n").data(using: .utf8) {
+                    fileHandle.write(data)
+                }
+                try? fileHandle.close()
+            } else {
+                // 文件不存在，创建新文件
+                try? (jsonString + "\n").write(to: logFileURL, atomically: true, encoding: .utf8)
+            }
+        }
     }
 
     // MARK: - Persistence

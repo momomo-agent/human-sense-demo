@@ -7,6 +7,7 @@ struct DiarizationTestView: View {
     @State private var engine: GazeSpeakerEngine
     @State private var audioStreamBridge = SharedAudioStreamBridge()
     @State private var showDebug = true  // 默认显示调试面板
+    @State private var showShareSheet = false
     private let humanEngine: HumanStateEngine
     
     init(humanEngine: HumanStateEngine) {
@@ -649,12 +650,39 @@ struct DiarizationTestView: View {
                         .background(Color.red)
                         .cornerRadius(6)
                 }
+
+                Button {
+                    showShareSheet = true
+                } label: {
+                    Text("导出识别日志")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.blue)
+                        .cornerRadius(6)
+                }
+
+                Button {
+                    engine.clearLog()
+                } label: {
+                    Text("清空识别日志")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(Color.gray)
+                        .cornerRadius(6)
+                }
             }
         }
         .padding()
         .background(Color.black.opacity(0.85))
         .cornerRadius(12)
         .shadow(radius: 10)
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(activityItems: [engine.getLogFileURL()])
+        }
     }
     
     private func debugRow(label: String, value: String) -> some View {
@@ -855,4 +883,15 @@ private final class SharedAudioStreamBridge {
 
         return Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
     }
+}
+
+// ShareSheet for exporting files
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
