@@ -210,7 +210,8 @@ class GazeSpeakerEngine {
                         }
                     }
 
-                    self.currentTokens = []
+                    // 不清空 currentTokens，让它累积，避免长句子被截断
+                    // self.currentTokens = []
                     // 不清空 tokenColorMap，保持颜色锁定
 
                     // 增量学习：在 Final 阶段，检查用户说的话
