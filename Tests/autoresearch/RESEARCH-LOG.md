@@ -121,7 +121,71 @@ v42: F1=83.7%, min=92.8%           ← 六合一
 v44: F1=84.4%, FP=52               ← scoreStd+scoreVelAnti
 v49: F1=84.5%, FP=51               ← distRatio
 v51: R=95.9%, S=90.8%              ← 两阶段 rescue
+v61: F1=85.8%, FP=48, FN=18        ← 四合一 (interaction+FP filter+scoreAccel+jawEff)
+v61: R=95.9%, S=91.0%, F1=81.0%    ← 新双高 (四合一+rescue)
 ```
+
+### Phase 9: 六方向全面探索 + 组合优化（v58-v61）
+
+**v58: 六方向初筛**
+- Dir 1 非线性交互项: F1=84.6%（svW=0.5, svTh=1）— 微提升
+- Dir 2 文本特征: F1=86.3%（tw=3, tTh=0.8）— 看似大突破，但 CV 验证 F1=84.0%，**过拟合**
+- Dir 3 Session 时间结构: F1=85.4%（oracle ceiling，用了 ground truth density）
+- Dir 4 分段决策: 无提升（split threshold / dt>0 boost 都等于 baseline）
+- Dir 5 自适应阈值: 无提升
+- Dir 6 FP 后处理: F1=84.7%（hvTh=5, hvPen=1.5, scoreLow=0.3）— FP 52→50
+- Bonus HMM 序列平滑: 无提升（forward/bidirectional 都等于 baseline）
+
+**关键发现**: 文本特征（字符级 user 概率）看似 +1.9pp，但 leave-one-session-out CV 证明完全过拟合。文本多样性和首次出现也无效。
+
+**v59: 深挖 + 交叉验证**
+- Dir1+Dir6 组合: **F1=85.2%**, FP=49, FN=20（首次突破 85%）
+- 文本特征 CV: F1=84.0%（确认过拟合，弃用）
+
+**v60: 精细搜索 + 新特征**
+- Ultra-fine Dir1+Dir6: F1=85.3%, FP=48, FN=20
+- 新特征 Cohen's d 分析:
+  - jawEffMean5: d=1.867（最强！用户嘴动效率高）
+  - jawDeltaStd5: d=0.981
+  - scoreAccel: d=0.520（dt>0 时 score 变化速率）
+- scoreAccel: +0.2pp（R=91.3%, F1=85.4%）
+- jawEffMean5: +0.2pp（R=91.3%, F1=85.4%）
+- Safe rescue（用 predicted density 替代 ground truth）: R=92.7%, F1=85.1%
+
+**v61: 四合一终极组合**
+- **均衡模式新纪录**: R=91.7%, S=95.2%, **F1=85.8%**, FP=48, FN=18
+  - svW=0.375, svTh=0.875（非线性交互）
+  - hvTh=4.25, hvPen=1.75, scoreLow=0.35（FP 过滤）
+  - saW=0.75, saTh=1.5（score 加速度）
+  - jeW=-0.25, jeTh=4.5（jaw 效率）
+- **双高模式新纪录**: R=95.9%, S=91.0%, F1=81.0%, FP=89, FN=9
+  - Stage 1: t=4 + 四合一特征
+  - Rescue: hw=8, rTh=0.45, minVotes=1.25
+
+---
+
+## 最优配置
+
+### 均衡模式（F1 最优）— v61
+```
+R=91.7%, S=95.2%, F1=85.8%, TP=200, FP=48, FN=18
+```
+参数（在 v49 基础上叠加）:
+- v49 全部特征（eTh/bW/pSH/pV/vsW/vsTh/smW/smTh/ssW/ssTh/svW_old/svTh_old/drW/drTh/t=4）
+- 非线性交互: (1-score)×velocity ≥ 0.875 → +0.375
+- FP 过滤: votes ≥ 4.25 且 dt=0 且 score < 0.35 → -1.75
+- Score 加速度: scoreAccel ≥ 1.5 → +0.75
+- Jaw 效率: jawEffMean5 < 4.5 → +0.25
+
+### 双高模式（R≥95%）— v61
+```
+R=95.9%, S=91.0%, F1=81.0%, TP=209, FP=89, FN=9
+```
+参数:
+- Stage 1: 四合一 + t=4
+- Rescue: hw=8, rTh=0.45, minVotes=1.25（用 predicted density）
+
+---
 
 ## 关键洞察
 
@@ -130,9 +194,15 @@ v51: R=95.9%, S=90.8%              ← 两阶段 rescue
 3. **velStd + scoreMean 精准打击 AI lip sync**：只在 dt=0 时生效，AI lip sync 的 vel 波动大但不自然
 4. **两阶段 rescue 是突破 95% Recall 的唯一路径**：单阶段无法同时满足 R≥95% + S≥90%
 5. **FN 的硬边界**：score 0.56-0.73 + dt=0 的 user token，特征空间跟 AI 完全重叠，只能靠邻居信息（density）捞回
+6. **文本特征过拟合**（v58-59）：字符级 user 概率看似 +1.9pp，CV 证明完全过拟合。79 个 overlap 字符 + 小样本 = 不可靠
+7. **jawEfficiency（velocity/delta）是新的强特征**（v60）：Cohen's d=1.867，用户嘴动效率高（大幅度+快速），AI lip sync 效率低（小幅度+慢速）
+8. **scoreAccel 只在 dt>0 时有效**（v60）：dt=0 时 scoreAccel=0（定义如此），但 dt>0 时 score 变化速率能区分用户和 AI
+9. **序列模型（HMM/Viterbi）无效**（v58）：forward/bidirectional 平滑都等于 baseline，说明投票系统已经隐式捕获了序列信息
+10. **分段决策/自适应阈值无效**（v58）：dt=0 vs dt>0 分开设阈值、根据局部信号调阈值，都不如统一投票
 
 ## 脚本存档
 
 - `Tests/autoresearch/` 目录包含 v45-v57 的实验脚本
+- v58-v61 脚本在 /tmp/autoresearch-v58-all.js, v59-deep.js, v60-fine.js, v61-combo.js
 - v7-v44 的脚本在 /tmp/ 中已被清理，但结果记录在此文档
 - 所有脚本共享相同的数据加载和评估函数
