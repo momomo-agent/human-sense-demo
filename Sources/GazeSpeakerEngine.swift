@@ -184,6 +184,11 @@ class GazeSpeakerEngine {
                                     timestamp: Date()
                                 )
                                 self.transcriptSegments.append(segment)
+                                
+                                // 滑动窗口：只保留最近 100 条
+                                if self.transcriptSegments.count > 100 {
+                                    self.transcriptSegments.removeFirst(self.transcriptSegments.count - 100)
+                                }
                             }
                             currentGroup = [token]
                             currentIsUser = token.isUserSpeaker
@@ -198,6 +203,11 @@ class GazeSpeakerEngine {
                             timestamp: Date()
                         )
                         self.transcriptSegments.append(segment)
+                        
+                        // 滑动窗口：只保留最近 100 条
+                        if self.transcriptSegments.count > 100 {
+                            self.transcriptSegments.removeFirst(self.transcriptSegments.count - 100)
+                        }
                     }
 
                     self.currentTokens = []
