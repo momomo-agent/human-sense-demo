@@ -211,6 +211,7 @@ struct DiarizationTestView: View {
                                             time: token.audioTime,
                                             text: token.text,
                                             jawDelta: token.jawDelta,
+                                            jawVelocity: token.jawVelocity,
                                             score: token.score,
                                             isUser: token.isUserSpeaker,
                                             isFinal: group.isFinal
@@ -242,6 +243,7 @@ struct DiarizationTestView: View {
                                             time: token.audioTime,
                                             text: token.text,
                                             jawDelta: token.jawDelta,
+                                            jawVelocity: token.jawVelocity,
                                             score: token.score,
                                             isUser: token.isUserSpeaker,
                                             isFinal: false
@@ -544,7 +546,7 @@ struct DiarizationTestView: View {
         .font(.caption)
     }
 
-    private func detailRow(time: Double, text: String, jawDelta: Float, score: Float, isUser: Bool, isFinal: Bool) -> some View {
+    private func detailRow(time: Double, text: String, jawDelta: Float, jawVelocity: Float, score: Float, isUser: Bool, isFinal: Bool) -> some View {
         let finalScore = score - engine.jawWeight * jawDelta
 
         return HStack(spacing: 8) {
@@ -564,6 +566,12 @@ struct DiarizationTestView: View {
             Text(String(format: "%.2f", jawDelta))
                 .font(.caption2)
                 .foregroundStyle(.orange)
+                .frame(width: 35, alignment: .trailing)
+
+            // JawVelocity
+            Text(String(format: "%.2f", jawVelocity))
+                .font(.caption2)
+                .foregroundStyle(.yellow)
                 .frame(width: 35, alignment: .trailing)
 
             // Score
