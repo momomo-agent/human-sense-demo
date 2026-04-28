@@ -139,17 +139,16 @@ struct DiarizationTestView: View {
                                         .id(segment.id)
                                 }
 
-                                // 当前正在说的话（只显示用户的，streaming 带呼吸效果）
+                                // 当前正在说的话（只显示用户的，streaming 固定透明度）
                                 if !engine.currentTokens.isEmpty {
                                     let userTokens = engine.currentTokens.filter { $0.isUserSpeaker }
                                     if !userTokens.isEmpty {
                                         HStack(spacing: 0) {
                                             ForEach(userTokens) { token in
                                                 Text(token.text)
-                                                    .foregroundStyle(.green)
+                                                    .foregroundStyle(.green.opacity(0.2))
                                             }
                                         }
-                                        .modifier(BreathingEffect())
                                         .id("current")
                                     }
                                 }
