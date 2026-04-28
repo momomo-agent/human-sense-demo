@@ -284,7 +284,12 @@ class GazeSpeakerEngine {
     // jawVelocity: 嘴变化速度（越大越可能是用户）
     // 返回: finalScore（越小越可能是用户）
     private func calculateFinalScore(score: Float, jawDelta: Float, jawVelocity: Float) -> Float {
-        // 如果嘴完全不动，直接判为非用户（返回很大的 finalScore）
+        // 规则 1: 如果 score 本身就很高，直接判为非用户
+        if score > 0.75 {
+            return 1.5  // 远大于 threshold (0.7)，确保被判为非用户
+        }
+        
+        // 规则 2: 如果嘴完全不动，直接判为非用户
         if jawDelta < 0.02 && jawVelocity < 0.1 {
             return 1.5  // 远大于 threshold (0.7)，确保被判为非用户
         }
