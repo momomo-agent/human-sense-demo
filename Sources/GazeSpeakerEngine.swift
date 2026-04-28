@@ -65,8 +65,8 @@ class GazeSpeakerEngine {
     var calibrationProgress: Float = 0.0
     var isCalibrating = false
     var speakerThreshold: Float = 0.7  // 可调节的阈值（finalScore 阈值）
-    var jawWeight: Float = 0.2  // jaw delta 权重系数（优化后：0.2，原 1.0）
-    var jawVelocityWeight: Float = 0.2  // jaw velocity 权重系数（优化后：0.2，原 1.0）
+    var jawWeight: Float = 0.1  // jaw delta 权重系数（autoresearch 最优：0.1）
+    var jawVelocityWeight: Float = 0.1  // jaw velocity 权重系数（autoresearch 最优：0.1）
     var jawMargin: Double = 0.1  // jaw 时间扩展（秒）
     var noJawPenalty: Float = 0.5  // 嘴不动的惩罚值
 

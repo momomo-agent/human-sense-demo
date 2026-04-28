@@ -60,8 +60,8 @@ function testAlgorithm(samples, jawWeight, jawVelocityWeight, threshold, minJawD
 
 // Current parameters (from GazeSpeakerEngine.swift)
 const params = {
-  jawWeight: 0.2,
-  jawVelocityWeight: 0.2,
+  jawWeight: 0.1,
+  jawVelocityWeight: 0.1,
   threshold: 0.7,
   minJawDelta: 0.02,
   minJawVelocity: 0.1,
