@@ -419,7 +419,27 @@ class GazeSpeakerEngine {
             return [segment]
         }
 
-        // 有 speaker 变化，按字符平均拆分（Final 和 Stream 都拆分）
+        // 有 speaker 变化
+        if isFinal {
+            // Final 阶段：不拆分，只用开始时间的 speaker
+            let result = querySpeakerAtTime(token.startTime)
+            let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
+            let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
+            let finalScore = calculateFinalScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let isUser = finalScore < speakerThreshold
+            let segment = TokenSegment(
+                text: token.text,
+                isUserSpeaker: isUser,
+                score: result.1,
+                audioTime: token.startTime,
+                jawDelta: jawDelta,
+                jawVelocity: jawVelocity
+            )
+            tokenColorMap[tokenKey] = (isUser: isUser, score: result.1)
+            return [segment]
+        }
+
+        // Stream 阶段且有 speaker 变化，按字符平均拆分
         let duration = token.endTime - token.startTime
         let charCount = token.text.count
         guard charCount > 1 else {
