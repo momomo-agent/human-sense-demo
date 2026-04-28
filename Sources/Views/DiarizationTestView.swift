@@ -430,6 +430,14 @@ struct DiarizationTestView: View {
                 value: String(format: "%.2f / %.2f", engine.debugInfo.speakerDistance, engine.speakerThreshold)
             )
             debugRow(
+                label: "Jaw Δ",
+                value: String(format: "%.3f", engine.debugInfo.currentJawDelta)
+            )
+            debugRow(
+                label: "Jaw V",
+                value: String(format: "%.3f", engine.debugInfo.currentJawVelocity)
+            )
+            debugRow(
                 label: "音频",
                 value: String(format: "%.1f dB", engine.debugInfo.audioLevel)
             )
@@ -458,7 +466,7 @@ struct DiarizationTestView: View {
             // Jaw 权重调节
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text("Jaw 权重:")
+                    Text("Jaw Δ 权重:")
                         .foregroundStyle(.secondary)
                         .font(.caption)
                     Spacer()
@@ -468,6 +476,46 @@ struct DiarizationTestView: View {
                 }
                 Slider(value: $engine.jawWeight, in: 0.0...5.0, step: 0.1)
                     .tint(.orange)
+                Text("← 弱    强 →")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(.top, 8)
+
+            // Jaw Velocity 权重调节
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("Jaw V 权重:")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    Spacer()
+                    Text(String(format: "%.1f", engine.jawVelocityWeight))
+                        .foregroundStyle(.white)
+                        .font(.caption)
+                }
+                Slider(value: $engine.jawVelocityWeight, in: 0.0...5.0, step: 0.1)
+                    .tint(.yellow)
+                Text("← 弱    强 →")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(.top, 8)
+
+            // 嘴不动惩罚
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("嘴不动惩罚:")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    Spacer()
+                    Text(String(format: "%.2f", engine.noJawPenalty))
+                        .foregroundStyle(.white)
+                        .font(.caption)
+                }
+                Slider(value: $engine.noJawPenalty, in: 0.0...2.0, step: 0.1)
+                    .tint(.red)
                 Text("← 弱    强 →")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -622,7 +670,13 @@ struct DiarizationTestView: View {
     }
 
     private func detailRow(time: Double, text: String, jawDelta: Float, jawVelocity: Float, score: Float, isUser: Bool, isFinal: Bool) -> some View {
-        let finalScore = score - engine.jawWeight * jawDelta
+        // 使用与 GazeSpeakerEngine 相同的计算逻辑
+        var finalScore = score
+        finalScore -= engine.jawWeight * jawDelta
+        finalScore -= engine.jawVelocityWeight * jawVelocity
+        if jawDelta < 0.02 && jawVelocity < 0.1 {
+            finalScore += engine.noJawPenalty
+        }
 
         return HStack(spacing: 8) {
             // 时间
