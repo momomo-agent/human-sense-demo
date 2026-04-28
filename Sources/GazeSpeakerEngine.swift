@@ -619,7 +619,7 @@ class GazeSpeakerEngine {
     // 回滚到初始 embedding
     func resetToInitialEmbedding() {
         guard let initial = initialEmbedding else { return }
-        userEmbedding = initial
+        userEmbeddings = [initial]
         learningCount = 0
         lastLearningTime = nil
         print("🔄 已回滚到初始 embedding")
@@ -703,7 +703,7 @@ class GazeSpeakerEngine {
 
     func deleteEmbedding() {
         try? FileManager.default.removeItem(at: embeddingFileURL)
-        userEmbedding = nil
+        userEmbeddings = []
         debugInfo.userEmbeddingStatus = "未标定"
         print("🗑️ Deleted user embedding")
     }
