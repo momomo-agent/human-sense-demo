@@ -281,22 +281,48 @@ struct DiarizationTestView: View {
                     }
                 }
 
-                // 底部：调试按钮
-                Button {
-                    withAnimation {
-                        showDebug.toggle()
+                // 底部：按钮栏
+                HStack(spacing: 12) {
+                    // 追加标定按钮
+                    Button {
+                        if engine.isCalibrating {
+                            engine.stopAdditionalCalibration()
+                        } else {
+                            engine.startAdditionalCalibration()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: engine.isCalibrating ? "stop.circle.fill" : "mic.circle")
+                            Text(engine.isCalibrating ? "停止录音" : "追加标定")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(engine.isCalibrating ? Color.red : Color.blue)
+                        .cornerRadius(8)
                     }
-                } label: {
-                    HStack {
-                        Image(systemName: showDebug ? "info.circle.fill" : "info.circle")
-                        Text(showDebug ? "隐藏调试" : "显示调试")
+
+                    // 调试按钮
+                    Button {
+                        withAnimation {
+                            showDebug.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: showDebug ? "info.circle.fill" : "info.circle")
+                            Text(showDebug ? "隐藏调试" : "显示调试")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(8)
                     }
-                    .font(.caption)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.white.opacity(0.1))
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 8)
             }
 
             // 悬浮调试面板（带背景遮罩）
@@ -451,7 +477,7 @@ struct DiarizationTestView: View {
                                 .foregroundStyle(.white)
                                 .font(.caption)
                         }
-                        Slider(value: $engine.learningThreshold, in: 0.1...0.5, step: 0.05)
+                        Slider(value: $engine.learningThreshold, in: 0.1...1.0, step: 0.05)
                             .tint(.green)
                     }
 
@@ -466,7 +492,7 @@ struct DiarizationTestView: View {
                                 .foregroundStyle(.white)
                                 .font(.caption)
                         }
-                        Slider(value: $engine.learningRate, in: 0.05...0.3, step: 0.05)
+                        Slider(value: $engine.learningRate, in: 0.05...1.0, step: 0.05)
                             .tint(.green)
                     }
 

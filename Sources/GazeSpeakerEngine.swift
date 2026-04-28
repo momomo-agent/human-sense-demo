@@ -67,9 +67,9 @@ class GazeSpeakerEngine {
     var jawMargin: Double = 0.1  // jaw 时间扩展（秒）
 
     // 增量学习参数
-    var enableIncrementalLearning: Bool = false  // 是否启用增量学习
-    var learningThreshold: Float = 0.3  // 学习触发阈值（finalScore < 此值才学习）
-    var learningRate: Float = 0.1  // 学习率（新 embedding 的权重）
+    var enableIncrementalLearning: Bool = true  // 是否启用增量学习
+    var learningThreshold: Float = 0.5  // 学习触发阈值（finalScore < 此值才学习）
+    var learningRate: Float = 0.3  // 学习率（新 embedding 的权重）
     var learningCount: Int = 0  // 已学习次数
     var lastLearningTime: Date?  // 最后学习时间
     private var initialEmbedding: [Float]?  // 保存初始标定的 embedding，用于回滚
@@ -497,6 +497,42 @@ class GazeSpeakerEngine {
         currentCalibrationSentence = 0
         calibrationStartTime = Date()
         debugInfo.userEmbeddingStatus = "标定中 (1/\(calibrationSentences.count))..."
+    }
+
+    // 追加标定：自由录音模式
+    func startAdditionalCalibration() {
+        isCalibrating = true
+        calibrationProgress = 0.0
+        calibrationAudioBuffers = []
+        calibrationStartTime = Date()
+        debugInfo.userEmbeddingStatus = "追加标定中..."
+    }
+
+    func stopAdditionalCalibration() {
+        guard isCalibrating else { return }
+
+        // 合并音频
+        let allSamples = calibrationAudioBuffers.flatMap { $0 }
+
+        guard !allSamples.isEmpty, let extractor = embeddingExtractor else {
+            debugInfo.userEmbeddingStatus = "❌ 无有效数据"
+            isCalibrating = false
+            return
+        }
+
+        do {
+            let embedding = try extractor.extract(from: allSamples)
+            userEmbeddings.append(embedding)
+            debugInfo.userEmbeddingStatus = "✅ 已标定 (\(userEmbeddings.count) 个样本)"
+            saveEmbeddings(userEmbeddings)
+            print("✅ 追加标定完成，当前共 \(userEmbeddings.count) 个样本")
+        } catch {
+            debugInfo.userEmbeddingStatus = "❌ 提取失败: \(error)"
+            print("Embedding extraction failed: \(error)")
+        }
+
+        isCalibrating = false
+        calibrationProgress = 0.0
     }
 
     private func processCalibrationAudio(_ samples: [Float]) {
