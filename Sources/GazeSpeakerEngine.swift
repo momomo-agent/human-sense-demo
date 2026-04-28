@@ -160,6 +160,9 @@ class GazeSpeakerEngine {
                 }
 
                 if isFinal {
+                    // 上下文平滑：用前后 token 的多数投票修正孤立的误判
+                    newTokens = self.smoothSpeakerPredictions(newTokens)
+                    
                     // 句子结束，按 speaker 分组成不同的 segment
                     var currentGroup: [TokenSegment] = []
                     var currentIsUser: Bool? = nil
@@ -280,6 +283,43 @@ class GazeSpeakerEngine {
 
     // 计算最终得分
     // score: 声纹距离（越小越像用户）
+    // 上下文平滑：用前后 token 的多数投票修正孤立的误判
+    // 例如：如果一个 token 被判为用户，但前后都是非用户，则翻转为非用户
+    private func smoothSpeakerPredictions(_ tokens: [TokenSegment]) -> [TokenSegment] {
+        guard tokens.count >= 3 else { return tokens }
+        
+        var result = tokens
+        let windowSize = 2  // 看前后 2 个 token
+        
+        for i in 0..<tokens.count {
+            var userVotes = 0
+            var totalVotes = 0
+            
+            for j in max(0, i - windowSize)...min(tokens.count - 1, i + windowSize) {
+                totalVotes += 1
+                if tokens[j].isUserSpeaker {
+                    userVotes += 1
+                }
+            }
+            
+            // 多数投票：超过半数才算用户
+            let smoothedIsUser = userVotes > totalVotes / 2
+            
+            if smoothedIsUser != tokens[i].isUserSpeaker {
+                result[i] = TokenSegment(
+                    text: tokens[i].text,
+                    isUserSpeaker: smoothedIsUser,
+                    score: tokens[i].score,
+                    audioTime: tokens[i].audioTime,
+                    jawDelta: tokens[i].jawDelta,
+                    jawVelocity: tokens[i].jawVelocity
+                )
+            }
+        }
+        
+        return result
+    }
+
     // jawDelta: 嘴变化幅度（越大越可能是用户）
     // jawVelocity: 嘴变化速度（越大越可能是用户）
     // 返回: finalScore（越小越可能是用户）
