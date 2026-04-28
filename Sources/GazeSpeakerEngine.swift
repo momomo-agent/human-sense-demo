@@ -185,9 +185,9 @@ class GazeSpeakerEngine {
                                 )
                                 self.transcriptSegments.append(segment)
                                 
-                                // 滑动窗口：只保留最近 100 条
-                                if self.transcriptSegments.count > 100 {
-                                    self.transcriptSegments.removeFirst(self.transcriptSegments.count - 100)
+                                // 滑动窗口：只保留最近 20 个 segment（句子）
+                                if self.transcriptSegments.count > 20 {
+                                    self.transcriptSegments.removeFirst(self.transcriptSegments.count - 20)
                                 }
                             }
                             currentGroup = [token]
@@ -204,9 +204,9 @@ class GazeSpeakerEngine {
                         )
                         self.transcriptSegments.append(segment)
                         
-                        // 滑动窗口：只保留最近 100 条
-                        if self.transcriptSegments.count > 100 {
-                            self.transcriptSegments.removeFirst(self.transcriptSegments.count - 100)
+                        // 滑动窗口：只保留最近 20 个 segment（句子）
+                        if self.transcriptSegments.count > 20 {
+                            self.transcriptSegments.removeFirst(self.transcriptSegments.count - 20)
                         }
                     }
 
