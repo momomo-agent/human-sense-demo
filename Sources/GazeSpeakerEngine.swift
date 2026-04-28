@@ -283,8 +283,9 @@ class GazeSpeakerEngine {
 
     // 计算最终得分
     // score: 声纹距离（越小越像用户）
-    // 上下文平滑：用前后 token 的多数投票修正孤立的误判
-    // 例如：如果一个 token 被判为用户，但前后都是非用户，则翻转为非用户
+    // 上下文平滑：用前后 token 的 score 变化率修正误判
+    // 核心思路：如果附近 token 的 score 变化幅度大（>0.3），说明正在发生说话人切换
+    // 如果附近有低 score 的 token（<0.3），说明附近有用户在说话
     private func smoothSpeakerPredictions(_ tokens: [TokenSegment]) -> [TokenSegment] {
         guard tokens.count >= 3 else { return tokens }
         
@@ -292,28 +293,35 @@ class GazeSpeakerEngine {
         let windowSize = 2  // 看前后 2 个 token
         
         for i in 0..<tokens.count {
-            var userVotes = 0
-            var totalVotes = 0
+            // 计算窗口内 score 的变化率（最大值 - 最小值）
+            var minScore: Float = Float.infinity
+            var maxScore: Float = -Float.infinity
             
             for j in max(0, i - windowSize)...min(tokens.count - 1, i + windowSize) {
-                totalVotes += 1
-                if tokens[j].isUserSpeaker {
-                    userVotes += 1
-                }
+                minScore = min(minScore, tokens[j].score)
+                maxScore = max(maxScore, tokens[j].score)
             }
             
-            // 多数投票：超过半数才算用户
-            let smoothedIsUser = userVotes > totalVotes / 2
+            let scoreChangeRate = maxScore - minScore
+            let nearbyUserSpeaking = minScore < 0.3
+            let highScoreChange = scoreChangeRate > 0.3
             
-            if smoothedIsUser != tokens[i].isUserSpeaker {
-                result[i] = TokenSegment(
-                    text: tokens[i].text,
-                    isUserSpeaker: smoothedIsUser,
-                    score: tokens[i].score,
-                    audioTime: tokens[i].audioTime,
-                    jawDelta: tokens[i].jawDelta,
-                    jawVelocity: tokens[i].jawVelocity
-                )
+            // 如果附近有用户说话的信号，放宽当前 token 的判断
+            if !tokens[i].isUserSpeaker && (nearbyUserSpeaking || highScoreChange) {
+                // 重新计算：放宽条件
+                let jf = max(0.1, 1.0 - jawWeight * tokens[i].jawDelta)
+                let vf = max(0.1, 1.0 - jawVelocityWeight * tokens[i].jawVelocity)
+                let finalScore = tokens[i].score * jf * vf
+                if finalScore < speakerThreshold {
+                    result[i] = TokenSegment(
+                        text: tokens[i].text,
+                        isUserSpeaker: true,
+                        score: tokens[i].score,
+                        audioTime: tokens[i].audioTime,
+                        jawDelta: tokens[i].jawDelta,
+                        jawVelocity: tokens[i].jawVelocity
+                    )
+                }
             }
         }
         

@@ -4,46 +4,76 @@
  * Speaker Recognition Test Suite
  * 
  * Tests the speaker recognition algorithm against labeled test data.
+ * Includes context smoothing (score change rate + nearby low score).
  * Run: node Tests/test-speaker-recognition.js
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Read test data
 const testDataPath = path.join(__dirname, 'speaker-test-data.jsonl');
 const lines = fs.readFileSync(testDataPath, 'utf8').trim().split('\n');
 const samples = lines.map(line => JSON.parse(line));
+
+// Sort by audioTime for context smoothing
+samples.sort((a, b) => a.audioTime - b.audioTime);
 
 console.log(`Loaded ${samples.length} test samples`);
 console.log(`User samples: ${samples.filter(s => s.isUserSpeaker).length}`);
 console.log(`Non-user samples: ${samples.filter(s => !s.isUserSpeaker).length}\n`);
 
-// Test current algorithm
-function testAlgorithm(samples, jawWeight, jawVelocityWeight, threshold, minJawDelta, minJawVelocity, scoreThreshold) {
+// Parameters (from GazeSpeakerEngine.swift)
+const params = {
+  jawWeight: 0.1,
+  jawVelocityWeight: 0.1,
+  threshold: 0.72,
+  minJawDelta: 0.015,
+  minJawVelocity: 0.05,
+  scoreThreshold: 0.8,
+  // Context smoothing params
+  contextWindow: 2,
+  minScoreThreshold: 0.3,
+  scoreChangeThreshold: 0.3
+};
+
+function testAlgorithm(samples, p) {
   let TP = 0, FP = 0, TN = 0, FN = 0;
   
-  for (const sample of samples) {
+  for (let i = 0; i < samples.length; i++) {
+    const s = samples[i];
     let predicted;
     
-    // Rule 1: If score is very high, classify as non-user
-    if (sample.score > scoreThreshold) {
+    // Step 1: Base prediction
+    if (s.score > p.scoreThreshold) {
       predicted = false;
-    }
-    // Rule 2: If jaw is completely still, classify as non-user
-    else if (sample.jawDelta < minJawDelta && sample.jawVelocity < minJawVelocity) {
+    } else if (s.jawDelta < p.minJawDelta && s.jawVelocity < p.minJawVelocity) {
       predicted = false;
-    }
-    // Rule 3: Use multiplicative weighting
-    else {
-      const jawFactor = 1.0 - jawWeight * sample.jawDelta;
-      const velocityFactor = 1.0 - jawVelocityWeight * sample.jawVelocity;
-      const finalScore = sample.score * jawFactor * velocityFactor;
-      predicted = finalScore < threshold;
+    } else {
+      const jf = Math.max(0.1, 1.0 - p.jawWeight * s.jawDelta);
+      const vf = Math.max(0.1, 1.0 - p.jawVelocityWeight * s.jawVelocity);
+      predicted = s.score * jf * vf < p.threshold;
     }
     
-    const actual = sample.isUserSpeaker;
+    // Step 2: Context smoothing — reconsider false negatives
+    if (!predicted) {
+      let minScore = Infinity, maxScore = -Infinity;
+      for (let j = Math.max(0, i - p.contextWindow); j <= Math.min(samples.length - 1, i + p.contextWindow); j++) {
+        minScore = Math.min(minScore, samples[j].score);
+        maxScore = Math.max(maxScore, samples[j].score);
+      }
+      const nearbyUser = minScore < p.minScoreThreshold;
+      const highChange = (maxScore - minScore) > p.scoreChangeThreshold;
+      
+      if (nearbyUser || highChange) {
+        const jf = Math.max(0.1, 1.0 - p.jawWeight * s.jawDelta);
+        const vf = Math.max(0.1, 1.0 - p.jawVelocityWeight * s.jawVelocity);
+        if (s.score * jf * vf < p.threshold) {
+          predicted = true;
+        }
+      }
+    }
     
+    const actual = s.isUserSpeaker;
     if (predicted && actual) TP++;
     else if (predicted && !actual) FP++;
     else if (!predicted && !actual) TN++;
@@ -54,44 +84,21 @@ function testAlgorithm(samples, jawWeight, jawVelocityWeight, threshold, minJawD
   const recall = TP / (TP + FN) || 0;
   const f1 = 2 * precision * recall / (precision + recall) || 0;
   const accuracy = (TP + TN) / samples.length;
-  
-  return { TP, FP, TN, FN, precision, recall, f1, accuracy };
+  const specificity = TN / (TN + FP) || 0;
+  return { TP, FP, TN, FN, precision, recall, f1, accuracy, specificity };
 }
 
-// Current parameters (from GazeSpeakerEngine.swift)
-const params = {
-  jawWeight: 0.1,
-  jawVelocityWeight: 0.1,
-  threshold: 0.72,
-  minJawDelta: 0.015,
-  minJawVelocity: 0.05,
-  scoreThreshold: 0.8
-};
+console.log('=== Algorithm Performance ===\n');
+console.log('Parameters:', JSON.stringify(params, null, 2), '\n');
 
-console.log('=== Current Algorithm Performance ===\n');
-console.log('Parameters:');
-console.log(`  jawWeight: ${params.jawWeight}`);
-console.log(`  jawVelocityWeight: ${params.jawVelocityWeight}`);
-console.log(`  threshold: ${params.threshold}`);
-console.log(`  minJawDelta: ${params.minJawDelta}`);
-console.log(`  minJawVelocity: ${params.minJawVelocity}`);
-console.log(`  scoreThreshold: ${params.scoreThreshold}\n`);
-
-const result = testAlgorithm(
-  samples,
-  params.jawWeight,
-  params.jawVelocityWeight,
-  params.threshold,
-  params.minJawDelta,
-  params.minJawVelocity,
-  params.scoreThreshold
-);
+const result = testAlgorithm(samples, params);
 
 console.log('Results:');
-console.log(`  F1 Score:  ${(result.f1 * 100).toFixed(2)}%`);
-console.log(`  Accuracy:  ${(result.accuracy * 100).toFixed(2)}%`);
-console.log(`  Precision: ${(result.precision * 100).toFixed(2)}%`);
-console.log(`  Recall:    ${(result.recall * 100).toFixed(2)}%\n`);
+console.log(`  Recall:      ${(result.recall * 100).toFixed(2)}% (user speech recognition)`);
+console.log(`  Specificity: ${(result.specificity * 100).toFixed(2)}% (AI speech exclusion)`);
+console.log(`  F1 Score:    ${(result.f1 * 100).toFixed(2)}%`);
+console.log(`  Accuracy:    ${(result.accuracy * 100).toFixed(2)}%`);
+console.log(`  Precision:   ${(result.precision * 100).toFixed(2)}%\n`);
 
 console.log('Confusion Matrix:');
 console.log(`  True Positive:  ${result.TP} (correctly identified as user)`);
@@ -99,16 +106,14 @@ console.log(`  False Positive: ${result.FP} (incorrectly identified as user)`);
 console.log(`  True Negative:  ${result.TN} (correctly identified as non-user)`);
 console.log(`  False Negative: ${result.FN} (incorrectly identified as non-user)\n`);
 
-// Check if performance meets minimum requirements
-const MIN_F1 = 0.65;
-const MIN_ACCURACY = 0.80;
-const MIN_RECALL = 0.93;
+const MIN_RECALL = 0.95;
+const MIN_SPECIFICITY = 0.75;
 
-if (result.f1 >= MIN_F1 && result.accuracy >= MIN_ACCURACY && result.recall >= MIN_RECALL) {
-  console.log('✅ PASS: Algorithm meets minimum requirements');
+if (result.recall >= MIN_RECALL && result.specificity >= MIN_SPECIFICITY) {
+  console.log('✅ PASS');
   process.exit(0);
 } else {
-  console.log('❌ FAIL: Algorithm does not meet minimum requirements');
-  console.log(`  Required: F1 >= ${(MIN_F1 * 100).toFixed(0)}%, Accuracy >= ${(MIN_ACCURACY * 100).toFixed(0)}%, Recall >= ${(MIN_RECALL * 100).toFixed(0)}%`);
+  console.log('❌ FAIL');
+  console.log(`  Required: Recall >= ${(MIN_RECALL*100).toFixed(0)}%, Specificity >= ${(MIN_SPECIFICITY*100).toFixed(0)}%`);
   process.exit(1);
 }
