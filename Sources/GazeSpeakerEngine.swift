@@ -65,11 +65,13 @@ class GazeSpeakerEngine {
     var calibrationProgress: Float = 0.0
     var isCalibrating = false
     var speakerThreshold: Float = 3.0  // 投票阈值（userScore >= 此值判为用户）
-    // 投票权重（autoresearch 最优配置）
-    var scoreWeight: Float = 2.0  // 音色匹配度权重
-    var jawWeight: Float = 0.5  // 嘴巴张开幅度权重
+    // 投票权重（autoresearch v24 最优配置: Recall 93.1%, Spec 90.2%, F1 78.4%）
+    var scoreWeight: Float = 3.0  // 音色匹配度权重（score<0.45 → +3, 0.45-0.5 → +0.75, 0.5-0.72 → +0.25）
+    var jawWeight: Float = 0.25  // 嘴巴张开幅度权重
     var jawVelocityWeight: Float = 2.0  // 嘴巴运动速度权重
-    var contextWeight: Float = 0.5  // 上下文信号权重
+    var timeDeltaWeight: Float = 1.5  // 时间间隔权重（dt>=0.3 → +1.5, dt>=0.03 → +0.75）
+    private var lastTokenAudioTime: Double = 0  // 上一个 token 的 audioTime
+    var contextWeight: Float = 0.25  // 上下文信号权重（v24 优化：dt 已提供上下文，降低避免 FP）
     var jawMargin: Double = 0.1  // jaw 时间扩展（秒）
     var noJawPenalty: Float = 0.5  // 嘴不动的惩罚值
 
@@ -335,35 +337,42 @@ class GazeSpeakerEngine {
     // jawDelta: 嘴巴张开幅度（发元音、大声说话时大）
     // jawVelocity: 嘴巴运动速度（连续说话时高）
     // score: 音色匹配度（越低越可能是用户）
+    // timeDelta: 与上一个 token 的时间间隔（用户说话有自然间隔，AI lip sync 批量到达 dt≈0）
     // 返回: userScore（越大越可能是用户，>= speakerThreshold 判为用户）
-    private func calculateUserScore(score: Float, jawDelta: Float, jawVelocity: Float) -> Float {
+    private func calculateUserScore(score: Float, jawDelta: Float, jawVelocity: Float, timeDelta: Float = 0) -> Float {
         var votes: Float = 0
         
         // 音色不匹配（score 低）→ 加分
-        if score < 0.3 {
-            votes += scoreWeight * 2
+        // autoresearch v24: sL=0.45, sM=0.5, sH=0.72
+        if score < 0.45 {
+            votes += scoreWeight  // 3.0
         } else if score < 0.5 {
-            votes += scoreWeight
-        } else if score < 0.7 {
-            votes += scoreWeight * 0.5
+            votes += scoreWeight * 0.25  // 0.75
+        } else if score < 0.72 {
+            votes += 0.25
         }
         
         // 嘴巴张开幅度大 → 加分
         if jawDelta >= 0.1 {
-            votes += jawWeight * 2
+            votes += jawWeight  // 0.25
         } else if jawDelta >= 0.05 {
-            votes += jawWeight
-        } else if jawDelta >= 0.02 {
-            votes += jawWeight * 0.5
+            votes += jawWeight * 0.5  // 0.125
         }
         
         // 嘴巴运动速度快 → 加分
         if jawVelocity >= 0.5 {
-            votes += jawVelocityWeight * 2
+            votes += jawVelocityWeight * 2  // 4.0
         } else if jawVelocity >= 0.1 {
-            votes += jawVelocityWeight
+            votes += jawVelocityWeight  // 2.0
         } else if jawVelocity >= 0.05 {
-            votes += jawVelocityWeight * 0.5
+            votes += jawVelocityWeight * 0.5  // 1.0
+        }
+        
+        // 时间间隔：用户说话的 token 之间有自然间隔，AI 批量到达 dt≈0
+        if timeDelta >= 0.3 {
+            votes += timeDeltaWeight  // 1.5
+        } else if timeDelta >= 0.03 {
+            votes += timeDeltaWeight * 0.5  // 0.75
         }
         
         return votes
@@ -414,12 +423,16 @@ class GazeSpeakerEngine {
     // 根据 token 时间范围内的 speaker 变化拆分 token
     private func splitTokenBySpeakerChange(_ token: SpeechToken, isFinal: Bool) -> [TokenSegment] {
         let tokenKey = token.text + "_\(token.startTime)_\(token.endTime)"
+        
+        // 计算与上一个 token 的时间间隔
+        let dt = Float(max(0, token.startTime - lastTokenAudioTime))
+        lastTokenAudioTime = token.startTime
 
         // 只在 Final 阶段使用缓存
         if isFinal, let cached = self.tokenColorMap[tokenKey] {
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: cached.score, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let userScore = calculateUserScore(score: cached.score, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
             return [TokenSegment(
                 text: token.text,
@@ -441,7 +454,7 @@ class GazeSpeakerEngine {
             let result = querySpeakerAtTime(token.startTime)
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
             let segment = TokenSegment(
                 text: token.text,
@@ -466,7 +479,7 @@ class GazeSpeakerEngine {
             let result = querySpeakerAtTime(token.startTime)
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
             let segment = TokenSegment(
                 text: token.text,
@@ -488,7 +501,7 @@ class GazeSpeakerEngine {
             let result = querySpeakerAtTime(token.startTime)
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
             let segment = TokenSegment(
                 text: token.text,
@@ -509,7 +522,7 @@ class GazeSpeakerEngine {
             let result = querySpeakerAtTime(token.startTime)
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
             return [TokenSegment(
                 text: token.text,
@@ -533,7 +546,7 @@ class GazeSpeakerEngine {
             let result = querySpeakerAtTime(charTime)
             let jawDelta = calculateJawDelta(startTime: charTime, endTime: charEndTime)
             let jawVelocity = calculateJawVelocity(startTime: charTime, endTime: charEndTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity)
+            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
 
             if currentSpeaker == nil {
@@ -858,6 +871,7 @@ class GazeSpeakerEngine {
         currentTokens = []
         tokenColorMap = [:]
         speakerHistory = []
+        lastTokenAudioTime = 0
         jawHistory = []
         audioStreamStartTime = nil
         userEmbeddings = []
@@ -888,6 +902,7 @@ class GazeSpeakerEngine {
         currentTokens = []
         tokenColorMap = [:]
         speakerHistory = []
+        lastTokenAudioTime = 0
     }
     
     // MARK: - Helpers
@@ -922,6 +937,7 @@ class GazeSpeakerEngine {
             "speakerThreshold": speakerThreshold,
             "jawWeight": jawWeight,
             "jawVelocityWeight": jawVelocityWeight,
+            "timeDeltaWeight": timeDeltaWeight,
             "noJawPenalty": noJawPenalty,
             "jawMargin": jawMargin,
             // 计算 userScore

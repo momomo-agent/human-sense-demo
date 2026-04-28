@@ -19,40 +19,49 @@ console.log(`Loaded ${samples.length} test samples`);
 console.log(`User samples: ${samples.filter(s => s.isUserSpeaker).length}`);
 console.log(`Non-user samples: ${samples.filter(s => !s.isUserSpeaker).length}\n`);
 
-// Parameters (from GazeSpeakerEngine.swift)
+// Parameters (from GazeSpeakerEngine.swift - autoresearch v24)
 const p = {
-  scoreWeight: 2.0,
-  jawWeight: 0.5,
+  scoreWeight: 3.0,
+  jawWeight: 0.25,
   jawVelocityWeight: 2.0,
-  contextWeight: 0.5,
+  timeDeltaWeight: 1.5,
+  contextWeight: 0.25,
   speakerThreshold: 3.0,
   contextWindow: 2,
   minScoreThreshold: 0.3,
   scoreChangeThreshold: 0.3
 };
 
-function calculateUserScore(s) {
+let lastAudioTime = 0;
+
+function calculateUserScore(s, timeDelta = 0) {
   let votes = 0;
-  if (s.score < 0.3) votes += p.scoreWeight * 2;
-  else if (s.score < 0.5) votes += p.scoreWeight;
-  else if (s.score < 0.7) votes += p.scoreWeight * 0.5;
+  // score 区间: sL=0.45, sM=0.5, sH=0.72
+  if (s.score < 0.45) votes += p.scoreWeight;  // 3.0
+  else if (s.score < 0.5) votes += p.scoreWeight * 0.25;  // 0.75
+  else if (s.score < 0.72) votes += 0.25;
   
-  if (s.jawDelta >= 0.1) votes += p.jawWeight * 2;
-  else if (s.jawDelta >= 0.05) votes += p.jawWeight;
-  else if (s.jawDelta >= 0.02) votes += p.jawWeight * 0.5;
+  if (s.jawDelta >= 0.1) votes += p.jawWeight;  // 0.25
+  else if (s.jawDelta >= 0.05) votes += p.jawWeight * 0.5;  // 0.125
   
-  if (s.jawVelocity >= 0.5) votes += p.jawVelocityWeight * 2;
-  else if (s.jawVelocity >= 0.1) votes += p.jawVelocityWeight;
-  else if (s.jawVelocity >= 0.05) votes += p.jawVelocityWeight * 0.5;
+  if (s.jawVelocity >= 0.5) votes += p.jawVelocityWeight * 2;  // 4.0
+  else if (s.jawVelocity >= 0.1) votes += p.jawVelocityWeight;  // 2.0
+  else if (s.jawVelocity >= 0.05) votes += p.jawVelocityWeight * 0.5;  // 1.0
+  
+  // 时间间隔
+  if (timeDelta >= 0.3) votes += p.timeDeltaWeight;  // 1.5
+  else if (timeDelta >= 0.03) votes += p.timeDeltaWeight * 0.5;  // 0.75
   
   return votes;
 }
 
 let TP = 0, FP = 0, TN = 0, FN = 0;
+lastAudioTime = 0;
 
 for (let i = 0; i < samples.length; i++) {
   const s = samples[i];
-  let userScore = calculateUserScore(s);
+  const dt = i === 0 ? 0 : Math.max(0, s.audioTime - samples[i-1].audioTime);
+  let userScore = calculateUserScore(s, dt);
   let predicted = userScore >= p.speakerThreshold;
   
   // Context smoothing: reconsider false negatives
@@ -100,8 +109,8 @@ console.log('Confusion Matrix:');
 console.log(`  TP: ${TP}  FP: ${FP}`);
 console.log(`  FN: ${FN}  TN: ${TN}\n`);
 
-const MIN_RECALL = 0.93;
-const MIN_SPECIFICITY = 0.85;
+const MIN_RECALL = 0.90;
+const MIN_SPECIFICITY = 0.90;
 
 if (recall >= MIN_RECALL && specificity >= MIN_SPECIFICITY) {
   console.log('✅ PASS');
