@@ -79,7 +79,7 @@ struct DiarizationTestView: View {
             let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameLength))
             
             // 处理音频
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 engine.processAudioBuffer(samples)
             }
         }
