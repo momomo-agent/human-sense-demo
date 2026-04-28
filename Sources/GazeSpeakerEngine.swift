@@ -284,21 +284,20 @@ class GazeSpeakerEngine {
     // jawVelocity: 嘴变化速度（越大越可能是用户）
     // 返回: finalScore（越小越可能是用户）
     private func calculateFinalScore(score: Float, jawDelta: Float, jawVelocity: Float) -> Float {
-        // 使用乘法权重而非加减
+        // 如果嘴完全不动，直接判为非用户（返回很大的 finalScore）
+        if jawDelta < 0.02 && jawVelocity < 0.1 {
+            return 1.5  // 远大于 threshold (0.7)，确保被判为非用户
+        }
+        
+        // 否则使用乘法权重
         var jawFactor: Float = 1.0 - jawWeight * jawDelta
         var velocityFactor: Float = 1.0 - jawVelocityWeight * jawVelocity
-        var noMovementFactor: Float = 1.0
-
-        // 嘴不动 → 增加惩罚因子（使 finalScore 变大）
-        if jawDelta < 0.02 && jawVelocity < 0.1 {
-            noMovementFactor = 1.0 + noJawPenalty
-        }
 
         // 防止因子变成负数或过小
         jawFactor = max(0.1, jawFactor)
         velocityFactor = max(0.1, velocityFactor)
 
-        let finalScore = score * jawFactor * velocityFactor * noMovementFactor
+        let finalScore = score * jawFactor * velocityFactor
         return finalScore
     }
 
