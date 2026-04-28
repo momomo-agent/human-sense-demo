@@ -669,13 +669,19 @@ struct DiarizationTestView: View {
     }
 
     private func detailRow(time: Double, text: String, jawDelta: Float, jawVelocity: Float, score: Float, isUser: Bool, isFinal: Bool) -> some View {
-        // 使用与 GazeSpeakerEngine 相同的计算逻辑
-        var finalScore = score
-        finalScore -= engine.jawWeight * jawDelta
-        finalScore -= engine.jawVelocityWeight * jawVelocity
+        // 使用与 GazeSpeakerEngine 相同的计算逻辑（乘法权重）
+        var jawFactor: Float = 1.0 - engine.jawWeight * jawDelta
+        var velocityFactor: Float = 1.0 - engine.jawVelocityWeight * jawVelocity
+        var noMovementFactor: Float = 1.0
+
         if jawDelta < 0.02 && jawVelocity < 0.1 {
-            finalScore += engine.noJawPenalty
+            noMovementFactor = 1.0 + engine.noJawPenalty
         }
+
+        jawFactor = max(0.1, jawFactor)
+        velocityFactor = max(0.1, velocityFactor)
+
+        let finalScore = score * jawFactor * velocityFactor * noMovementFactor
 
         return HStack(spacing: 8) {
             // 时间
