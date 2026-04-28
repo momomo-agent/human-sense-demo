@@ -23,10 +23,11 @@
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
 		773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 229316286F5816B7C9E4CCE7 /* StateCard.swift */; };
-		7C591F4A845EBE73EB4CE03C /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = D19AB4E87005CEA023998C37 /* Resources */; };
 		83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */; };
 		902CE3BCC8D6D57C4A6415A9 /* EyeVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */; };
+		93A1F24FA128BD597B1C8BBC /* Embedding.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = 57DA23D8F33A31B944EDBB2E /* Embedding.mlmodelc */; };
 		960681F621EFFEE489A16EDA /* FaceMeshView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */; };
+		A7864550103230F8DCBC9710 /* FBank.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = C64AD094E8BF57D0FCDC02F7 /* FBank.mlmodelc */; };
 		C87A4851034B8EBB14851F6F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA655F26BAF42FB09BA0B876 /* ContentView.swift */; };
 		CD004261E1B891EBC2B5C07B /* GazeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05A06993683BD21C2D6A38B /* GazeOverlay.swift */; };
 		F93FB19FC04485BD2A588D49 /* DiarizationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */; };
@@ -41,6 +42,7 @@
 		3D7FB39A6CA252D1BE70A046 /* EyeVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EyeVisualizerView.swift; sourceTree = "<group>"; };
 		424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistanceIndicatorView.swift; sourceTree = "<group>"; };
 		57D2E68CB3026920745495F2 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		57DA23D8F33A31B944EDBB2E /* Embedding.mlmodelc */ = {isa = PBXFileReference; path = Embedding.mlmodelc; sourceTree = "<group>"; };
 		681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenTableView.swift; sourceTree = "<group>"; };
 		6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadOrientationView.swift; sourceTree = "<group>"; };
 		8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTimelineView.swift; sourceTree = "<group>"; };
@@ -49,8 +51,8 @@
 		AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HumanSenseDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshView.swift; sourceTree = "<group>"; };
 		C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouthVisualizerView.swift; sourceTree = "<group>"; };
+		C64AD094E8BF57D0FCDC02F7 /* FBank.mlmodelc */ = {isa = PBXFileReference; path = FBank.mlmodelc; sourceTree = "<group>"; };
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
-		D19AB4E87005CEA023998C37 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = SOURCE_ROOT; };
 		DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
 		F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeSpeakerEngine.swift; sourceTree = "<group>"; };
@@ -73,7 +75,7 @@
 		33A52A1A1AF4690B4DD5EF00 = {
 			isa = PBXGroup;
 			children = (
-				D19AB4E87005CEA023998C37 /* Resources */,
+				C948CF7FA0079A400CADBE0F /* Resources */,
 				D39979A04A25538C87CCA414 /* Sources */,
 				FFEFC38670EB3317052C5787 /* Products */,
 			);
@@ -100,6 +102,23 @@
 				681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		C948CF7FA0079A400CADBE0F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D09EFABA0D60BEBCBF8A2B8C /* Models */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D09EFABA0D60BEBCBF8A2B8C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				57DA23D8F33A31B944EDBB2E /* Embedding.mlmodelc */,
+				C64AD094E8BF57D0FCDC02F7 /* FBank.mlmodelc */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		D39979A04A25538C87CCA414 /* Sources */ = {
@@ -162,6 +181,7 @@
 				};
 			};
 			buildConfigurationList = 70655DE2D48AAC5FD3444740 /* Build configuration list for PBXProject "HumanSenseDemo" */;
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -175,7 +195,6 @@
 				527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = FFEFC38670EB3317052C5787 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -189,7 +208,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7C591F4A845EBE73EB4CE03C /* Resources in Resources */,
+				93A1F24FA128BD597B1C8BBC /* Embedding.mlmodelc in Resources */,
+				A7864550103230F8DCBC9710 /* FBank.mlmodelc in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
