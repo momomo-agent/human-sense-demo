@@ -64,7 +64,7 @@ class GazeSpeakerEngine {
     var debugInfo = DebugInfo()
     var calibrationProgress: Float = 0.0
     var isCalibrating = false
-    var speakerThreshold: Float = 0.7  // 可调节的阈值（finalScore 阈值）
+    var speakerThreshold: Float = 0.72  // 可调节的阈值（finalScore 阈值，优先保证 Recall）
     var jawWeight: Float = 0.1  // jaw delta 权重系数（autoresearch 最优：0.1）
     var jawVelocityWeight: Float = 0.1  // jaw velocity 权重系数（autoresearch 最优：0.1）
     var jawMargin: Double = 0.1  // jaw 时间扩展（秒）
@@ -325,12 +325,12 @@ class GazeSpeakerEngine {
     // 返回: finalScore（越小越可能是用户）
     private func calculateFinalScore(score: Float, jawDelta: Float, jawVelocity: Float) -> Float {
         // 规则 1: 如果 score 本身就很高，直接判为非用户
-        if score > 0.75 {
+        if score > 0.8 {
             return 1.5  // 远大于 threshold (0.7)，确保被判为非用户
         }
         
         // 规则 2: 如果嘴完全不动，直接判为非用户
-        if jawDelta < 0.02 && jawVelocity < 0.1 {
+        if jawDelta < 0.015 && jawVelocity < 0.05 {
             return 1.5  // 远大于 threshold (0.7)，确保被判为非用户
         }
         

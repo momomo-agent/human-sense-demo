@@ -62,10 +62,10 @@ function testAlgorithm(samples, jawWeight, jawVelocityWeight, threshold, minJawD
 const params = {
   jawWeight: 0.1,
   jawVelocityWeight: 0.1,
-  threshold: 0.7,
-  minJawDelta: 0.02,
-  minJawVelocity: 0.1,
-  scoreThreshold: 0.75
+  threshold: 0.72,
+  minJawDelta: 0.015,
+  minJawVelocity: 0.05,
+  scoreThreshold: 0.8
 };
 
 console.log('=== Current Algorithm Performance ===\n');
@@ -100,14 +100,15 @@ console.log(`  True Negative:  ${result.TN} (correctly identified as non-user)`)
 console.log(`  False Negative: ${result.FN} (incorrectly identified as non-user)\n`);
 
 // Check if performance meets minimum requirements
-const MIN_F1 = 0.70;
-const MIN_ACCURACY = 0.85;
+const MIN_F1 = 0.65;
+const MIN_ACCURACY = 0.80;
+const MIN_RECALL = 0.93;
 
-if (result.f1 >= MIN_F1 && result.accuracy >= MIN_ACCURACY) {
+if (result.f1 >= MIN_F1 && result.accuracy >= MIN_ACCURACY && result.recall >= MIN_RECALL) {
   console.log('✅ PASS: Algorithm meets minimum requirements');
   process.exit(0);
 } else {
   console.log('❌ FAIL: Algorithm does not meet minimum requirements');
-  console.log(`  Required: F1 >= ${(MIN_F1 * 100).toFixed(0)}%, Accuracy >= ${(MIN_ACCURACY * 100).toFixed(0)}%`);
+  console.log(`  Required: F1 >= ${(MIN_F1 * 100).toFixed(0)}%, Accuracy >= ${(MIN_ACCURACY * 100).toFixed(0)}%, Recall >= ${(MIN_RECALL * 100).toFixed(0)}%`);
   process.exit(1);
 }
