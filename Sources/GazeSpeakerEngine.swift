@@ -163,6 +163,20 @@ class GazeSpeakerEngine {
                     // 句子结束，按 speaker 分组成不同的 segment
                     var currentGroup: [TokenSegment] = []
                     var currentIsUser: Bool? = nil
+                    
+                    // 检查是否需要合并到最后一个 segment（避免长句子被分成多个 segment）
+                    var shouldMergeWithLast = false
+                    if let lastSegment = self.transcriptSegments.last {
+                        let timeSinceLastSegment = Date().timeIntervalSince(lastSegment.timestamp)
+                        // 如果距离上次 Final < 1 秒，认为是同一句话
+                        if timeSinceLastSegment < 1.0 {
+                            shouldMergeWithLast = true
+                            // 从最后一个 segment 开始
+                            self.transcriptSegments.removeLast()
+                            currentGroup = lastSegment.tokens
+                            currentIsUser = lastSegment.tokens.last?.isUserSpeaker
+                        }
+                    }
 
                     for token in newTokens {
                         // 记录每个 token 到日志
