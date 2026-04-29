@@ -64,12 +64,12 @@ class GazeSpeakerEngine {
     var debugInfo = DebugInfo()
     var calibrationProgress: Float = 0.0
     var isCalibrating = false
-    var speakerThreshold: Float = 4.0  // 投票阈值（userScore >= 此值判为用户）
-    // 投票权重（autoresearch v88 最优配置: R=97.2%, S=98.9%, F1=96.1%）
-    var scoreWeight: Float = 3.0  // 音色匹配度权重（score<0.45 → +3, 0.45-0.5 → +0.75, 0.5-0.72 → +0.25）
-    var jawWeight: Float = 0.25  // 嘴巴张开幅度权重
-    var jawVelocityWeight: Float = 2.0  // 嘴巴运动速度权重
-    var timeDeltaWeight: Float = 1.5  // 时间间隔权重（dt>=0.3 → +1.5, dt>=0.03 → +0.75）
+    var speakerThreshold: Float = 5.75  // 投票阈值（autoresearch v112: F1=87.6%）
+    // 投票权重（autoresearch v112 最优配置: R=99.6%, S=92.1%, F1=87.6%）
+    var scoreWeight: Float = 0.5  // 音色匹配度权重（score<0.45 → +0.5）
+    var jawWeight: Float = 1.5  // 嘴巴张开幅度权重（jd≥0.05 → +1.5）
+    var jawVelocityWeight: Float = 2.5  // 嘴巴运动速度权重（vel≥0.5 → +2.5）
+    var timeDeltaWeight: Float = 0.5  // 时间间隔权重（dt>=0.2 → +0.5）
     private var lastTokenAudioTime: Double = 0  // 上一个 token 的 audioTime
     var contextWeight: Float = 0.25  // 上下文信号权重
     var jawMargin: Double = 0.1  // jaw 时间扩展（秒）
@@ -289,130 +289,93 @@ class GazeSpeakerEngine {
     }
 
     // 计算最终得分
-    /// Two-pass rescue: borderline token 被周围 user 密度 rescue
-    /// Pass 1: 基础投票判定
-    /// Pass 2: 对 borderline token（votes 在 low..threshold 之间），检查周围窗口内 user 密度
-    ///         jawWeight 高的 token 用激进 rescue（因为 63% 是 user）
-    ///         jawWeight 低的 token 用保守 rescue
+    /// v112 speaker prediction with 10-second window zone features
+    /// 简化的投票系统：zone 特征是最强信号，finalScore 是最强 penalty
     private func smoothSpeakerPredictions(_ tokens: [TokenSegment]) -> [TokenSegment] {
         guard tokens.count >= 2 else { return tokens }
         
-        // 计算每个 token 的全部特征
         let N = tokens.count
+        
+        // 计算 timeDelta
         var timeDeltaArr = [Float](repeating: 0, count: N)
         for i in 1..<N {
             timeDeltaArr[i] = Float(max(0, tokens[i].audioTime - tokens[i-1].audioTime))
-        }
-        
-        // 计算窗口统计量
-        func windowStat<T: BinaryFloatingPoint>(_ arr: [T], hw: Int, fn: ([T]) -> T) -> [T] {
-            return (0..<N).map { i in
-                let lo = max(0, i - hw)
-                let hi = min(N - 1, i + hw)
-                return fn(Array(arr[lo...hi]))
-            }
         }
         
         func mean(_ a: [Float]) -> Float {
             guard !a.isEmpty else { return 0 }
             return a.reduce(0, +) / Float(a.count)
         }
-        func stddev(_ a: [Float]) -> Float {
-            let m = mean(a)
-            return sqrt(a.map { ($0 - m) * ($0 - m) }.reduce(0, +) / Float(a.count))
-        }
         
-        // dt entropy (window=5)
-        let dtEntropy5: [Float] = (0..<N).map { i in
-            let lo = max(0, i - 2)
-            let hi = min(N - 1, i + 2)
-            var bins: [Float] = [0, 0, 0]  // dt<0.001, 0.001-0.1, >=0.1
-            for j in lo...hi {
-                if timeDeltaArr[j] < 0.001 { bins[0] += 1 }
-                else if timeDeltaArr[j] < 0.1 { bins[1] += 1 }
-                else { bins[2] += 1 }
-            }
-            let n = Float(hi - lo + 1)
-            var entropy: Float = 0
-            for b in bins where b > 0 {
-                let p = b / n
-                entropy -= p * log2(p)
-            }
-            return entropy
-        }
-        
-        // burst length
-        var burstLen = [Int](repeating: 1, count: N)
-        for i in 1..<N {
-            if timeDeltaArr[i] < 0.001 { burstLen[i] = burstLen[i-1] + 1 }
-        }
-        for i in stride(from: N - 2, through: 0, by: -1) {
-            if i + 1 < N && timeDeltaArr[i+1] < 0.001 {
-                burstLen[i] = max(burstLen[i], burstLen[i+1])
-            }
-        }
-        
-        // velocity std (window=5)
-        let velArr = tokens.map { $0.jawVelocity }
-        let velStd5 = windowStat(velArr, hw: 2, fn: stddev)
-        
-        // score std (window=5)
-        let scoreArr = tokens.map { $0.score }
-        let scoreStd5 = windowStat(scoreArr, hw: 2, fn: stddev)
-        
-        // score gap: |finalScore - score| where finalScore = score * jawFactor * velocityFactor * noMovementFactor
-        // jawWeight/jawVelocityWeight are per-token fields (0.2 or 1.0), not engine constants
-        let scoreGapArr: [Float] = tokens.map { t in
-            // In production, jawWeight comes from ARKit blendshape confidence
-            // jawVelocityWeight mirrors jawWeight (same 0.2/1.0 binary)
-            let jw = t.jawDelta > 0.05 || t.jawVelocity > 0.3 ? Float(1.0) : Float(0.2)
-            let jvw = jw  // jawVelocityWeight mirrors jawWeight
-            let jawFactor = max(Float(0.1), 1.0 - jw * t.jawDelta)
-            let velocityFactor = max(Float(0.1), 1.0 - jvw * t.jawVelocity)
-            let noMovementFactor: Float = (t.jawDelta < 0.02 && t.jawVelocity < 0.1) ? 1.5 : 1.0
-            let finalScore = t.score * jawFactor * velocityFactor * noMovementFactor
-            return abs(finalScore - t.score)
-        }
-        
-        // score slope (window=5)
-        let scoreSlope5: [Float] = (0..<N).map { i in
-            let lo = max(0, i - 2)
-            let hi = min(N - 1, i + 2)
-            let window = Array(scoreArr[lo...hi])
-            guard window.count >= 2 else { return 0 }
-            let n = Float(window.count)
-            let mx = (n - 1) / 2.0
-            let my = mean(window)
-            var num: Float = 0, den: Float = 0
-            for (x, y) in window.enumerated() {
-                let xf = Float(x)
-                num += (xf - mx) * (y - my)
-                den += (xf - mx) * (xf - mx)
-            }
-            return den > 0 ? num / den : 0
-        }
-        
-        // scoreVelAnti
-        let scoreVelAnti = tokens.map { (1.0 - $0.score) * $0.jawVelocity }
-        
-        // score accel
-        let scoreAccel: [Float] = (0..<N).map { i in
-            guard i > 0, timeDeltaArr[i] >= 0.001 else { return Float(0) }
-            return abs(tokens[i].score - tokens[i-1].score) / timeDeltaArr[i]
-        }
-        
-        // jaw efficiency mean (window=5)
+        // jaw efficiency per token
         let jawEff: [Float] = tokens.map { t in
             t.jawDelta > 0.001 ? t.jawVelocity / t.jawDelta : 0
         }
-        let jawEffMean5 = windowStat(jawEff, hw: 2, fn: mean)
         
-        // jawWeight: 检查每个 token 的 jawWeight（从外部传入或计算）
-        // 在生产代码中，jawWeight 来自 ARKit 的 jawOpen blendshape 权重
-        // 这里用 jawDelta 作为代理：jawDelta > 0.05 认为是高 jawWeight
+        // scoreVelAnti per token
+        let scoreVelAnti: [Float] = tokens.map { (1.0 - $0.score) * $0.jawVelocity }
+        
+        // dtZeroRatio (window=5)
+        let dtZeroRatio5: [Float] = (0..<N).map { i in
+            let lo = max(0, i - 2)
+            let hi = min(N - 1, i + 2)
+            var zeroCount: Float = 0
+            for j in lo...hi {
+                if timeDeltaArr[j] < 0.001 { zeroCount += 1 }
+            }
+            return zeroCount / Float(hi - lo + 1)
+        }
+        
+        // 10-second window zone features (jdMean, jeMean)
+        // 使用 audioTime 做时间窗口
+        let jdMean10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            // 向前
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(tokens[j].jawDelta)
+                j -= 1
+            }
+            // 向后
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(tokens[j].jawDelta)
+                j += 1
+            }
+            return mean(vals)
+        }
+        
+        let jeMean10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(jawEff[j])
+                j -= 1
+            }
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(jawEff[j])
+                j += 1
+            }
+            return mean(vals)
+        }
+        
+        // finalScore: 使用 score 和 jaw 数据估算
+        // 在生产中 finalScore 来自 STT 引擎，这里用 score * jawFactor 近似
+        let finalScoreArr: [Float] = tokens.map { t in
+            let jw: Float = (t.jawDelta > 0.05 || t.jawVelocity > 0.3) ? 1.0 : 0.2
+            let jawFactor = max(Float(0.1), 1.0 - jw * t.jawDelta)
+            let velocityFactor = max(Float(0.1), 1.0 - jw * t.jawVelocity)
+            let noMovementFactor: Float = (t.jawDelta < 0.02 && t.jawVelocity < 0.1) ? 1.5 : 1.0
+            return t.score * jawFactor * velocityFactor * noMovementFactor
+        }
+        
+        // isHighJW
         let isHighJW: [Bool] = tokens.map { $0.jawDelta > 0.05 || $0.jawVelocity > 0.3 }
         
-        // === Pass 1: 基础投票 ===
+        // === 计算投票 ===
         var votes = [Float](repeating: 0, count: N)
         for i in 0..<N {
             votes[i] = calculateUserScore(
@@ -420,98 +383,23 @@ class GazeSpeakerEngine {
                 jawDelta: tokens[i].jawDelta,
                 jawVelocity: tokens[i].jawVelocity,
                 timeDelta: timeDeltaArr[i],
-                dtEntropy5: dtEntropy5[i],
-                burstLen: burstLen[i],
-                velStd5: velStd5[i],
-                scoreStd5: scoreStd5[i],
-                scoreGap: scoreGapArr[i],
-                scoreSlope5: scoreSlope5[i],
+                jawEff: jawEff[i],
                 scoreVelAnti: scoreVelAnti[i],
-                scoreAccel: scoreAccel[i],
-                jawEffMean5: jawEffMean5[i],
+                dtZeroRatio5: dtZeroRatio5[i],
+                jdMean10: jdMean10[i],
+                jeMean10: jeMean10[i],
+                finalScore: finalScoreArr[i],
                 isHighJW: isHighJW[i]
             )
         }
         
-        let pass1Pred = votes.map { $0 >= speakerThreshold }
-        
-        // === Pass 2: Two-pass rescue ===
-        // Borderline token 被周围 user 密度 rescue
+        // === 直接阈值判定（v112 不需要 two-pass rescue）===
         var result = tokens
         for i in 0..<N {
-            if pass1Pred[i] {
-                // Pass 1 已判为 user
-                result[i] = TokenSegment(
-                    text: tokens[i].text,
-                    isUserSpeaker: true,
-                    score: tokens[i].score,
-                    audioTime: tokens[i].audioTime,
-                    jawDelta: tokens[i].jawDelta,
-                    jawVelocity: tokens[i].jawVelocity
-                )
-                continue
-            }
-            
-            // Rescue 条件
-            guard tokens[i].jawVelocity >= 0.1 else {
-                // 嘴不动的不 rescue
-                result[i] = TokenSegment(
-                    text: tokens[i].text,
-                    isUserSpeaker: false,
-                    score: tokens[i].score,
-                    audioTime: tokens[i].audioTime,
-                    jawDelta: tokens[i].jawDelta,
-                    jawVelocity: tokens[i].jawVelocity
-                )
-                continue
-            }
-            
-            // Asymmetric rescue by jawWeight
-            let hw: Int
-            let nTh: Float
-            let lowThreshold: Float
-            
-            if isHighJW[i] {
-                // jw=1.0: 激进 rescue（63% 是 user）
-                hw = 6
-                nTh = 0.15
-                lowThreshold = -5.0
-            } else {
-                // jw=0.2: 保守 rescue
-                hw = 10
-                nTh = 0.6
-                lowThreshold = -1.0
-            }
-            
-            // 投票太低的不 rescue
-            guard votes[i] >= lowThreshold else {
-                result[i] = TokenSegment(
-                    text: tokens[i].text,
-                    isUserSpeaker: false,
-                    score: tokens[i].score,
-                    audioTime: tokens[i].audioTime,
-                    jawDelta: tokens[i].jawDelta,
-                    jawVelocity: tokens[i].jawVelocity
-                )
-                continue
-            }
-            
-            // 计算周围窗口内 user 密度
-            var userCount = 0
-            var totalCount = 0
-            let lo = max(0, i - hw)
-            let hi = min(N - 1, i + hw)
-            for j in lo...hi where j != i {
-                totalCount += 1
-                if pass1Pred[j] { userCount += 1 }
-            }
-            
-            let density = totalCount > 0 ? Float(userCount) / Float(totalCount) : 0
-            let rescued = density >= nTh
-            
+            let isUser = votes[i] >= speakerThreshold
             result[i] = TokenSegment(
                 text: tokens[i].text,
-                isUserSpeaker: rescued,
+                isUserSpeaker: isUser,
                 score: tokens[i].score,
                 audioTime: tokens[i].audioTime,
                 jawDelta: tokens[i].jawDelta,
@@ -522,157 +410,97 @@ class GazeSpeakerEngine {
         return result
     }
 
-    // MARK: - v88 Speaker Classification (autoresearch v88: F1=96.1%)
-    // 投票系统 + penalty 体系 + two-pass rescue
-    // 特征: score, jawDelta, jawVelocity, timeDelta, dtEntropy, burstLen, velStd, scoreStd, scoreGap, scoreSlope, scoreVelAnti, scoreAccel, jawEffMean
+    // MARK: - v112 Speaker Classification (autoresearch v112: F1=87.6%, R=99.6%, S=92.1%)
+    // 10 秒时间窗口 zone 特征 + 投票系统 + finalScore penalty
+    // 42 个版本 autoresearch 确认此为当前特征空间天花板
     
-    /// 计算单个 token 的基础投票分（不含 two-pass rescue）
+    /// 计算单个 token 的投票分（v112 最优配置）
     /// - Parameters:
     ///   - score: 音色匹配距离（越低越像用户）
     ///   - jawDelta: 嘴巴张开幅度
     ///   - jawVelocity: 嘴巴运动速度
     ///   - timeDelta: 与上一个 token 的时间间隔
-    ///   - dtEntropy5: 局部 dt 熔（窗口=5）
-    ///   - burstLen: 连续 dt=0 的 burst 长度
-    ///   - velStd5: 局部 velocity 标准差
-    ///   - scoreStd5: 局部 score 标准差
-    ///   - scoreGap: |finalScore - score|
-    ///   - scoreSlope5: 局部 score 斜率
-    ///   - scoreVelAnti: (1-score)*velocity
-    ///   - scoreAccel: score 加速度
-    ///   - jawEffMean5: 局部 jaw efficiency 均值
+    ///   - jawEff: jaw efficiency (jawVelocity / jawDelta)
+    ///   - scoreVelAnti: (1-score) * jawVelocity
+    ///   - dtZeroRatio5: 窗口内 dt≈0 的比例
+    ///   - jdMean10: 10 秒窗口内 jawDelta 均值
+    ///   - jeMean10: 10 秒窗口内 jawEfficiency 均值
+    ///   - finalScore: STT finalScore（AI lip sync 时高）
     ///   - isHighJW: jawWeight > 0.5
     private func calculateUserScore(
         score: Float, jawDelta: Float, jawVelocity: Float, timeDelta: Float = 0,
-        dtEntropy5: Float = 0, burstLen: Int = 1, velStd5: Float = 0, scoreStd5: Float = 0,
-        scoreGap: Float = 0, scoreSlope5: Float = 0, scoreVelAnti: Float = 0,
-        scoreAccel: Float = 0, jawEffMean5: Float = 0, isHighJW: Bool = false
+        jawEff: Float = 0, scoreVelAnti: Float = 0, dtZeroRatio5: Float = 0,
+        jdMean10: Float = 0, jeMean10: Float = 0, finalScore: Float = 0,
+        isHighJW: Bool = false
     ) -> Float {
         var votes: Float = 0
         
-        // === 正向投票（13 条规则） ===
-        
-        // 1. 音色不匹配（score 低）→ 加分
-        if score < 0.45 {
-            votes += 3.0
-        } else if score < 0.5 {
-            votes += 0.75
-        } else if score < 0.72 {
-            votes += 0.25
+        // === Zone feature: 10 秒窗口内 jaw 活跃度（最强信号） ===
+        if jdMean10 >= 0.03 && jeMean10 >= 5 {
+            votes += 4.5
         }
         
-        // 2. 嘴巴张开幅度大 → 加分
-        if jawDelta >= 0.1 {
-            votes += 0.25
-        } else if jawDelta >= 0.05 {
-            votes += 0.125
-        }
+        // === 正向投票 ===
         
-        // 3. 嘴巴运动速度快 → 加分
+        // 嘴巴运动速度
         if jawVelocity >= 0.5 {
-            votes += 4.0
+            votes += 2.5
         } else if jawVelocity >= 0.1 {
-            votes += 2.0
-        } else if jawVelocity >= 0.05 {
-            votes += 1.0
+            votes += 0.6
         }
         
-        // 4. 时间间隔：用户说话有自然间隔，AI 批量到达 dt≈0
-        if timeDelta >= 0.3 {
+        // 嘴巴张开幅度
+        if jawDelta >= 0.05 {
             votes += 1.5
-        } else if timeDelta >= 0.03 {
-            votes += 0.75
+        } else if jawDelta >= 0.02 {
+            votes += 0.6
         }
         
-        // 5. dt 熔高 → 时间间隔多样，更像用户
-        if dtEntropy5 >= 0.725 {
-            votes += 1.0
-        }
-        
-        // 6. scoreVelAnti: (1-score)*velocity 高 → 音色不匹配且嘴动快
-        if scoreVelAnti >= 0.3 {
-            votes += 0.375
-        }
-        
-        // 7. score 加速度高 → 说话人切换信号
-        if scoreAccel >= 1.5 {
-            votes += 0.75
-        }
-        
-        // 8. jaw efficiency 低 → 嘴动不是纯机械的
-        if jawEffMean5 < 4.5 {
-            votes += 0.25
-        }
-        
-        // 9. scoreGap 大 → 音色匹配不稳定，更像用户
-        if scoreGap >= 0.425 {
-            votes += 1.75
-        }
-        
-        // 10. score 下降趋势 → 用户开始说话
-        if scoreSlope5 < -0.1 {
+        // jaw efficiency 高 → 嘴动有效率
+        if jawEff >= 5 {
             votes += 0.5
         }
         
-        // 11. (1-score)*velocity 高 → 另一个角度的用户信号
-        let sv = (1.0 - score) * jawVelocity
-        if sv >= 0.875 {
-            votes += 0.375
+        // scoreVelAnti: (1-score)*velocity 高 → 音色不匹配且嘴动快
+        if scoreVelAnti >= 0.2 {
+            votes += 0.5
         }
         
-        // === Penalty 体系（9 条规则） ===
-        let isDt0 = timeDelta < 0.001
-        
-        // P1: 中等 score + dt=0 + 嘴动 → AI lip sync 典型模式
-        if score >= 0.3 && score < 0.7 && isDt0 && jawVelocity >= 0.15 {
-            votes -= 1.625
+        // 音色不匹配（score 低）
+        if score < 0.45 {
+            votes += 0.5
         }
         
-        // P2: velocity 标准差高 + dt=0 → AI burst 中速度波动
-        if velStd5 >= 0.6 && isDt0 {
-            votes -= 0.875
+        // 时间间隔：用户说话有自然间隔
+        if timeDelta >= 0.2 {
+            votes += 0.5
         }
         
-        // P3: score 标准差低 + dt=0 → AI 音色稳定
-        if scoreStd5 < 0.12 && isDt0 {
-            votes -= 0.375
+        // dt=0 比例高 → 连续 burst，更像用户说话
+        if dtZeroRatio5 >= 0.5 {
+            votes += 0.5
         }
         
-        // P4: 高投票 + dt=0 + 低 score → 可疑的高分
-        if votes >= 4.25 && isDt0 && score < 0.35 {
-            votes -= 1.75
-        }
+        // === Penalty ===
         
-        // P5: score-velocity mismatch（高 score + 高 velocity + dt=0）
-        if score >= 0.7 && jawVelocity >= 0.4 && isDt0 {
+        // 窗口内 jaw 几乎不动 → 不是用户
+        if jdMean10 < 0.005 {
             votes -= 2.0
         }
         
-        // P6-P7: jawWeight 低时的针对性 penalty（jw=0.2 的 token 90% 是 AI）
-        if !isHighJW {
-            // P6: dt>0 + 高 score → AI 用自然时间间隔但嘴型匹配太好
-            if !isDt0 && score >= 0.75 {
-                votes -= 3.0
-            }
-            // P7: dt=0 + 中 score + 高 velocity → AI burst 中高速嘴动
-            if isDt0 && score >= 0.3 && jawVelocity >= 0.5 {
-                votes -= 1.5
-            }
+        // 窗口内 jaw efficiency 低 → 不是用户
+        if jeMean10 < 1.5 {
+            votes -= 1.0
         }
         
-        // P8: jw=0.2 + dt=0 + 高 velocity + 低 score → 典型 lip sync
-        if !isHighJW && isDt0 && jawVelocity >= 0.4 && score < 0.4 {
-            votes -= 2.0
+        // jawWeight 低 + score 高 → AI lip sync
+        if !isHighJW && score >= 0.7 {
+            votes -= 0.5
         }
         
-        // P9: jw=0.2 + dt=0 + 短 burst → AI 模式（user 说话 burst 更长）
-        if !isHighJW && burstLen <= 2 && isDt0 {
-            votes -= 1.75
-        }
-        
-        // P10: jw=0.2 + 低 dt entropy → 时间间隔均匀 = AI 模式
-        if !isHighJW && dtEntropy5 < 0.75 {
-            votes -= 2.25
+        // finalScore 高 → AI 正在说话（最强 penalty）
+        if finalScore >= 0.7 {
+            votes -= 2.5
         }
         
         return votes
