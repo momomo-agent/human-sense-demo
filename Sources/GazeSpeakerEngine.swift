@@ -360,10 +360,14 @@ class GazeSpeakerEngine {
         let scoreArr = tokens.map { $0.score }
         let scoreStd5 = windowStat(scoreArr, hw: 2, fn: stddev)
         
-        // score gap
-        let scoreGapArr = tokens.map { abs($0.score - $0.score) }  // finalScore not available, use 0
-        // Note: in test data finalScore != score, but in live we don't have finalScore
-        // This feature will be less effective in production but other features compensate
+        // score gap: |finalScore - score| where finalScore = score * jawFactor * velocityFactor * noMovementFactor
+        let scoreGapArr: [Float] = tokens.map { t in
+            let jawFactor = max(Float(0.1), 1.0 - 0.25 * t.jawDelta)
+            let velocityFactor = max(Float(0.1), 1.0 - 2.0 * t.jawVelocity)
+            let noMovementFactor: Float = (t.jawDelta < 0.02 && t.jawVelocity < 0.1) ? 1.5 : 1.0
+            let finalScore = t.score * jawFactor * velocityFactor * noMovementFactor
+            return abs(finalScore - t.score)
+        }
         
         // score slope (window=5)
         let scoreSlope5: [Float] = (0..<N).map { i in
