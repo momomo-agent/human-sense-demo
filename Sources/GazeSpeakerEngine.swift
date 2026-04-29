@@ -276,7 +276,20 @@ class GazeSpeakerEngine {
 
                     // 保存最后一组
                     groupedTokens.append(contentsOf: currentGroup)
-                    self.currentTokens = groupedTokens
+                    
+                    // v146: 防止 iOS STT 修正导致前面的字消失
+                    // 如果新 tokens 的起始时间比已有 currentTokens 晚，
+                    // 保留已有的前缀（iOS STT 有时会修正掉前面的字）
+                    if !self.currentTokens.isEmpty,
+                       let newFirst = groupedTokens.first,
+                       let oldFirst = self.currentTokens.first,
+                       newFirst.audioTime > oldFirst.audioTime {
+                        // 保留 audioTime < newFirst.audioTime 的旧 tokens
+                        let prefix = self.currentTokens.filter { $0.audioTime < newFirst.audioTime }
+                        self.currentTokens = prefix + groupedTokens
+                    } else {
+                        self.currentTokens = groupedTokens
+                    }
                 }
             }
         }
