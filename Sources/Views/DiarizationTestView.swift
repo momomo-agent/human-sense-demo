@@ -189,46 +189,41 @@ struct DiarizationTestView: View {
                 // 中部：详细日志（撑满剩余空间）
                 VStack(spacing: 0) {
                     // 表头（固定）
-                    HStack(spacing: 8) {
-                        Text("时间")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 40, alignment: .trailing)
+                    HStack(spacing: 4) {
+                        Text("")
+                            .frame(width: 12)
 
                         Text("文字")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minWidth: 16, alignment: .leading)
 
-                        Text("Δ")
+                        Spacer(minLength: 2)
+
+                        Text("Jaw")
                             .font(.caption2)
                             .foregroundStyle(.orange)
-                            .frame(width: 35, alignment: .trailing)
-
-                        Text("V")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-                            .frame(width: 35, alignment: .trailing)
+                            .frame(width: 22, alignment: .trailing)
 
                         Text("分数")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                            .frame(width: 35, alignment: .trailing)
+                            .frame(width: 28, alignment: .trailing)
 
-                        Text("终分")
+                        Text("G%")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 35, alignment: .trailing)
+                            .foregroundStyle(.cyan)
+                            .frame(width: 22, alignment: .trailing)
 
-                        Text("✓")
+                        Text("Yaw")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 20, alignment: .center)
+                            .foregroundStyle(.cyan)
+                            .frame(width: 24, alignment: .trailing)
 
-                        Text("状态")
+                        Text("D")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .frame(width: 30, alignment: .center)
+                            .foregroundStyle(.cyan)
+                            .frame(width: 14, alignment: .trailing)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -725,72 +720,49 @@ struct DiarizationTestView: View {
 
         let finalScore = score * jawFactor * velocityFactor * noMovementFactor
 
-        return HStack(spacing: 8) {
-            // 时间
-            Text(String(format: "%.1fs", time))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .frame(width: 40, alignment: .trailing)
-
-            // 文字
-            Text(text)
-                .font(.caption)
-                .foregroundStyle(isUser ? .green : .gray)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // JawDelta
-            Text(String(format: "%.2f", jawDelta))
-                .font(.caption2)
-                .foregroundStyle(.orange)
-                .frame(width: 35, alignment: .trailing)
-
-            // JawVelocity
-            Text(String(format: "%.2f", jawVelocity))
-                .font(.caption2)
-                .foregroundStyle(.yellow)
-                .frame(width: 35, alignment: .trailing)
-
-            // Score
-            Text(String(format: "%.2f", score))
-                .font(.caption2)
-                .foregroundStyle(score < engine.speakerThreshold ? .green : .red)
-                .frame(width: 35, alignment: .trailing)
-
-            // FinalScore
-            Text(String(format: "%.2f", finalScore))
-                .font(.caption2)
-                .foregroundStyle(finalScore < engine.speakerThreshold ? .green : .red)
-                .frame(width: 35, alignment: .trailing)
-
-            // 用户标记
+        return HStack(spacing: 4) {
+            // 用户标记 + 文字
             Text(isUser ? "✓" : "✗")
                 .font(.caption2)
                 .foregroundStyle(isUser ? .green : .gray)
-                .frame(width: 15)
+                .frame(width: 12)
 
-            // Gaze
-            Text(String(format: "%.0f%%", gazeOnScreen * 100))
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(isUser ? .green : .gray)
+                .frame(minWidth: 16, alignment: .leading)
+
+            Spacer(minLength: 2)
+
+            // Jaw
+            Text(String(format: ".%02d", min(99, Int(jawDelta * 100))))
                 .font(.caption2)
-                .foregroundStyle(gazeOnScreen > 0.5 ? .cyan : .gray)
+                .foregroundStyle(.orange)
+                .frame(width: 22, alignment: .trailing)
+
+            // Score → FinalScore
+            Text(String(format: "%.1f", finalScore))
+                .font(.caption2)
+                .foregroundStyle(finalScore < engine.speakerThreshold ? .green : .red)
                 .frame(width: 28, alignment: .trailing)
 
-            // Yaw
+            // Gaze%
+            Text(String(format: "%d", Int(gazeOnScreen * 100)))
+                .font(.caption2)
+                .foregroundStyle(gazeOnScreen > 0.5 ? .cyan : .gray)
+                .frame(width: 22, alignment: .trailing)
+
+            // Yaw (compact)
             Text(String(format: "%.1f", headYaw))
                 .font(.caption2)
                 .foregroundStyle(abs(headYaw) < 0.3 ? .cyan : .gray)
-                .frame(width: 25, alignment: .trailing)
+                .frame(width: 24, alignment: .trailing)
 
-            // Distance
-            Text(String(format: "%.1f", faceDistance))
+            // Dist
+            Text(String(format: ".%d", min(9, Int(faceDistance * 10))))
                 .font(.caption2)
                 .foregroundStyle(faceDistance > 0 && faceDistance < 0.6 ? .cyan : .gray)
-                .frame(width: 25, alignment: .trailing)
-
-            // Final 标记
-            Text(isFinal ? "F" : "S")
-                .font(.caption2)
-                .foregroundStyle(isFinal ? .white : .secondary)
-                .frame(width: 15)
+                .frame(width: 14, alignment: .trailing)
         }
         .padding(.vertical, 2)
     }
