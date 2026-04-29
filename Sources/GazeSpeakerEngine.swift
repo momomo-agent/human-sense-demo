@@ -74,7 +74,8 @@ class GazeSpeakerEngine {
     var debugInfo = DebugInfo()
     var calibrationProgress: Float = 0.0
     var isCalibrating = false
-    var speakerThreshold: Float = 4.75  // 投票阈值（autoresearch v136: F1=86.4% on 2702 tokens）
+    var speakerThreshold: Float = 4.75  // 批量重分类阈值（带 zone features）
+    var perTokenThreshold: Float = -1.25  // 单 token 阈值（autoresearch v140: F1=93.4% on 715 tokens）
     // 投票权重（autoresearch v112 最优配置: R=99.6%, S=92.1%, F1=87.6%）
     var scoreWeight: Float = 0.5  // 音色匹配度权重（score<0.45 → +0.5）
     var jawWeight: Float = 1.5  // 嘴巴张开幅度权重（jd≥0.05 → +1.5）
@@ -547,10 +548,10 @@ class GazeSpeakerEngine {
             votes += 1.0  // 奖励：稳定看屏幕
         }
         
-        // Head yaw 偏转太大 = 脸没朝屏幕
+        // Head yaw 偏转太大 = 脸没朝屏幕 (v140: 降低阈值 0.25→0.15)
         if headYawAbs > 0.4 {
             votes -= 2.0
-        } else if headYawAbs > 0.25 {
+        } else if headYawAbs > 0.15 {
             votes -= 1.0
         }
         
@@ -748,7 +749,7 @@ class GazeSpeakerEngine {
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: cached.score, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= speakerThreshold
+            let isUser = userScore >= perTokenThreshold
             return [makeTokenSegment(
                 text: token.text, isUserSpeaker: isUser, score: cached.score,
                 audioTime: token.startTime, endTime: token.endTime,
@@ -767,7 +768,7 @@ class GazeSpeakerEngine {
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= speakerThreshold
+            let isUser = userScore >= perTokenThreshold
             let segment = makeTokenSegment(
                 text: token.text, isUserSpeaker: isUser, score: result.1,
                 audioTime: token.startTime, endTime: token.endTime,
@@ -789,7 +790,7 @@ class GazeSpeakerEngine {
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= speakerThreshold
+            let isUser = userScore >= perTokenThreshold
             let segment = makeTokenSegment(
                 text: token.text, isUserSpeaker: isUser, score: result.1,
                 audioTime: token.startTime, endTime: token.endTime,
@@ -808,7 +809,7 @@ class GazeSpeakerEngine {
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= speakerThreshold
+            let isUser = userScore >= perTokenThreshold
             let segment = makeTokenSegment(
                 text: token.text, isUserSpeaker: isUser, score: result.1,
                 audioTime: token.startTime, endTime: token.endTime,
@@ -826,7 +827,7 @@ class GazeSpeakerEngine {
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= speakerThreshold
+            let isUser = userScore >= perTokenThreshold
             return [makeTokenSegment(
                 text: token.text, isUserSpeaker: isUser, score: result.1,
                 audioTime: token.startTime, endTime: token.endTime,
@@ -847,7 +848,7 @@ class GazeSpeakerEngine {
             let jawDelta = calculateJawDelta(startTime: charTime, endTime: charEndTime)
             let jawVelocity = calculateJawVelocity(startTime: charTime, endTime: charEndTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= speakerThreshold
+            let isUser = userScore >= perTokenThreshold
 
             if currentSpeaker == nil {
                 currentSpeaker = isUser
@@ -1244,7 +1245,7 @@ class GazeSpeakerEngine {
             "jawVelocity": token.jawVelocity,
             "isUserSpeaker": token.isUserSpeaker,
             "isFinal": isFinal,
-            "speakerThreshold": speakerThreshold,
+            "speakerThreshold": perTokenThreshold,
             "jawWeight": jawWeight,
             "jawVelocityWeight": jawVelocityWeight,
             "timeDeltaWeight": timeDeltaWeight,
