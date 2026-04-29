@@ -64,7 +64,7 @@ class GazeSpeakerEngine {
     var debugInfo = DebugInfo()
     var calibrationProgress: Float = 0.0
     var isCalibrating = false
-    var speakerThreshold: Float = 5.75  // 投票阈值（autoresearch v112: F1=87.6%）
+    var speakerThreshold: Float = 4.75  // 投票阈值（autoresearch v136: F1=86.4% on 2702 tokens）
     // 投票权重（autoresearch v112 最优配置: R=99.6%, S=92.1%, F1=87.6%）
     var scoreWeight: Float = 0.5  // 音色匹配度权重（score<0.45 → +0.5）
     var jawWeight: Float = 1.5  // 嘴巴张开幅度权重（jd≥0.05 → +1.5）
@@ -362,6 +362,23 @@ class GazeSpeakerEngine {
             return mean(vals)
         }
         
+        // 10-second window score mean
+        let scoreMean10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(tokens[j].score)
+                j -= 1
+            }
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(tokens[j].score)
+                j += 1
+            }
+            return mean(vals)
+        }
+        
         // finalScore: 使用 score 和 jaw 数据估算
         // 在生产中 finalScore 来自 STT 引擎，这里用 score * jawFactor 近似
         let finalScoreArr: [Float] = tokens.map { t in
@@ -389,7 +406,8 @@ class GazeSpeakerEngine {
                 jdMean10: jdMean10[i],
                 jeMean10: jeMean10[i],
                 finalScore: finalScoreArr[i],
-                isHighJW: isHighJW[i]
+                isHighJW: isHighJW[i],
+                zoneScoreMean: scoreMean10[i]
             )
         }
         
@@ -431,7 +449,7 @@ class GazeSpeakerEngine {
         score: Float, jawDelta: Float, jawVelocity: Float, timeDelta: Float = 0,
         jawEff: Float = 0, scoreVelAnti: Float = 0, dtZeroRatio5: Float = 0,
         jdMean10: Float = 0, jeMean10: Float = 0, finalScore: Float = 0,
-        isHighJW: Bool = false
+        isHighJW: Bool = false, zoneScoreMean: Float = 0
     ) -> Float {
         var votes: Float = 0
         
@@ -444,7 +462,7 @@ class GazeSpeakerEngine {
         
         // 嘴巴运动速度
         if jawVelocity >= 0.5 {
-            votes += 2.5
+            votes += 1.5
         } else if jawVelocity >= 0.1 {
             votes += 0.6
         }
@@ -493,14 +511,14 @@ class GazeSpeakerEngine {
             votes -= 1.0
         }
         
-        // jawWeight 低 + score 高 → AI lip sync
-        if !isHighJW && score >= 0.7 {
-            votes -= 0.5
-        }
-        
         // finalScore 高 → AI 正在说话（最强 penalty）
         if finalScore >= 0.7 {
-            votes -= 2.5
+            votes -= 3.5
+        }
+        
+        // 窗口内平均 score 高 → 周围都是 AI 音色
+        if zoneScoreMean >= 0.7 {
+            votes -= 1.5
         }
         
         return votes
