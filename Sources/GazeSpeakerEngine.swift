@@ -361,9 +361,14 @@ class GazeSpeakerEngine {
         let scoreStd5 = windowStat(scoreArr, hw: 2, fn: stddev)
         
         // score gap: |finalScore - score| where finalScore = score * jawFactor * velocityFactor * noMovementFactor
+        // jawWeight/jawVelocityWeight are per-token fields (0.2 or 1.0), not engine constants
         let scoreGapArr: [Float] = tokens.map { t in
-            let jawFactor = max(Float(0.1), 1.0 - 0.25 * t.jawDelta)
-            let velocityFactor = max(Float(0.1), 1.0 - 2.0 * t.jawVelocity)
+            // In production, jawWeight comes from ARKit blendshape confidence
+            // jawVelocityWeight mirrors jawWeight (same 0.2/1.0 binary)
+            let jw = t.jawDelta > 0.05 || t.jawVelocity > 0.3 ? Float(1.0) : Float(0.2)
+            let jvw = jw  // jawVelocityWeight mirrors jawWeight
+            let jawFactor = max(Float(0.1), 1.0 - jw * t.jawDelta)
+            let velocityFactor = max(Float(0.1), 1.0 - jvw * t.jawVelocity)
             let noMovementFactor: Float = (t.jawDelta < 0.02 && t.jawVelocity < 0.1) ? 1.5 : 1.0
             let finalScore = t.score * jawFactor * velocityFactor * noMovementFactor
             return abs(finalScore - t.score)
