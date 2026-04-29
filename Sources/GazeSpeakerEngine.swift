@@ -56,6 +56,11 @@ class GazeSpeakerEngine {
         let audioTime: Double
         let jawDelta: Float  // 时间范围内嘴的变化幅度
         let jawVelocity: Float  // 嘴的变化速度（delta/时间）
+        // Gaze/Head/Position features (v137)
+        var gazeOnScreen: Float = 0  // 时间窗口内看屏幕的比例 [0,1]
+        var headYaw: Float = 0       // 平均 head yaw (radians)
+        var headPitch: Float = 0     // 平均 head pitch (radians)
+        var faceDistance: Float = 0  // 平均距离 (meters)
     }
 
     var phase: Phase = .calibration
@@ -98,6 +103,7 @@ class GazeSpeakerEngine {
     private var tokenColorMap: [String: (isUser: Bool, score: Float)] = [:]  // token key -> (isUser, score)
     private var speakerHistory: [(timestamp: Double, distance: Float)] = []  // 记录 speaker 距离历史
     private var jawHistory: [(timestamp: Double, jawOpen: Float)] = []  // 记录 jaw 开合历史
+    private var gazeHistory: [(timestamp: Double, onScreen: Bool, yaw: Float, pitch: Float, distance: Float)] = []  // gaze/head/position 历史
     private var audioStreamStartTime: Date?  // 音频流开始时间
 
     private var userEmbeddings: [[Float]] = [] {
@@ -392,6 +398,55 @@ class GazeSpeakerEngine {
         // isHighJW
         let isHighJW: [Bool] = tokens.map { $0.jawDelta > 0.05 || $0.jawVelocity > 0.3 }
         
+        // Gaze zone features: 10s 窗口内平均 gazeOnScreen / headYaw / faceDistance
+        let gazeOnScreen10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(tokens[j].gazeOnScreen)
+                j -= 1
+            }
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(tokens[j].gazeOnScreen)
+                j += 1
+            }
+            return mean(vals)
+        }
+        
+        let headYawAbs10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(abs(tokens[j].headYaw))
+                j -= 1
+            }
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(abs(tokens[j].headYaw))
+                j += 1
+            }
+            return mean(vals)
+        }
+        
+        let faceDistance10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(tokens[j].faceDistance)
+                j -= 1
+            }
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(tokens[j].faceDistance)
+                j += 1
+            }
+            return mean(vals)
+        }
+        
         // === 计算投票 ===
         var votes = [Float](repeating: 0, count: N)
         for i in 0..<N {
@@ -407,7 +462,10 @@ class GazeSpeakerEngine {
                 jeMean10: jeMean10[i],
                 finalScore: finalScoreArr[i],
                 isHighJW: isHighJW[i],
-                zoneScoreMean: scoreMean10[i]
+                zoneScoreMean: scoreMean10[i],
+                gazeOnScreen: gazeOnScreen10[i],
+                headYawAbs: headYawAbs10[i],
+                faceDistance: faceDistance10[i]
             )
         }
         
@@ -421,7 +479,11 @@ class GazeSpeakerEngine {
                 score: tokens[i].score,
                 audioTime: tokens[i].audioTime,
                 jawDelta: tokens[i].jawDelta,
-                jawVelocity: tokens[i].jawVelocity
+                jawVelocity: tokens[i].jawVelocity,
+                gazeOnScreen: tokens[i].gazeOnScreen,
+                headYaw: tokens[i].headYaw,
+                headPitch: tokens[i].headPitch,
+                faceDistance: tokens[i].faceDistance
             )
         }
         
@@ -449,9 +511,33 @@ class GazeSpeakerEngine {
         score: Float, jawDelta: Float, jawVelocity: Float, timeDelta: Float = 0,
         jawEff: Float = 0, scoreVelAnti: Float = 0, dtZeroRatio5: Float = 0,
         jdMean10: Float = 0, jeMean10: Float = 0, finalScore: Float = 0,
-        isHighJW: Bool = false, zoneScoreMean: Float = 0
+        isHighJW: Bool = false, zoneScoreMean: Float = 0,
+        gazeOnScreen: Float = 1, headYawAbs: Float = 0, headPitchAbs: Float = 0, faceDistance: Float = 0.5
     ) -> Float {
         var votes: Float = 0
+        
+        // === Gaze gate: 不看屏幕 = 不是对 AI 说话 (v137) ===
+        if gazeOnScreen < 0.3 {
+            votes -= 4.0  // 强 penalty：大部分时间没看屏幕
+        } else if gazeOnScreen < 0.5 {
+            votes -= 2.0  // 中等 penalty
+        } else if gazeOnScreen >= 0.8 {
+            votes += 1.0  // 奖励：稳定看屏幕
+        }
+        
+        // Head yaw 偏转太大 = 脸没朝屏幕
+        if headYawAbs > 0.4 {
+            votes -= 2.0
+        } else if headYawAbs > 0.25 {
+            votes -= 1.0
+        }
+        
+        // 距离太远 = 不太可能在对屏幕说话
+        if faceDistance > 1.5 {
+            votes -= 1.5
+        } else if faceDistance > 1.0 {
+            votes -= 0.5
+        }
         
         // === Zone feature: 10 秒窗口内 jaw 活跃度（最强信号） ===
         if jdMean10 >= 0.03 && jeMean10 >= 5 {
@@ -566,6 +652,60 @@ class GazeSpeakerEngine {
         return maxVelocity
     }
 
+    // 计算时间范围内看屏幕的比例
+    private func calculateGazeOnScreenRatio(startTime: Double, endTime: Double) -> Float {
+        let expandedStart = max(0, startTime - jawMargin)
+        let expandedEnd = endTime + jawMargin
+        let relevant = gazeHistory.filter { $0.timestamp >= expandedStart && $0.timestamp <= expandedEnd }
+        guard !relevant.isEmpty else { return 0 }
+        let onCount = relevant.filter { $0.onScreen }.count
+        return Float(onCount) / Float(relevant.count)
+    }
+
+    // 计算时间范围内平均 head yaw
+    private func calculateMeanHeadYaw(startTime: Double, endTime: Double) -> Float {
+        let expandedStart = max(0, startTime - jawMargin)
+        let expandedEnd = endTime + jawMargin
+        let relevant = gazeHistory.filter { $0.timestamp >= expandedStart && $0.timestamp <= expandedEnd }
+        guard !relevant.isEmpty else { return 0 }
+        return relevant.map { $0.yaw }.reduce(0, +) / Float(relevant.count)
+    }
+
+    // 计算时间范围内平均 head pitch
+    private func calculateMeanHeadPitch(startTime: Double, endTime: Double) -> Float {
+        let expandedStart = max(0, startTime - jawMargin)
+        let expandedEnd = endTime + jawMargin
+        let relevant = gazeHistory.filter { $0.timestamp >= expandedStart && $0.timestamp <= expandedEnd }
+        guard !relevant.isEmpty else { return 0 }
+        return relevant.map { $0.pitch }.reduce(0, +) / Float(relevant.count)
+    }
+
+    // 计算时间范围内平均距离
+    private func calculateMeanFaceDistance(startTime: Double, endTime: Double) -> Float {
+        let expandedStart = max(0, startTime - jawMargin)
+        let expandedEnd = endTime + jawMargin
+        let relevant = gazeHistory.filter { $0.timestamp >= expandedStart && $0.timestamp <= expandedEnd }
+        guard !relevant.isEmpty else { return 0 }
+        return relevant.map { $0.distance }.reduce(0, +) / Float(relevant.count)
+    }
+
+    // 创建 TokenSegment 并自动填充 gaze/head/position 数据
+    private func makeTokenSegment(
+        text: String, isUserSpeaker: Bool, score: Float,
+        audioTime: Double, endTime: Double,
+        jawDelta: Float, jawVelocity: Float
+    ) -> TokenSegment {
+        var seg = TokenSegment(
+            text: text, isUserSpeaker: isUserSpeaker, score: score,
+            audioTime: audioTime, jawDelta: jawDelta, jawVelocity: jawVelocity
+        )
+        seg.gazeOnScreen = calculateGazeOnScreenRatio(startTime: audioTime, endTime: endTime)
+        seg.headYaw = calculateMeanHeadYaw(startTime: audioTime, endTime: endTime)
+        seg.headPitch = calculateMeanHeadPitch(startTime: audioTime, endTime: endTime)
+        seg.faceDistance = calculateMeanFaceDistance(startTime: audioTime, endTime: endTime)
+        return seg
+    }
+
     // 根据 token 时间范围内的 speaker 变化拆分 token
     private func splitTokenBySpeakerChange(_ token: SpeechToken, isFinal: Bool) -> [TokenSegment] {
         let tokenKey = token.text + "_\(token.startTime)_\(token.endTime)"
@@ -580,13 +720,10 @@ class GazeSpeakerEngine {
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: cached.score, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
-            return [TokenSegment(
-                text: token.text,
-                isUserSpeaker: isUser,
-                score: cached.score,
-                audioTime: token.startTime,
-                jawDelta: jawDelta,
-                jawVelocity: jawVelocity
+            return [makeTokenSegment(
+                text: token.text, isUserSpeaker: isUser, score: cached.score,
+                audioTime: token.startTime, endTime: token.endTime,
+                jawDelta: jawDelta, jawVelocity: jawVelocity
             )]
         }
 
@@ -602,13 +739,10 @@ class GazeSpeakerEngine {
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
-            let segment = TokenSegment(
-                text: token.text,
-                isUserSpeaker: isUser,
-                score: result.1,
-                audioTime: token.startTime,
-                jawDelta: jawDelta,
-                jawVelocity: jawVelocity
+            let segment = makeTokenSegment(
+                text: token.text, isUserSpeaker: isUser, score: result.1,
+                audioTime: token.startTime, endTime: token.endTime,
+                jawDelta: jawDelta, jawVelocity: jawVelocity
             )
             if isFinal {
                 tokenColorMap[tokenKey] = (isUser: isUser, score: result.1)
@@ -627,13 +761,10 @@ class GazeSpeakerEngine {
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
-            let segment = TokenSegment(
-                text: token.text,
-                isUserSpeaker: isUser,
-                score: result.1,
-                audioTime: token.startTime,
-                jawDelta: jawDelta,
-                jawVelocity: jawVelocity
+            let segment = makeTokenSegment(
+                text: token.text, isUserSpeaker: isUser, score: result.1,
+                audioTime: token.startTime, endTime: token.endTime,
+                jawDelta: jawDelta, jawVelocity: jawVelocity
             )
             if isFinal {
                 tokenColorMap[tokenKey] = (isUser: isUser, score: result.1)
@@ -649,13 +780,10 @@ class GazeSpeakerEngine {
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
-            let segment = TokenSegment(
-                text: token.text,
-                isUserSpeaker: isUser,
-                score: result.1,
-                audioTime: token.startTime,
-                jawDelta: jawDelta,
-                jawVelocity: jawVelocity
+            let segment = makeTokenSegment(
+                text: token.text, isUserSpeaker: isUser, score: result.1,
+                audioTime: token.startTime, endTime: token.endTime,
+                jawDelta: jawDelta, jawVelocity: jawVelocity
             )
             tokenColorMap[tokenKey] = (isUser: isUser, score: result.1)
             return [segment]
@@ -670,13 +798,10 @@ class GazeSpeakerEngine {
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
             let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
             let isUser = userScore >= speakerThreshold
-            return [TokenSegment(
-                text: token.text,
-                isUserSpeaker: isUser,
-                score: result.1,
-                audioTime: token.startTime,
-                jawDelta: jawDelta,
-                jawVelocity: jawVelocity
+            return [makeTokenSegment(
+                text: token.text, isUserSpeaker: isUser, score: result.1,
+                audioTime: token.startTime, endTime: token.endTime,
+                jawDelta: jawDelta, jawVelocity: jawVelocity
             )]
         }
 
@@ -705,13 +830,10 @@ class GazeSpeakerEngine {
                 let segmentEndTime = charTime
                 let segmentJawDelta = calculateJawDelta(startTime: currentStartTime, endTime: segmentEndTime)
                 let segmentJawVelocity = calculateJawVelocity(startTime: currentStartTime, endTime: segmentEndTime)
-                segments.append(TokenSegment(
-                    text: currentText,
-                    isUserSpeaker: currentSpeaker!,
-                    score: result.1,
-                    audioTime: currentStartTime,
-                    jawDelta: segmentJawDelta,
-                    jawVelocity: segmentJawVelocity
+                segments.append(makeTokenSegment(
+                    text: currentText, isUserSpeaker: currentSpeaker!, score: result.1,
+                    audioTime: currentStartTime, endTime: segmentEndTime,
+                    jawDelta: segmentJawDelta, jawVelocity: segmentJawVelocity
                 ))
                 currentText = String(char)
                 currentSpeaker = isUser
@@ -724,13 +846,10 @@ class GazeSpeakerEngine {
             let result = querySpeakerAtTime(currentStartTime)
             let jawDelta = calculateJawDelta(startTime: currentStartTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: currentStartTime, endTime: token.endTime)
-            segments.append(TokenSegment(
-                text: currentText,
-                isUserSpeaker: speaker,
-                score: result.1,
-                audioTime: currentStartTime,
-                jawDelta: jawDelta,
-                jawVelocity: jawVelocity
+            segments.append(makeTokenSegment(
+                text: currentText, isUserSpeaker: speaker, score: result.1,
+                audioTime: currentStartTime, endTime: token.endTime,
+                jawDelta: jawDelta, jawVelocity: jawVelocity
             ))
         }
 
@@ -754,12 +873,23 @@ class GazeSpeakerEngine {
         // 记录 jaw 数据到历史（每次音频回调都记录，实现高频采样）
         if phase == .live, let startTime = engine.sttManager.audioStreamStartTime {
             let elapsed = Date().timeIntervalSince(startTime)
-            let jawOpen = engine.humanState.face.jawOpen
+            let face = engine.humanState.face
+            let jawOpen = face.jawOpen
             jawHistory.append((timestamp: elapsed, jawOpen: jawOpen))
+            
+            // 记录 gaze/head/position 数据
+            gazeHistory.append((
+                timestamp: elapsed,
+                onScreen: face.isLookingAtScreen,
+                yaw: face.headYaw,
+                pitch: face.headPitch,
+                distance: face.distanceFromCamera
+            ))
 
             // 只保留最近 10 秒的历史
             let cutoff = elapsed - 10.0
             jawHistory.removeAll { $0.timestamp < cutoff }
+            gazeHistory.removeAll { $0.timestamp < cutoff }
         }
 
         // 缓存音频
@@ -1048,6 +1178,7 @@ class GazeSpeakerEngine {
         currentTokens = []
         tokenColorMap = [:]
         speakerHistory = []
+        gazeHistory = []
         lastTokenAudioTime = 0
     }
     
@@ -1086,6 +1217,11 @@ class GazeSpeakerEngine {
             "timeDeltaWeight": timeDeltaWeight,
             "noJawPenalty": noJawPenalty,
             "jawMargin": jawMargin,
+            // Gaze/Head/Position (v137)
+            "gazeOnScreen": token.gazeOnScreen,
+            "headYaw": token.headYaw,
+            "headPitch": token.headPitch,
+            "faceDistance": token.faceDistance,
             // 计算 userScore
             "userScore": calculateUserScore(score: token.score, jawDelta: token.jawDelta, jawVelocity: token.jawVelocity)
         ]
