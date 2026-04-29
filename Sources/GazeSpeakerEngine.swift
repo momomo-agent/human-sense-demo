@@ -20,6 +20,11 @@ class GazeSpeakerEngine {
         var userEmbeddingStatus: String = "未标定"
         var currentJawDelta: Float = 0.0
         var currentJawVelocity: Float = 0.0
+        // v137 gaze/head/position
+        var gazeOnScreen: Float = 0.0
+        var headYaw: Float = 0.0
+        var headPitch: Float = 0.0
+        var faceDistance: Float = 0.0
     }
 
     struct TranscriptSegment: Identifiable {
@@ -1062,6 +1067,10 @@ class GazeSpeakerEngine {
         let face = engine.humanState.face
         debugInfo.isLookingAtScreen = face.isLookingAtScreen
         debugInfo.isHeadForward = face.headOrientation.isFacingForward
+        debugInfo.gazeOnScreen = face.isLookingAtScreen ? 1.0 : 0.0
+        debugInfo.headYaw = face.headYaw
+        debugInfo.headPitch = face.headPitch
+        debugInfo.faceDistance = face.distanceFromCamera
         
         // 1.5. 检查 face tracking 状态：如果最近 1 秒嘴巴完全没动，认为 tracking 丢失
         if let startTime = engine.sttManager.audioStreamStartTime {

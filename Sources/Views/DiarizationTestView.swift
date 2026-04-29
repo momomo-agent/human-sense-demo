@@ -422,6 +422,14 @@ struct DiarizationTestView: View {
             debugRow(label: "看屏幕", value: engine.debugInfo.isLookingAtScreen ? "✅ 是" : "❌ 否")
             debugRow(label: "头朝前", value: engine.debugInfo.isHeadForward ? "✅ 是" : "❌ 否")
             debugRow(
+                label: "Gaze",
+                value: String(format: "%.0f%% | Y%.2f P%.2f | %.1fm",
+                    engine.debugInfo.gazeOnScreen * 100,
+                    engine.debugInfo.headYaw,
+                    engine.debugInfo.headPitch,
+                    engine.debugInfo.faceDistance)
+            )
+            debugRow(
                 label: "Speaker",
                 value: engine.debugInfo.speakerMatch ? "✅ 匹配" : "❌ 不匹配"
             )
