@@ -262,7 +262,10 @@ struct DiarizationTestView: View {
                                             jawVelocity: token.jawVelocity,
                                             score: token.score,
                                             isUser: token.isUserSpeaker,
-                                            isFinal: group.isFinal
+                                            isFinal: group.isFinal,
+                                            gazeOnScreen: token.gazeOnScreen,
+                                            headYaw: token.headYaw,
+                                            faceDistance: token.faceDistance
                                         )
                                     }
                                 }
@@ -294,7 +297,10 @@ struct DiarizationTestView: View {
                                             jawVelocity: token.jawVelocity,
                                             score: token.score,
                                             isUser: token.isUserSpeaker,
-                                            isFinal: false
+                                            isFinal: false,
+                                            gazeOnScreen: token.gazeOnScreen,
+                                            headYaw: token.headYaw,
+                                            faceDistance: token.faceDistance
                                         )
                                     }
                                 }
@@ -704,7 +710,7 @@ struct DiarizationTestView: View {
         .font(.caption)
     }
 
-    private func detailRow(time: Double, text: String, jawDelta: Float, jawVelocity: Float, score: Float, isUser: Bool, isFinal: Bool) -> some View {
+    private func detailRow(time: Double, text: String, jawDelta: Float, jawVelocity: Float, score: Float, isUser: Bool, isFinal: Bool, gazeOnScreen: Float = 0, headYaw: Float = 0, faceDistance: Float = 0) -> some View {
         // 使用与 GazeSpeakerEngine 相同的计算逻辑（乘法权重）
         var jawFactor: Float = 1.0 - engine.jawWeight * jawDelta
         var velocityFactor: Float = 1.0 - engine.jawVelocityWeight * jawVelocity
@@ -761,6 +767,24 @@ struct DiarizationTestView: View {
                 .font(.caption2)
                 .foregroundStyle(isUser ? .green : .gray)
                 .frame(width: 15)
+
+            // Gaze
+            Text(String(format: "%.0f%%", gazeOnScreen * 100))
+                .font(.caption2)
+                .foregroundStyle(gazeOnScreen > 0.5 ? .cyan : .gray)
+                .frame(width: 28, alignment: .trailing)
+
+            // Yaw
+            Text(String(format: "%.1f", headYaw))
+                .font(.caption2)
+                .foregroundStyle(abs(headYaw) < 0.3 ? .cyan : .gray)
+                .frame(width: 25, alignment: .trailing)
+
+            // Distance
+            Text(String(format: "%.1f", faceDistance))
+                .font(.caption2)
+                .foregroundStyle(faceDistance > 0 && faceDistance < 0.6 ? .cyan : .gray)
+                .frame(width: 25, alignment: .trailing)
 
             // Final 标记
             Text(isFinal ? "F" : "S")
