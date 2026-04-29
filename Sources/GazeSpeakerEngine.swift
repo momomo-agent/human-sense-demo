@@ -757,13 +757,12 @@ class GazeSpeakerEngine {
             )]
         }
 
-        // 查询 token 时间范围内的 speaker 历史
-        let relevantHistory = speakerHistory.filter {
-            $0.timestamp >= token.startTime && $0.timestamp <= token.endTime
-        }
-
-        // 如果没有历史记录或只有一个说话人，不拆分
-        if relevantHistory.isEmpty {
+        // v144: Streaming 阶段始终按字符拆分，每个字符独立做 diarization
+        // 这样即使 iOS 给的是一整句话，也能逐字过滤掉 AI 的部分
+        if !isFinal && token.text.count > 1 {
+            // 直接走 per-character split（下面的代码）
+        } else {
+            // Final 阶段或单字符：不拆分，整体评估
             let result = querySpeakerAtTime(token.startTime)
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
@@ -780,46 +779,7 @@ class GazeSpeakerEngine {
             return [segment]
         }
 
-        // 检查时间范围内是否有 speaker 变化
-        let speakerChanges = relevantHistory.map { $0.distance < speakerThreshold }
-        let hasChange = speakerChanges.first != speakerChanges.last
-
-        if !hasChange {
-            // 没有变化，不拆分
-            let result = querySpeakerAtTime(token.startTime)
-            let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
-            let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= perTokenThreshold
-            let segment = makeTokenSegment(
-                text: token.text, isUserSpeaker: isUser, score: result.1,
-                audioTime: token.startTime, endTime: token.endTime,
-                jawDelta: jawDelta, jawVelocity: jawVelocity
-            )
-            if isFinal {
-                tokenColorMap[tokenKey] = (isUser: isUser, score: result.1)
-            }
-            return [segment]
-        }
-
-        // 有 speaker 变化
-        if isFinal {
-            // Final 阶段：不拆分，只用开始时间的 speaker
-            let result = querySpeakerAtTime(token.startTime)
-            let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
-            let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= perTokenThreshold
-            let segment = makeTokenSegment(
-                text: token.text, isUserSpeaker: isUser, score: result.1,
-                audioTime: token.startTime, endTime: token.endTime,
-                jawDelta: jawDelta, jawVelocity: jawVelocity
-            )
-            tokenColorMap[tokenKey] = (isUser: isUser, score: result.1)
-            return [segment]
-        }
-
-        // Stream 阶段且有 speaker 变化，按字符平均拆分
+        // Stream 阶段：按字符平均拆分，每个字符独立判断 speaker
         let duration = token.endTime - token.startTime
         let charCount = token.text.count
         guard charCount > 1 else {
