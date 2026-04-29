@@ -92,61 +92,61 @@ class GazeSpeakerEngine {
     // MARK: - Delegated thresholds (proxy to attributor)
 
     var speakerThreshold: Float {
-        get { attributor.speakerThreshold }
-        set { attributor.speakerThreshold = newValue }
+        get { attributor?.speakerThreshold ?? 5.75 }
+        set { attributor?.speakerThreshold = newValue }
     }
     var perTokenThreshold: Float {
-        get { attributor.perTokenThreshold }
-        set { attributor.perTokenThreshold = newValue }
+        get { attributor?.perTokenThreshold ?? 5.75 }
+        set { attributor?.perTokenThreshold = newValue }
     }
     var scoreWeight: Float {
-        get { attributor.scoreWeight }
-        set { attributor.scoreWeight = newValue }
+        get { attributor?.scoreWeight ?? 0.5 }
+        set { attributor?.scoreWeight = newValue }
     }
     var jawWeight: Float {
-        get { attributor.jawWeight }
-        set { attributor.jawWeight = newValue }
+        get { attributor?.jawWeight ?? 1.5 }
+        set { attributor?.jawWeight = newValue }
     }
     var jawVelocityWeight: Float {
-        get { attributor.jawVelocityWeight }
-        set { attributor.jawVelocityWeight = newValue }
+        get { attributor?.jawVelocityWeight ?? 2.5 }
+        set { attributor?.jawVelocityWeight = newValue }
     }
     var timeDeltaWeight: Float {
-        get { attributor.timeDeltaWeight }
-        set { attributor.timeDeltaWeight = newValue }
+        get { attributor?.timeDeltaWeight ?? 0.5 }
+        set { attributor?.timeDeltaWeight = newValue }
     }
     var contextWeight: Float {
-        get { attributor.contextWeight }
-        set { attributor.contextWeight = newValue }
+        get { attributor?.contextWeight ?? 0.25 }
+        set { attributor?.contextWeight = newValue }
     }
     var jawMargin: Double {
-        get { attributor.jawMargin }
-        set { attributor.jawMargin = newValue }
+        get { attributor?.jawMargin ?? 0.1 }
+        set { attributor?.jawMargin = newValue }
     }
     var noJawPenalty: Float {
-        get { attributor.noJawPenalty }
-        set { attributor.noJawPenalty = newValue }
+        get { attributor?.noJawPenalty ?? 0.5 }
+        set { attributor?.noJawPenalty = newValue }
     }
     var enableIncrementalLearning: Bool {
-        get { attributor.enableIncrementalLearning }
-        set { attributor.enableIncrementalLearning = newValue }
+        get { attributor?.enableIncrementalLearning ?? true }
+        set { attributor?.enableIncrementalLearning = newValue }
     }
     var learningThreshold: Float {
-        get { attributor.learningThreshold }
-        set { attributor.learningThreshold = newValue }
+        get { attributor?.learningThreshold ?? 4.0 }
+        set { attributor?.learningThreshold = newValue }
     }
     var learningRate: Float {
-        get { attributor.learningRate }
-        set { attributor.learningRate = newValue }
+        get { attributor?.learningRate ?? 0.3 }
+        set { attributor?.learningRate = newValue }
     }
-    var learningCount: Int { attributor.learningCount }
-    var currentCalibrationSentence: Int { attributor.currentCalibrationSentence }
-    var calibrationSentences: [String] { attributor.calibrationSentences }
+    var learningCount: Int { attributor?.learningCount ?? 0 }
+    var currentCalibrationSentence: Int { attributor?.currentCalibrationSentence ?? 0 }
+    var calibrationSentences: [String] { attributor?.calibrationSentences ?? [] }
 
     // MARK: - Private
 
     private let engine: HumanStateEngine
-    private var attributor: GazeSpeakerAttributor!
+    private var attributor: GazeSpeakerAttributor?
     private var audioStreamStartTime: Date?
 
     private let logFileURL: URL = {
@@ -168,6 +168,7 @@ class GazeSpeakerEngine {
 
     private func syncFromAttributor() {
         // Sync initial state from attributor
+        guard let attributor = attributor else { return }
         if attributor.hasEmbedding {
             phase = .live
             debugInfo.userEmbeddingStatus = "✅ 已加载 (\(attributor.embeddingCount) 个样本)"
@@ -185,7 +186,8 @@ class GazeSpeakerEngine {
 
             Task { @MainActor in
                 // Delegate to attributor
-                let speakerTokens = self.attributor.processTokens(tokens, isFinal: isFinal)
+                guard let attributor = self.attributor else { return }
+                let speakerTokens = attributor.processTokens(tokens, isFinal: isFinal)
                 let newTokens = speakerTokens.map { TokenSegment(from: $0) }
 
                 if isFinal {
@@ -288,14 +290,14 @@ class GazeSpeakerEngine {
         if !isCalibrating, phase == .live,
            let startTime = engine.sttManager.audioStreamStartTime {
             let elapsed = Date().timeIntervalSince(startTime)
-            attributor.recordSensorData(face: face, audioStreamElapsed: elapsed)
+            attributor?.recordSensorData(face: face, audioStreamElapsed: elapsed)
         }
 
         // Delegate audio processing
         let elapsed: Double? = engine.sttManager.audioStreamStartTime.map {
             Date().timeIntervalSince($0)
         }
-        attributor.processAudioForEmbedding(samples, face: face, audioStreamElapsed: elapsed)
+        attributor?.processAudioForEmbedding(samples, face: face, audioStreamElapsed: elapsed)
 
         // Sync debug info from attributor + face
         syncDebugInfo(face: face)
@@ -308,24 +310,25 @@ class GazeSpeakerEngine {
         debugInfo.headYaw = face.headYaw
         debugInfo.headPitch = face.headPitch
         debugInfo.faceDistance = face.distanceFromCamera
-        debugInfo.speakerMatch = attributor.speakerMatch
-        debugInfo.speakerDistance = attributor.speakerDistance
+        debugInfo.speakerMatch = attributor?.speakerMatch ?? false
+        debugInfo.speakerDistance = attributor?.speakerDistance ?? 1.0
 
         // Sync calibration state
-        isCalibrating = attributor.isCalibrating
-        calibrationProgress = attributor.calibrationProgress
+        isCalibrating = attributor?.isCalibrating ?? false
+        calibrationProgress = attributor?.calibrationProgress ?? 0
 
         // Sync phase
-        switch attributor.phase {
+        switch attributor?.phase {
         case .calibration: phase = .calibration
         case .live: phase = .live
+        case .none: break
         }
 
         // Update embedding status
-        if attributor.hasEmbedding {
-            debugInfo.userEmbeddingStatus = "✅ 已标定 (\(attributor.embeddingCount) 个样本)"
+        if attributor?.hasEmbedding == true {
+            debugInfo.userEmbeddingStatus = "✅ 已标定 (\(attributor?.embeddingCount ?? 0) 个样本)"
         } else if isCalibrating {
-            debugInfo.userEmbeddingStatus = "标定中 (\(attributor.currentCalibrationSentence + 1)/\(attributor.calibrationSentences.count))..."
+            debugInfo.userEmbeddingStatus = "标定中 (\((attributor?.currentCalibrationSentence ?? 0) + 1)/\(attributor?.calibrationSentences.count ?? 0))..."
         }
 
         // Jaw delta/velocity from recent history
@@ -340,35 +343,35 @@ class GazeSpeakerEngine {
     // MARK: - Calibration (delegates to attributor)
 
     func startCalibration() {
-        attributor.startCalibration()
+        attributor?.startCalibration()
         isCalibrating = true
         debugInfo.userEmbeddingStatus = "标定中 (1/\(calibrationSentences.count))..."
     }
 
     func startAdditionalCalibration() {
-        attributor.startAdditionalCalibration()
+        attributor?.startAdditionalCalibration()
         isCalibrating = true
         debugInfo.userEmbeddingStatus = "追加标定中..."
     }
 
     func stopAdditionalCalibration() {
-        attributor.stopAdditionalCalibration()
+        attributor?.stopAdditionalCalibration()
         isCalibrating = false
-        if attributor.hasEmbedding {
-            debugInfo.userEmbeddingStatus = "✅ 已标定 (\(attributor.embeddingCount) 个样本)"
+        if attributor?.hasEmbedding == true {
+            debugInfo.userEmbeddingStatus = "✅ 已标定 (\(attributor?.embeddingCount ?? 0) 个样本)"
         }
     }
 
     func resetToInitialEmbedding() {
-        attributor.resetToInitialEmbedding()
+        attributor?.resetToInitialEmbedding()
     }
 
     func reset() {
-        attributor.reset()
+        attributor?.reset()
     }
 
     func deleteEmbedding() {
-        attributor.deleteEmbedding()
+        attributor?.deleteEmbedding()
         phase = .calibration
         debugInfo.userEmbeddingStatus = "未标定"
     }
@@ -376,7 +379,7 @@ class GazeSpeakerEngine {
     func clearTranscript() {
         transcriptSegments = []
         currentTokens = []
-        attributor.reset()
+        attributor?.reset()
     }
 
     // MARK: - Logging
