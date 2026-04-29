@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		025692AF507A8292A1F6F472 /* SimpleSpeakerEmbeddingExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B382995D2F5C122C4CCC39 /* SimpleSpeakerEmbeddingExtractor.swift */; };
 		04573A9F61AF7D9951435D05 /* DistanceIndicatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424122EBE5A629B2FDB21C9A /* DistanceIndicatorView.swift */; };
 		06FFAB846ED49D94A68182C0 /* DebugSignalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C0B78854D1FF855FB853BBE /* DebugSignalsView.swift */; };
 		0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */; };
@@ -19,6 +18,7 @@
 		401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C62AE1C678ABC66EEB763897 /* MouthVisualizerView.swift */; };
 		43CE18D14C50484C34F5E25E /* GazeSpeakerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */; };
 		4B9B56BB1BD6C72FCE4C1582 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 11A9EACB85681071ED8E2882 /* FluidAudio */; };
+		5FE3C23B6CC1CDDEF1C249EF /* GazeSpeakerEngine.swift.bak in Resources */ = {isa = PBXBuildFile; fileRef = EDCF98274091D3018ADDC1B5 /* GazeSpeakerEngine.swift.bak */; };
 		61CB9895677F080306EC5EB1 /* HumanSenseKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6E6263EEB95F9E33FC15C8BA /* HumanSenseKit */; };
 		61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */; };
 		6BF783B67DF90DB28A67C069 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D2E68CB3026920745495F2 /* App.swift */; };
@@ -46,7 +46,6 @@
 		681CC4CC2C55CEA6423C2798 /* TokenTableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenTableView.swift; sourceTree = "<group>"; };
 		6D09A00676DDECBA81264A39 /* HeadOrientationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadOrientationView.swift; sourceTree = "<group>"; };
 		8FD7B01A53B269D2763DD85E /* StateTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateTimelineView.swift; sourceTree = "<group>"; };
-		A3B382995D2F5C122C4CCC39 /* SimpleSpeakerEmbeddingExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleSpeakerEmbeddingExtractor.swift; sourceTree = "<group>"; };
 		AA655F26BAF42FB09BA0B876 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AE7DD2B0913F13875BCD8C6B /* HumanSenseDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = HumanSenseDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA87325FB108A579CD1F0CAA /* FaceMeshView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceMeshView.swift; sourceTree = "<group>"; };
@@ -55,6 +54,7 @@
 		D05A06993683BD21C2D6A38B /* GazeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeOverlay.swift; sourceTree = "<group>"; };
 		DC3B16039A0DA52B56CD92EF /* DiarizationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationTestView.swift; sourceTree = "<group>"; };
 		DDF934864FE15383E562580E /* GazeTrailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeTrailView.swift; sourceTree = "<group>"; };
+		EDCF98274091D3018ADDC1B5 /* GazeSpeakerEngine.swift.bak */ = {isa = PBXFileReference; path = GazeSpeakerEngine.swift.bak; sourceTree = "<group>"; };
 		F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GazeSpeakerEngine.swift; sourceTree = "<group>"; };
 		FF7EC60E3E2ECEAFDA45698A /* HandGestureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandGestureView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -127,7 +127,7 @@
 				57D2E68CB3026920745495F2 /* App.swift */,
 				AA655F26BAF42FB09BA0B876 /* ContentView.swift */,
 				F2B02E358251694CFF47B95D /* GazeSpeakerEngine.swift */,
-				A3B382995D2F5C122C4CCC39 /* SimpleSpeakerEmbeddingExtractor.swift */,
+				EDCF98274091D3018ADDC1B5 /* GazeSpeakerEngine.swift.bak */,
 				7DD034261D0491E4AB101A63 /* Views */,
 			);
 			path = Sources;
@@ -181,7 +181,6 @@
 				};
 			};
 			buildConfigurationList = 70655DE2D48AAC5FD3444740 /* Build configuration list for PBXProject "HumanSenseDemo" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -195,6 +194,7 @@
 				527B56CD100AC4DF941C648D /* XCRemoteSwiftPackageReference "HumanSenseKit" */,
 			);
 			preferredProjectObjectVersion = 77;
+			productRefGroup = FFEFC38670EB3317052C5787 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -210,6 +210,7 @@
 			files = (
 				93A1F24FA128BD597B1C8BBC /* Embedding.mlmodelc in Resources */,
 				A7864550103230F8DCBC9710 /* FBank.mlmodelc in Resources */,
+				5FE3C23B6CC1CDDEF1C249EF /* GazeSpeakerEngine.swift.bak in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,7 +237,6 @@
 				61F378F760D598C8D44C01CB /* HeadOrientationView.swift in Sources */,
 				401EDE19175AB5A176CBA52C /* MouthVisualizerView.swift in Sources */,
 				1F6A10960722D11F35B524B7 /* STTTestView.swift in Sources */,
-				025692AF507A8292A1F6F472 /* SimpleSpeakerEmbeddingExtractor.swift in Sources */,
 				773DC66EA0F850D1CD0B5014 /* StateCard.swift in Sources */,
 				83BCC24159451FF5AAF66C65 /* StateTimelineView.swift in Sources */,
 				0CA098EBC1671ADC7AA522F2 /* TokenTableView.swift in Sources */,
@@ -440,7 +440,7 @@
 			repositoryURL = "https://github.com/momomo-agent/HumanSenseKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 4.9.57;
+				minimumVersion = 4.9.71;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
