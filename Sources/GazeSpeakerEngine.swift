@@ -737,6 +737,7 @@ class GazeSpeakerEngine {
     }
 
     // 根据 token 时间范围内的 speaker 变化拆分 token
+    /// v145: Streaming 和 Final 统一算法 — 始终逐字拆分 + 逐字 diarization
     private func splitTokenBySpeakerChange(_ token: SpeechToken, isFinal: Bool) -> [TokenSegment] {
         let tokenKey = token.text + "_\(token.startTime)_\(token.endTime)"
         
@@ -744,25 +745,8 @@ class GazeSpeakerEngine {
         let dt = Float(max(0, token.startTime - lastTokenAudioTime))
         lastTokenAudioTime = token.startTime
 
-        // 只在 Final 阶段使用缓存
-        if isFinal, let cached = self.tokenColorMap[tokenKey] {
-            let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
-            let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: cached.score, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= perTokenThreshold
-            return [makeTokenSegment(
-                text: token.text, isUserSpeaker: isUser, score: cached.score,
-                audioTime: token.startTime, endTime: token.endTime,
-                jawDelta: jawDelta, jawVelocity: jawVelocity
-            )]
-        }
-
-        // v144: Streaming 阶段始终按字符拆分，每个字符独立做 diarization
-        // 这样即使 iOS 给的是一整句话，也能逐字过滤掉 AI 的部分
-        if !isFinal && token.text.count > 1 {
-            // 直接走 per-character split（下面的代码）
-        } else {
-            // Final 阶段或单字符：不拆分，整体评估
+        // 单字符：直接评估，不拆分
+        if token.text.count <= 1 {
             let result = querySpeakerAtTime(token.startTime)
             let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
             let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
@@ -779,23 +763,10 @@ class GazeSpeakerEngine {
             return [segment]
         }
 
-        // Stream 阶段：按字符平均拆分，每个字符独立判断 speaker
+        // 多字符：逐字拆分，每个字独立做 diarization（streaming 和 final 统一路径）
         let duration = token.endTime - token.startTime
         let charCount = token.text.count
-        guard charCount > 1 else {
-            let result = querySpeakerAtTime(token.startTime)
-            let jawDelta = calculateJawDelta(startTime: token.startTime, endTime: token.endTime)
-            let jawVelocity = calculateJawVelocity(startTime: token.startTime, endTime: token.endTime)
-            let userScore = calculateUserScore(score: result.1, jawDelta: jawDelta, jawVelocity: jawVelocity, timeDelta: dt)
-            let isUser = userScore >= perTokenThreshold
-            return [makeTokenSegment(
-                text: token.text, isUserSpeaker: isUser, score: result.1,
-                audioTime: token.startTime, endTime: token.endTime,
-                jawDelta: jawDelta, jawVelocity: jawVelocity
-            )]
-        }
-
-        let timePerChar = duration / Double(charCount)
+        let timePerChar = charCount > 0 ? duration / Double(charCount) : duration
         var segments: [TokenSegment] = []
         var currentSpeaker: Bool? = nil
         var currentText = ""
@@ -841,6 +812,13 @@ class GazeSpeakerEngine {
                 audioTime: currentStartTime, endTime: token.endTime,
                 jawDelta: jawDelta, jawVelocity: jawVelocity
             ))
+        }
+
+        // Final 阶段缓存结果
+        if isFinal {
+            let majorityUser = segments.filter { $0.isUserSpeaker }.count > segments.count / 2
+            let avgScore = segments.isEmpty ? Float(0) : segments.map { $0.score }.reduce(0, +) / Float(segments.count)
+            tokenColorMap[tokenKey] = (isUser: majorityUser, score: avgScore)
         }
 
         return segments
