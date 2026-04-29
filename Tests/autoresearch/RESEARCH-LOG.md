@@ -123,9 +123,11 @@ v49: F1=84.5%, FP=51               ← distRatio
 v51: R=95.9%, S=90.8%              ← 两阶段 rescue
 v61: F1=85.8%, FP=48, FN=18        ← 四合一 (interaction+FP filter+scoreAccel+jawEff)
 v61: R=95.9%, S=91.0%, F1=81.0%    ← 新双高 (四合一+rescue)
+v63: F1=86.6%, FP=49, FN=14        ← +scoreGap+scoreSlope（新纪录）
+v63: R=95.4%, S=94.0%, F1=85.6%    ← 新双高 (scoreGap+rescue)
 ```
 
-### Phase 9: 六方向全面探索 + 组合优化（v58-v61）
+### Phase 9: 六方向全面探索 + 组合优化（v58-v63）
 
 **v58: 六方向初筛**
 - Dir 1 非线性交互项: F1=84.6%（svW=0.5, svTh=1）— 微提升
@@ -166,9 +168,9 @@ v61: R=95.9%, S=91.0%, F1=81.0%    ← 新双高 (四合一+rescue)
 
 ## 最优配置
 
-### 均衡模式（F1 最优）— v61
+### 均衡模式（F1 最优）— v63
 ```
-R=91.7%, S=95.2%, F1=85.8%, TP=200, FP=48, FN=18
+R=93.6%, S=95.1%, F1=86.6%, TP=204, FP=49, FN=14
 ```
 参数（在 v49 基础上叠加）:
 - v49 全部特征（eTh/bW/pSH/pV/vsW/vsTh/smW/smTh/ssW/ssTh/svW_old/svTh_old/drW/drTh/t=4）
@@ -176,14 +178,16 @@ R=91.7%, S=95.2%, F1=85.8%, TP=200, FP=48, FN=18
 - FP 过滤: votes ≥ 4.25 且 dt=0 且 score < 0.35 → -1.75
 - Score 加速度: scoreAccel ≥ 1.5 → +0.75
 - Jaw 效率: jawEffMean5 < 4.5 → +0.25
+- **scoreGap: |finalScore - score| ≥ 0.425 → +1.75**
+- **scoreSlope: scoreSlope5 < -0.1 → +0.5**
 
-### 双高模式（R≥95%）— v61
+### 双高模式（R≥95%）— v63
 ```
-R=95.9%, S=91.0%, F1=81.0%, TP=209, FP=89, FN=9
+R=95.4%, S=94.0%, F1=85.6%, TP=208, FP=60, FN=10
 ```
 参数:
-- Stage 1: 四合一 + t=4
-- Rescue: hw=8, rTh=0.45, minVotes=1.25（用 predicted density）
+- Stage 1: v63 全部特征 + t=4
+- Rescue: hw=8, rTh=0.65, minVotes=0.5（用 predicted density）
 
 ---
 
@@ -199,6 +203,52 @@ R=95.9%, S=91.0%, F1=81.0%, TP=209, FP=89, FN=9
 8. **scoreAccel 只在 dt>0 时有效**（v60）：dt=0 时 scoreAccel=0（定义如此），但 dt>0 时 score 变化速率能区分用户和 AI
 9. **序列模型（HMM/Viterbi）无效**（v58）：forward/bidirectional 平滑都等于 baseline，说明投票系统已经隐式捕获了序列信息
 10. **分段决策/自适应阈值无效**（v58）：dt=0 vs dt>0 分开设阈值、根据局部信号调阈值，都不如统一投票
+
+**v62: 12 个新方向探索**
+- Dir A jawJerk (d=0.959): 无提升
+- Dir B scoreSlope5 (d=0.046): F1=85.9%（微提，sW=-0.5 sTh=-0.1）
+- Dir C jawAC 自相关 (d=0.858): 无提升
+- Dir D 多尺度窗口: 无提升
+- Dir E isFinal: 全部是 1，无区分度
+- **Dir F scoreGap |finalScore-score|: F1=86.6%（+0.8pp！）** w=1.75 th=0.425
+- Dir G jawWeight (d=1.214): 被现有特征覆盖
+- Dir H 比率特征: 无提升
+- Dir I EMA: 无提升
+- Dir J Logistic 变换: 无提升
+- Dir K score-vel 相关: 无提升
+- Dir L 阈值重优化: t=4 仍最优
+
+**关键发现**: scoreGap = |finalScore - score| 是新的强特征。当 gap 大时，说明 score 在快速变化（finalScore 是稳定后的值），这是用户说话的特征。
+
+**v63: scoreGap + scoreSlope 组合**
+- **均衡模式新纪录**: R=93.6%, S=95.1%, **F1=86.6%**, FP=49, FN=14
+- **双高模式新纪录**: R=95.4%, S=94.0%, F1=85.6%, FP=60, FN=10
+- jawWeight 单独加无额外提升（被现有特征覆盖）
+
+**v64: 残余 FN/FP 攻击**
+- Dir M finalScore 直接: 无提升
+- Dir N burstPos: 无提升
+- Dir O velRange/Max/Min: 无提升
+- Dir P score×jawDelta: 无提升
+- Dir Q FP 分析: 22 个 dt>0 FP 看起来跟真 user 几乎一样
+- Dir R 连续加权和: 无提升
+- Dir S 阈值扫描: t=4 仍最优
+
+**v65: 激进方向**
+- Dir T velConsistency: 无提升
+- Dir U burstScoreVar: 无提升
+- Dir V velMomentum: 无提升
+- Dir W dt序列模式: 无提升
+- Dir X 非线性变换: 无提升
+- Dir Y score依赖阈值: 无提升
+- Dir Z 多阈值集成: minVotes=3 等于 v63
+
+**v66: ML 方法对比**
+- Logistic Regression: 无法同时满足 R≥90% S≥90%（最佳无约束 R=96.3% S=85.9%）
+- AdaBoost (20 stumps): F1=77.4%（远不如手调）
+- k-NN (k=3-11): F1=57-64%（完全不行）
+- Hybrid Logistic (v63+残差): F1=83.0%（不如纯 v63）
+- **结论**: 手调投票系统的非线性阈值组合比线性 ML 更适合这个问题
 
 ## 脚本存档
 
