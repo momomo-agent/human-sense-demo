@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/FluidInference/FluidAudio.git",
       "state" : {
-        "revision" : "d302273d49ef4d8914b27f20d342be482e8810f1",
-        "version" : "0.14.1"
+        "revision" : "b82d4f2fc88aae6b2e405439de0957b9f923edd6",
+        "version" : "0.14.2"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/momomo-agent/HumanSenseKit.git",
       "state" : {
-        "revision" : "da3a1d4",
-        "version" : "4.9.68"
+        "revision" : "1ada916072677e7ac910155b33e6b4a4542fa1d3",
+        "version" : "4.9.69"
       }
     }
   ],
