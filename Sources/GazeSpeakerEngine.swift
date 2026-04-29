@@ -447,6 +447,22 @@ class GazeSpeakerEngine {
             return mean(vals)
         }
         
+        let headPitchAbs10: [Float] = (0..<N).map { i in
+            let t0 = tokens[i].audioTime
+            var vals: [Float] = []
+            var j = i
+            while j >= 0 && t0 - tokens[j].audioTime <= 10 {
+                vals.append(abs(tokens[j].headPitch))
+                j -= 1
+            }
+            j = i + 1
+            while j < N && tokens[j].audioTime - t0 <= 10 {
+                vals.append(abs(tokens[j].headPitch))
+                j += 1
+            }
+            return mean(vals)
+        }
+        
         // === 计算投票 ===
         var votes = [Float](repeating: 0, count: N)
         for i in 0..<N {
@@ -465,6 +481,7 @@ class GazeSpeakerEngine {
                 zoneScoreMean: scoreMean10[i],
                 gazeOnScreen: gazeOnScreen10[i],
                 headYawAbs: headYawAbs10[i],
+                headPitchAbs: headPitchAbs10[i],
                 faceDistance: faceDistance10[i]
             )
         }
@@ -529,6 +546,13 @@ class GazeSpeakerEngine {
         if headYawAbs > 0.4 {
             votes -= 2.0
         } else if headYawAbs > 0.25 {
+            votes -= 1.0
+        }
+        
+        // Head pitch 偏转太大 = 低头/抬头没看屏幕
+        if headPitchAbs > 0.4 {
+            votes -= 2.0
+        } else if headPitchAbs > 0.25 {
             votes -= 1.0
         }
         
