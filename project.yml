@@ -7,7 +7,7 @@ options:
 packages:
   HumanSenseKit:
     url: https://github.com/momomo-agent/HumanSenseKit.git
-    from: "4.9.83"
+    from: "4.9.84"
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio.git
     from: "0.7.8"
@@ -36,6 +36,8 @@ targets:
         CFBundleVersion: "1"
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
         UIRequiredDeviceCapabilities:
           - armv7
         UISupportedInterfaceOrientations:

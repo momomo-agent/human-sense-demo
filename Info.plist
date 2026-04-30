@@ -30,6 +30,10 @@
 	<string>用于检测设备姿态和行走状态</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>用于实时语音转文字</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
